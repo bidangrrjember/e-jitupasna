@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyChhitmqzejwtfatQNUClCGpSRk1Dr6wLfupJAAf16Yb4AQqKaShwFDPwdrj9IkWBk/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -8958,8 +8958,13 @@ window.OFFLINE = (function () {
   // Apps Script bisa tersendat sampai puluhan detik saat sibuk. Tanpa batas
   // waktu, petugas menatap tulisan "Mengirim..." tanpa kepastian sama sekali.
   // Lewat batas ini laporan masuk antrean dan dicoba lagi otomatis - aman,
-  // karena server sekarang menolak menyimpan laporan yang sama dua kali.
-  const BATAS_KIRIM_MS = 20000;
+  // karena server mengenali idKiriman dan tidak menyimpan kiriman yang sama
+  // dua kali (lihat PENGAMAN KIRIMAN GANDA di GAS).
+  //
+  // Dulu 20 detik: terlalu pendek untuk laporan berfoto. Server masih
+  // mengunggah foto ke Drive ketika halaman sudah menyerah, sehingga laporan
+  // yang sebenarnya tersimpan ikut masuk antrean dan dikirim ulang terus.
+  const BATAS_KIRIM_MS = 90000;
 
   async function kirimKeServer(payload) {
     // Sengaja TIDAK memakai mode:'no-cors'. Dengan no-cors balasan server
