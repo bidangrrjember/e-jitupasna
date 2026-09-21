@@ -5284,25 +5284,41 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     addPhotoBox.setAttribute('aria-live', 'polite');
                 }
             } else if (uploadButton) {
+                // Tombol progres: latar terisi dari kiri + cincin mini (lihat gaya rk-unggah-foto)
+                originalContent = uploadButton.innerHTML;
                 uploadButton.disabled = true;
-                uploadButton.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Mengunggah…';
+                uploadButton.classList.add('rkd-tombol-unggah');
+                uploadButton.setAttribute('aria-live', 'polite');
+                uploadButton.innerHTML =
+                    '<span class="rkd-tu-isi" aria-hidden="true"></span>' +
+                    '<svg class="rkd-tu-cincin" viewBox="0 0 20 20" aria-hidden="true"><circle class="jalur" cx="10" cy="10" r="7.5"/><circle class="isi" cx="10" cy="10" r="7.5" pathLength="100"/></svg>' +
+                    '<span class="rkd-tu-teks">Mengunggah</span><b class="rkd-tu-angka">0/' + filesToUpload.length + '</b>';
             }
             
             let filesUploaded = 0;
             const jumlahBerkas = filesToUpload.length;
             let urlPratinjau = null;
             // selesai = berkas yang sudah terkirim; sedang = nomor berkas yang sedang dikirim (0 = tidak ada)
+            const wadahProgres = jenisGaleri ? addPhotoBox : uploadButton;
             const aturUnggah = function (selesai, sedang) {
-                if (!addPhotoBox) return;
-                const isi = addPhotoBox.querySelector('.rkd-unggah-cincin .isi');
-                const angka = document.getElementById('upload-progress-text');
+                if (!wadahProgres) return;
+                const isi = wadahProgres.querySelector('.isi');
+                const pita = wadahProgres.querySelector('.rkd-tu-isi');
+                const angka = jenisGaleri ? document.getElementById('upload-progress-text') : wadahProgres.querySelector('.rkd-tu-angka');
                 if (angka) angka.textContent = (sedang || selesai) + '/' + jumlahBerkas;
-                if (!isi) return;
-                // selagi satu berkas dikirim, cincin merayap pelan ke ~85% bagiannya; begitu selesai, melompat penuh
+                // selagi satu berkas dikirim, progres merayap pelan ke ~85% bagiannya; begitu selesai, melompat penuh
                 const tuju = sedang ? (selesai + 0.85) / jumlahBerkas : selesai / jumlahBerkas;
-                isi.style.transition = sedang ? 'stroke-dashoffset 9s cubic-bezier(.1,.6,.3,1)' : 'stroke-dashoffset .35s ease';
-                void isi.getBoundingClientRect();
-                isi.style.strokeDashoffset = String(100 - tuju * 100);
+                const lambat = sedang ? '9s cubic-bezier(.1,.6,.3,1)' : '.35s ease';
+                if (isi) {
+                    isi.style.transition = 'stroke-dashoffset ' + lambat;
+                    void isi.getBoundingClientRect();
+                    isi.style.strokeDashoffset = String(100 - tuju * 100);
+                }
+                if (pita) {
+                    pita.style.transition = 'transform ' + lambat;
+                    void pita.getBoundingClientRect();
+                    pita.style.transform = 'scaleX(' + tuju + ')';
+                }
             };
             const tampilkanPratinjau = function (file) {
                 if (!addPhotoBox || !file || !/^image\//.test(file.type)) return;
@@ -5321,7 +5337,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
                         tampilkanPratinjau(file);
                         aturUnggah(filesUploaded, nomor);
                     } else if (uploadButton) {
-                        uploadButton.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Mengunggah ' + nomor + '/' + jumlahBerkas + '…';
+                        aturUnggah(filesUploaded, nomor);
                     }
                     const fileBase64 = await readFileAsBase64(file);
                     
@@ -5347,7 +5363,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     });
                     filesUploaded++;
-                    if (jenisGaleri) aturUnggah(filesUploaded, 0);
+                    aturUnggah(filesUploaded, 0);
                 }
 
                 // cincin penuh + centang sebentar sebelum panel ditutup
@@ -5357,6 +5373,13 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     if (angka) angka.innerHTML = '<span class="material-symbols-outlined">check</span>';
                     const label = addPhotoBox.querySelector('.rkd-unggah-label');
                     if (label) label.textContent = 'Terunggah';
+                    await new Promise(function (ok) { setTimeout(ok, 700); });
+                } else if (uploadButton) {
+                    uploadButton.classList.add('selesai');
+                    const teks = uploadButton.querySelector('.rkd-tu-teks');
+                    if (teks) teks.textContent = 'Terunggah';
+                    const angka = uploadButton.querySelector('.rkd-tu-angka');
+                    if (angka) angka.innerHTML = '<span class="material-symbols-outlined">check</span>';
                     await new Promise(function (ok) { setTimeout(ok, 700); });
                 }
                 if (urlPratinjau) URL.revokeObjectURL(urlPratinjau);
@@ -5381,7 +5404,9 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     addPhotoBox.removeAttribute('aria-live');
                 } else if (uploadButton) {
                     uploadButton.disabled = false;
-                    uploadButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span> Upload';
+                    uploadButton.classList.remove('rkd-tombol-unggah', 'selesai');
+                    uploadButton.removeAttribute('aria-live');
+                    uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Upload';
                 }
             }
         }
@@ -15450,7 +15475,24 @@ body.rk #sidebar .rkd-file::file-selector-button{margin-right:10px;height:30px;p
 .rkd-unggah-cincin b .material-symbols-outlined{font-size:18px;color:#2A9384;font-weight:700}
 .rkd-foto-unggah.ada-pratinjau .rkd-unggah-cincin b .material-symbols-outlined{color:#7FD6C6}
 .rkd-unggah-label{position:relative;z-index:1;font-size:10.5px;font-weight:600;letter-spacing:.01em;opacity:.85}
-@media (prefers-reduced-motion:reduce){.rkd-unggah-cincin .isi{transition:none !important}}
+/* tombol unggah dokumen yang sedang bekerja: tidak diredupkan, latar terisi sesuai kemajuan */
+.rkd-tombol-garis.rkd-tombol-unggah,.rkd-tombol-garis.rkd-tombol-unggah:disabled{position:relative;overflow:hidden;isolation:isolate;opacity:1;cursor:progress;
+  border-color:var(--rk-api,#E0600E);background:transparent;color:var(--rk-api,#E0600E);gap:7px;padding:0 12px}
+.rkd-tu-isi{position:absolute;inset:0;z-index:-1;transform-origin:left center;transform:scaleX(0);
+  background:color-mix(in srgb,var(--rk-api,#E0600E) 18%,transparent)}
+.rkd-tu-cincin{flex:0 0 auto;width:16px;height:16px;transform:rotate(-90deg)}
+.rkd-tu-cincin circle{fill:none;stroke-width:2.6}
+.rkd-tu-cincin .jalur{stroke:currentColor;opacity:.22}
+.rkd-tu-cincin .isi{stroke:currentColor;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}
+.rkd-tu-teks{font-weight:700}
+.rkd-tu-angka{font:600 11px/1 "DM Mono",ui-monospace,monospace;opacity:.8;display:inline-flex;align-items:center}
+.rkd-tu-angka .material-symbols-outlined{font-size:15px !important;font-weight:700}
+.rkd-tombol-garis.rkd-tombol-unggah.selesai{border-color:#2A9384;color:#2A9384}
+.rkd-tombol-unggah.selesai .rkd-tu-isi{background:color-mix(in srgb,#2A9384 16%,transparent)}
+html[data-saku] .rkd-tombol-garis.rkd-tombol-unggah{background:var(--sk-kartu);color:var(--sk-api,#E0600E);border-color:var(--sk-api,#E0600E)}
+html[data-saku] .rkd-tombol-unggah .rkd-tu-isi{background:color-mix(in srgb,var(--sk-api,#E0600E) 18%,transparent)}
+html[data-saku] .rkd-tombol-garis.rkd-tombol-unggah.selesai{color:#2A9384;border-color:#2A9384}
+@media (prefers-reduced-motion:reduce){.rkd-unggah-cincin .isi,.rkd-tu-cincin .isi,.rkd-tu-isi{transition:none !important}}
 
 /* ── kaki ── */
 .rkd-kaki{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;
