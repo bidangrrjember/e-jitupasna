@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbw57RFNdzk8DIEf-17CUHRCQ91_2obDd_dEN6alolyz7D6HOnGO_4bZxFcIzCOTJaUs/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxh6ZJlVVg9beYNU9MWqz-HnBL873jsZgZe5jfomgpEcXFRda9hu4QcvO1wgIfGq3nK/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -9901,6 +9901,12 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
         pesan.unshift(n + ' kolom diperbarui');
         const selaras = ringkasSelarasNama(hasil);
         if (selaras) pesan.push(selaras);
+        // folder Drive ikut dipindah/diganti nama bila tanggal atau identitas berubah
+        if (hasil && hasil.folder) {
+          if (hasil.folder.status === 'dipindah') pesan.push('Folder Drive dipindah ke ' + hasil.folder.ke);
+          else if (hasil.folder.status === 'diganti-nama') pesan.push('Nama folder Drive ikut dibetulkan');
+          else if (hasil.folder.status === 'gagal') pesan.push('⚠️ Folder Drive belum ikut dipindah: ' + (hasil.folder.message || ''));
+        }
 
         Object.keys(lokal).forEach(function (k) { item[k] = lokal[k]; });
         if (updates['Timestamp']) {
