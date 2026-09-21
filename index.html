@@ -472,9 +472,9 @@ html[data-saku="tab-rebah"] .sk-masuk-teks h1{font-size:44px}
   html[data-saku] #rk-splash .rk-cincin::after{animation-duration:6s}
 }
 </style>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> <title>Dashboard Peta Bencana</title> <link rel="icon" href="https://bidangrrjember.github.io/peta-bencana-jember/logo-bpbd.png" type="image/png"> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script> <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" /> <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js" charset="utf-8"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> <title>Dashboard Peta Bencana</title> <link rel="icon" href="https://bidangrrjember.github.io/peta-bencana-jember/logo-bpbd.png" type="image/png"> <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.css" /> <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.79.0/dist/L.Control.Locate.min.js" charset="utf-8"></script> <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script> <script src="https://npmcdn.com/flatpickr/dist/l10n/id.js"></script> <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <link rel="stylesheet" href="tailwind.css"> <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" /> <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/> <script>
       window.tailwind = window.tailwind || {};   /* CSS kini disusun di muka;
          objeknya tetap dibuat supaya baris di bawah tidak melempar, dan
@@ -3092,16 +3092,9 @@ data.forEach(item => {
             openSidebarWithData(item);
         });
         if (!layerGroups[bencana]) {
-            layerGroups[bencana] = L.markerClusterGroup({
-                showCoverageOnHover: false,
-                zoomToBoundsOnClick: true,
-                spiderfyOnMaxZoom: true,
-                disableClusteringAtZoom: 17,
-                maxClusterRadius: 50,
-                removeOutsideVisibleBounds: false,
-                animate: true,
-                animateAddingMarkers: true
-            }).addTo(map);
+            // Tanpa pengelompokan (cluster): setiap laporan tampil sebagai
+            // penandanya sendiri di semua tingkat zoom.
+            layerGroups[bencana] = L.featureGroup().addTo(map);
         }
 
         layerGroups[bencana].addLayer(marker);
