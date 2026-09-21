@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzrqQoANoW9HN19CNxR2WqEYvQfZMnFnbUJGyAtL6BWfpqddv0RsesiSfT_YrK5z8KH/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4766,9 +4766,24 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                     dateVal = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
                 }
                 inputHtml = `<input type="datetime-local" id="input-${fieldId}" value="${dateVal}" class="rkd-input">`;
+            } else if (inputType === 'rupiah' || inputType === 'angka' || inputType === 'koordinat') {
+                // Kotak angka: nilai mentah (tanpa "Rp"/titik ribuan) supaya bisa langsung disunting
+                const mentah = parseFloat(value);
+                const nilaiAngka = isFinite(mentah) ? String(mentah) : '';
+                const langkah = inputType === 'koordinat' ? 'any' : '1';
+                const minimum = inputType === 'koordinat' ? '' : ' min="0"';
+                const contoh = inputType === 'koordinat' ? (objKey === 'lat' ? 'contoh -8.1723' : 'contoh 113.7031') : (inputType === 'rupiah' ? 'dalam rupiah, tanpa titik' : '');
+                inputHtml = `<input type="number" inputmode="decimal" step="${langkah}"${minimum} id="input-${fieldId}" value="${nilaiAngka}" placeholder="${contoh}" class="rkd-input">`;
             } else {
                 inputHtml = `<input type="text" id="input-${fieldId}" value="${safeValue}" class="rkd-input">`;
             }
+
+            // Tampilan baca: angka diberi format
+            let tampil = value || '-';
+            const angkaTampil = parseFloat(value);
+            if (inputType === 'rupiah') tampil = isFinite(angkaTampil) ? formatRupiah(angkaTampil) : '-';
+            else if (inputType === 'koordinat') tampil = isFinite(angkaTampil) ? angkaTampil.toFixed(6) : '-';
+            else if (inputType === 'angka') tampil = isFinite(angkaTampil) ? angkaTampil.toLocaleString('id-ID') + (objKey === 'jumlahKeluarga' ? ' jiwa' : '') : '-';
 
             // Pensil per kolom sudah tidak ada: semua kotak dibuka sekaligus lewat
             // tombol "Edit" di kepala Informasi Utama. openInlineEdit() tetap
@@ -4784,7 +4799,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
             <div class="rkd-medan">
                 <p class="rkd-label">${label}</p>
                 <div id="view-${fieldId}" class="rkd-nilai-wadah">
-                    <p class="rkd-nilai${inputType === 'textarea' ? ' panjang' : ''}">${value || '-'}</p>
+                    <p class="rkd-nilai${inputType === 'textarea' ? ' panjang' : ''}">${tampil}</p>
                 </div>
                 <div id="edit-${fieldId}" data-kolom="${columnName}" data-objkey="${objKey}" data-tipe="${inputType}" class="hidden rkd-edit">
                     ${btnNarasiAI}
@@ -5386,7 +5401,25 @@ async function handleSidebarUpload(fileType, reportIndex) {
 
                 showNotification(jumlahBerkas + (jenisGaleri ? ' foto' : ' berkas') + ' berhasil diunggah.');
                 
-                closeSidebar(); 
+                const kotakTgl = (fileType === 'serahTerima' || fileType === 'monitoring') ? document.getElementById('input-tgl-' + fileType) : null;
+                if (kotakTgl && !kotakTgl.value) {
+                    // tanggalnya belum ada: panel dibiarkan terbuka dan kotak tanggal ditunjuk
+                    if (uploadButton) {
+                        uploadButton.disabled = false;
+                        uploadButton.classList.remove('rkd-tombol-unggah', 'selesai');
+                        uploadButton.removeAttribute('aria-live');
+                        uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Unggah';
+                    }
+                    fileInput.value = '';
+                    if (typeof rkPilihBerkas === 'function') rkPilihBerkas(fileInput);
+                    const wadahTgl = kotakTgl.closest('.rkd-tanggal');
+                    if (wadahTgl) wadahTgl.classList.add('rkd-tanggal-kosong', 'rkd-tanggal-sorot');
+                    kotakTgl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    setTimeout(function () { try { kotakTgl.focus(); } catch (e) {} }, 400);
+                    showNotification('Berkas terunggah. Sekarang isi ' + (fileType === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring') + ' - dipakai laporan bulanan.');
+                } else {
+                    closeSidebar();
+                } 
                 if(fetchInterval) clearInterval(fetchInterval);
                 fetchData(); 
                 fetchInterval = setInterval(fetchData, 5000);
@@ -5406,10 +5439,22 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     uploadButton.disabled = false;
                     uploadButton.classList.remove('rkd-tombol-unggah', 'selesai');
                     uploadButton.removeAttribute('aria-live');
-                    uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Upload';
+                    uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Unggah';
                 }
             }
         }
+
+	// Pemilih berkas di panel dokumen: nama berkas terpilih ditulis di kotaknya
+	function rkPilihBerkas(inp) {
+	    const kotak = inp.closest('.rkd-pilih');
+	    if (!kotak) return;
+	    const judul = kotak.querySelector('.rkd-pilih-teks b'), ket = kotak.querySelector('.rkd-pilih-teks s');
+	    const daftar = Array.from(inp.files || []);
+	    kotak.classList.toggle('terisi', daftar.length > 0);
+	    if (judul) judul.textContent = daftar.length ? daftar.length + ' berkas siap diunggah' : 'Pilih berkas';
+	    if (ket) ket.textContent = daftar.length ? daftar.map(function (x) { return x.name; }).join(', ') : (ket.dataset.kosong || '');
+	    if (kotak.title !== undefined) kotak.title = daftar.map(function (x) { return x.name; }).join('\n');
+	}
 
 	function formatRupiah(angka) {
             if (!angka || isNaN(parseFloat(angka)) || parseFloat(angka) === 0) {
@@ -5482,33 +5527,41 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
 
     const uploadHtml = isLoggedIn ? `
         <div class="rkd-unggah">
-            <input type="file" id="file-${tipeInput}-input"
-                   accept="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'image/png, image/jpeg, image/jpg' : '.pdf,.jpg,.jpeg,.png'}"
-                   multiple class="rkd-file">
+            <label class="rkd-pilih">
+                <input type="file" id="file-${tipeInput}-input"
+                       accept="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'image/png, image/jpeg, image/jpg' : '.pdf,.jpg,.jpeg,.png'}"
+                       multiple class="rkd-file rkd-file-tersembunyi" onchange="rkPilihBerkas(this)">
+                <span class="material-symbols-outlined">attach_file</span>
+                <span class="rkd-pilih-teks"><b>Pilih berkas</b><s data-kosong="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}">${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}</s></span>
+            </label>
             <div class="rkd-tombol-baris kiri">
                 <button id="upload-${tipeInput}-btn" onclick="handleSidebarUpload('${tipeInput}', '${idx}')" class="rkd-tombol-garis">
-                    <span class="material-symbols-outlined">cloud_upload</span> Upload
+                    <span class="material-symbols-outlined">cloud_upload</span> Unggah
                 </button>
                 ${cetakBtnHtml}
             </div>
         </div>
     ` : '';
 
+    // Berkas serah terima/monitoring sudah ada tapi tanggalnya belum diisi: laporan
+    // bulanan tidak bisa mencatat kapan tahap itu terjadi, jadi diingatkan di sini.
+    const tglKosong = (tipeInput === 'serahTerima' || tipeInput === 'monitoring') && jumlahBerkas > 0 && !tglValue;
     let dateInputHtml = '';
     if (tipeInput === 'serahTerima' || tipeInput === 'monitoring') {
         const labelTgl = tipeInput === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring';
         const colNameTgl = tipeInput === 'serahTerima' ? 'Tanggal Serah Terima' : 'Tanggal Monitoring';
         dateInputHtml = `
-            <label class="rkd-tanggal">
+            <label class="rkd-tanggal${tglKosong ? ' rkd-tanggal-kosong' : ''}">
                 <span class="rkd-label">${labelTgl}</span>
                 <input type="date" id="input-tgl-${tipeInput}" value="${tglValue || ''}"
-                       onchange="updateTanggalKeDatabase('${colNameTgl}', this.value, '${idx}')" class="rkd-input">
+                       onchange="if (this.value) this.closest('.rkd-tanggal').classList.remove('rkd-tanggal-kosong', 'rkd-tanggal-sorot'); updateTanggalKeDatabase('${colNameTgl}', this.value, '${idx}')" class="rkd-input">
+                <em class="rkd-tgl-peringatan"><span class="material-symbols-outlined">event_busy</span>Berkas sudah ada, tanggalnya belum diisi. Laporan bulanan memakai tanggal ini untuk mencatat kapan ${tipeInput === 'serahTerima' ? 'bantuan diserahkan' : 'monitoring dilakukan'}.</em>
             </label>`;
     }
 
-    const status = jumlahBerkas > 0
+    const status = (jumlahBerkas > 0
         ? `<span class="rkd-cip tuntas">${jumlahBerkas} berkas</span>`
-        : `<span class="rkd-cip kosong">Belum ada</span>`;
+        : `<span class="rkd-cip kosong">Belum ada</span>`) + (tglKosong ? `<span class="rkd-cip tunggu">Tanggal kosong</span>` : '');
 
     return `
         <div class="rkd-dok${jumlahBerkas > 0 ? ' ada' : ''}">
@@ -5950,6 +6003,11 @@ function openImagePreview(originalUrl) {
                         ${createEditableField(data, 'Desa/Kelurahan', data.desakelurahan, 'Desa/Kelurahan', 'desakelurahan', 'select', daftarDesa)}
                         ${createEditableField(data, 'Kecamatan', data.kec, 'Kecamatan', 'kec', 'select', daftarKecamatan)}
                         ${createEditableField(data, 'Jenis Bencana', data.bencana, 'Jenis Bencana', 'bencana', 'select', daftarBencana)}
+                        ${createEditableField(data, 'Jiwa Terdampak', data.jumlahKeluarga, 'Jumlah Keluarga', 'jumlahKeluarga', 'angka')}
+                        <div class="rkd-saat-edit">${createEditableField(data, 'Taksiran Kerugian', data.nilaiKerugian, 'Nilai Kerugian (Rp)', 'nilaiKerugian', 'rupiah')}</div>
+                        ${isLoggedIn ? createEditableField(data, 'Latitude', data.lat, 'Latitude', 'lat', 'koordinat') : ''}
+                        ${isLoggedIn ? createEditableField(data, 'Longitude', data.lng, 'Longitude', 'lng', 'koordinat') : ''}
+                        ${isLoggedIn && window.rkKalkulatorKerusakan ? '<div class="rkd-lebar rkd-saat-edit">' + rkKalkulatorKerusakan(data) + '</div>' : ''}
                         <div class="rkd-lebar">${createEditableField(data, 'Tanggal & Waktu Asesmen', data.tanggalWaktu, 'Timestamp', 'tanggalWaktu', 'datetime')}</div>
                         <div class="rkd-lebar">${createEditableField(data, 'Hasil Pengkajian Dampak', data.pengkajian, 'Pengkajian Dampak', 'pengkajian', 'textarea')}</div>
                     </div>
@@ -6879,40 +6937,18 @@ if (!lanjut) return;
 	    // =====================================================================
 // TAMBAHAN: KALKULASI NILAI KERUSAKAN & TINGKAT KERUSAKAN
 // =====================================================================
-const parsePersen = (val) => {
-    if (!val) return 0;
-    const match = val.match(/\((\d+)%\)/); // Ambil angka di dalam kurung e.g. (10%)
-    return match ? parseInt(match[1]) : 0;
-};
-
-// 1. Hitung Total Persentase Kerusakan
-const totalPersentase = 
-    parsePersen(formData.kerusakanPondasi) +
-    parsePersen(formData.kerusakanRangkaStruktur) +
-    parsePersen(formData.kerusakanRangkaAtap) +
-    parsePersen(formData.kerusakanPenutupAtap) +
-    parsePersen(formData.kerusakanLangit) +
-    parsePersen(formData.kerusakanDinding) +
-    parsePersen(formData.kerusakanLantai);
-
-// 2. Tentukan Kategori / Tingkat Kerusakan
-let tingkatKerusakan = "-";
-if (totalPersentase > 0) {
-    if (totalPersentase <= 29) tingkatKerusakan = "Rusak Ringan";
-    else if (totalPersentase <= 70) tingkatKerusakan = "Rusak Sedang";
-    else tingkatKerusakan = "Rusak Berat";
-}
-formData.tingkatKerusakan = tingkatKerusakan;
-
-// 3. Tentukan Harga Berdasarkan Konstruksi
-let hargaKonstruksi = 0;
-if (formData.jenisKonstruksi === "Non Permanen") hargaKonstruksi = 470000;
-else if (formData.jenisKonstruksi === "Semi Permanen") hargaKonstruksi = 950000;
-else if (formData.jenisKonstruksi === "Permanen") hargaKonstruksi = 2250000;
-
-// 4. Hitung Nilai Rupiah Kerusakan (Rumus: Luas x % x Harga)
-const luas = (parseFloat(formData.ukuranPanjang) || 0) * (parseFloat(formData.ukuranLebar) || 0);
-formData.nilaiKerusakan = luas * (totalPersentase / 100) * hargaKonstruksi;
+// Rumus kerusakan ada di satu tempat (rkHitungKerusakan) - dipakai formulir ini
+// dan kalkulator di panel Edit, jadi hasil keduanya tidak mungkin berbeda.
+// Persen tiap komponen diambil dari teks pilihan, mis. "Tulangan tertekuk (15%)".
+// Tingkat: 1-29% ringan, 30-70% sedang, >70% berat.
+// Nilai: panjang x lebar x persen x harga per m2 menurut jenis konstruksi.
+const hasilKerusakan = window.rkHitungKerusakan({
+    panjang: formData.ukuranPanjang, lebar: formData.ukuranLebar, konstruksi: formData.jenisKonstruksi,
+    komponen: [formData.kerusakanPondasi, formData.kerusakanRangkaStruktur, formData.kerusakanRangkaAtap,
+        formData.kerusakanPenutupAtap, formData.kerusakanLangit, formData.kerusakanDinding, formData.kerusakanLantai]
+});
+formData.tingkatKerusakan = hasilKerusakan.tingkat;
+formData.nilaiKerusakan = hasilKerusakan.nilai;
 // =====================================================================
 
             const disposisiFile = document.getElementById('fileDisposisi').files[0];
@@ -9815,9 +9851,22 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
     const lokal = {};            // untuk memperbarui salinan di memori
     let bantuanBaru = null;      // null = bantuan tidak disentuh
 
+    const salahIsian = [];
     blokEdit(idx).forEach(function (b) {
       const sekarang = bacaBlok(b.edit, idx);
       if (sekarang === b.edit.dataset.awal) return;   // tidak disentuh, lewati
+      const tipeAngka = ['rupiah', 'angka', 'koordinat'].indexOf(b.edit.dataset.tipe) !== -1;
+      if (tipeAngka) {
+        const kol = b.edit.dataset.kolom, n = parseFloat(String(sekarang).replace(',', '.'));
+        if (String(sekarang).trim() !== '' && !isFinite(n)) { salahIsian.push(kol + ' harus berupa angka'); return; }
+        if (kol === 'Latitude' && isFinite(n) && (n < -11 || n > -5)) { salahIsian.push('Latitude di luar Jawa Timur (contoh -8.1723)'); return; }
+        if (kol === 'Longitude' && isFinite(n) && (n < 110 || n > 116)) { salahIsian.push('Longitude di luar Jawa Timur (contoh 113.7031)'); return; }
+        if (kol !== 'Latitude' && kol !== 'Longitude' && isFinite(n) && n < 0) { salahIsian.push(kol + ' tidak boleh negatif'); return; }
+        const bersih = isFinite(n) ? n : '';
+        updates[kol] = bersih;
+        lokal[b.edit.dataset.objkey] = bersih;
+        return;
+      }
 
       if (b.edit.id === 'rekomendasi-edit-container') {
         updates['Rekomendasi'] = sekarang;
@@ -9845,6 +9894,20 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
       }
     });
 
+    // Kalkulator kerusakan: tingkat & nilai kerusakan dihitung ulang dari komponennya
+    const kalk = document.querySelector('#sidebar .rkd-kalk');
+    if (kalk && typeof window.rkBacaKalkulator === 'function') {
+      const hk = window.rkBacaKalkulator(kalk);
+      if (hk.berubah) {
+        if (hk.galat) salahIsian.push(hk.galat);
+        else { Object.assign(updates, hk.updates); Object.assign(lokal, hk.lokal); }
+      }
+    }
+    if (salahIsian.length) {
+      showNotification('Belum disimpan: ' + salahIsian.join('; ') + '.');
+      if (tombol) { tombol.disabled = false; tombol.innerHTML = rupaTombol; }
+      return;
+    }
     if (!Object.keys(updates).length && !bantuanBaru) {
       showNotification('Tidak ada yang diubah.');
       if (tombol) { tombol.disabled = false; tombol.innerHTML = rupaTombol; }
@@ -9917,6 +9980,8 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
       }
 
       showNotification(pesan.join(' · '));
+      // titik di peta ikut pindah bila koordinat dibetulkan
+      if ('Latitude' in updates || 'Longitude' in updates) { try { applyFiltersAndProcess(false); } catch (e) {} }
       openSidebarWithData(item);
 
     } catch (e) {
@@ -11748,7 +11813,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     pk.className = "rk-kaca";
     pk.innerHTML =
       '<div class="rk-kep"><h2 id="rk-kerja-judul">Paling lama menunggu</h2>' +
-      '<s id="rk-kerja-jml">0</s></div>' +
+      '<button type="button" id="rk-kerja-tgl" class="rk-kerja-tgl" hidden></button><s id="rk-kerja-jml">0</s></div>' +
       '<div class="rk-gulir"><ul id="rk-kerja-isi"></ul></div>' +
       '<div class="rk-kaki"><button type="button" id="rk-kerja-lain" class="rk-taut">' +
       'Lihat semua <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/><\/svg></button></div>';
@@ -11765,6 +11830,12 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
         return;
       }
       modeKerja = (modeKerja === "menunggu") ? "semua" : "menunggu";
+      gambarKerja();
+    });
+    // daftar laporan yang berkas serah terima/monitoringnya ada tapi tanggalnya kosong
+    document.getElementById("rk-kerja-tgl").addEventListener("click", function () {
+      if (typeof currentStatusFilter !== "undefined" && currentStatusFilter !== "all" && typeof filterByStatus === "function") filterByStatus(currentStatusFilter);
+      modeKerja = (modeKerja === "tanggal") ? "menunggu" : "tanggal";
       gambarKerja();
     });
 
@@ -11785,6 +11856,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       const PETA_STATUS = { terkaji: "salur", bantuan: "monitor", tuntas: "tuntas" };
       const filterStatus = (typeof currentStatusFilter !== "undefined") ? PETA_STATUS[currentStatusFilter] || null : null;
       const semua = modeKerja === "semua" || filterStatus === "tuntas";
+      const modeTanggal = modeKerja === "tanggal" && !filterStatus;
 
       const antre = data.map(function (it) {
         // memakai penilai status yang sama dengan dasbor, bukan tiruannya
@@ -11796,11 +11868,19 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
         /* Keadaan "tuntas" hanya ada di daftar semua-laporan. Di daftar
            menunggu ia memang tidak pernah muncul - itu yang membedakan
            kedua daftar, bukan gaya barisnya. */
+        const tg = window.rkTunggakan ? window.rkTunggakan(it) : null;
+        if (modeTanggal) {
+          if (!tg || !tg.tglKosong.length) return null;
+          const w0 = (it.dateObj && !isNaN(it.dateObj.getTime())) ? it.dateObj.getTime() : 0;
+          return { it: it, st: "tanggal", hari: tg.hari, waktu: w0, tg: tg };
+        }
         if (!st) { if (!semua) return null; st = "tuntas"; }
         if (filterStatus && st !== filterStatus) return null;
         const waktu = (it.dateObj && !isNaN(it.dateObj.getTime())) ? it.dateObj.getTime() : 0;
-        const hari = waktu ? Math.max(0, Math.floor((kini - waktu) / 86400000)) : 0;
-        return { it: it, st: st, hari: hari, waktu: waktu };
+        let hari = waktu ? Math.max(0, Math.floor((kini - waktu) / 86400000)) : 0;
+        // menunggu monitoring: dihitung sejak serah terima (bila tanggalnya ada), bukan sejak asesmen
+        if (tg && tg.st === st) hari = tg.hari;
+        return { it: it, st: st, hari: hari, waktu: waktu, tg: tg };
       }).filter(Boolean).sort(function (a, b) {
         /* Semua laporan: terbaru lebih dulu - jadi menurut waktu kejadian,
            bukan menurut lamanya menunggu. Butir tanpa tanggal (waktu 0)
@@ -11813,22 +11893,30 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
 
       const judul = document.getElementById("rk-kerja-judul");
       const JUDUL_STATUS = { salur: "Menunggu penyaluran", monitor: "Menunggu monitoring", tuntas: "Penanganan tuntas" };
-      if (judul) judul.textContent = filterStatus ? JUDUL_STATUS[filterStatus] : (semua ? "Semua laporan" : "Paling lama menunggu");
+      if (judul) judul.textContent = filterStatus ? JUDUL_STATUS[filterStatus] : modeTanggal ? "Tanggal belum diisi" : (semua ? "Semua laporan" : "Paling lama menunggu");
       const taut = document.getElementById("rk-kerja-lain");
       if (taut) {
         /* Panahnya dibiarkan apa adanya - hanya teksnya yang ditukar,
            jadi gerak dan bentuk tautannya tetap sama. */
         const simpul = taut.firstChild;
         if (simpul && simpul.nodeType === 3) {
-          simpul.nodeValue = filterStatus ? "Tampilkan semua status " : (semua ? "Yang menunggu " : "Lihat semua ");
+          simpul.nodeValue = filterStatus ? "Tampilkan semua status " : ((semua || modeTanggal) ? "Yang menunggu " : "Lihat semua ");
         }
       }
 
       const jml = document.getElementById("rk-kerja-jml");
       if (jml) jml.textContent = antre.length.toLocaleString("id-ID");
+      const tTgl = document.getElementById("rk-kerja-tgl");
+      if (tTgl) {
+        const nTgl = window.rkTunggakan ? data.filter(function (it) { const t = window.rkTunggakan(it); return t && t.tglKosong.length; }).length : 0;
+        tTgl.hidden = !nTgl && !modeTanggal;
+        tTgl.classList.toggle("aktif", modeTanggal);
+        tTgl.innerHTML = modeTanggal ? "Kembali" : '<span class="material-symbols-outlined">event_busy</span>' + nTgl + " tgl. kosong";
+        tTgl.title = modeTanggal ? "Kembali ke daftar menunggu" : nTgl + " laporan: berkas serah terima/monitoring ada, tanggalnya belum diisi";
+      }
 
       if (!antre.length) {
-        ul.innerHTML = '<li class="rk-kosong-kerja">' + (filterStatus ? "Tidak ada laporan dengan status ini." : "Tidak ada laporan yang menunggu.") + "</li>";
+        ul.innerHTML = '<li class="rk-kosong-kerja">' + (filterStatus ? "Tidak ada laporan dengan status ini." : modeTanggal ? "Semua tanggal serah terima &amp; monitoring sudah diisi." : "Tidak ada laporan yang menunggu.") + "</li>";
         return;
       }
       ul.innerHTML = antre.slice(0, filterStatus ? 200 : 40).map(function (r, i) {
@@ -11836,7 +11924,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
         const tempat = [it.desakelurahan, it.kec].filter(Boolean).join(", ");
         const sek = NAMA_SEKTOR[bakuSektor(it.sektor)] || "";
         const baris2 = [tempat, sek].filter(Boolean).join(" · ");
-        const cip = r.st === "salur"
+        const cip = r.st === "tanggal" ? '<span class="rk-cip t">Tgl. ' + esc(r.tg.tglKosong.join(" & ")) + " kosong</span>" : r.st === "salur"
           ? '<span class="rk-cip u">Belum disalurkan</span>'
           : (r.st === "tuntas"
             ? '<span class="rk-cip">Penanganan tuntas</span>'
@@ -11848,7 +11936,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
             Number(it.bantuan[p[0]]).toLocaleString("id-ID") + "</span>";
         }
         return '<li data-i="' + i + '">' +
-          '<span class="rk-jam"><b' + (r.st === "salur" ? ' class="u"' : "") + ">" + r.hari +
+          '<span class="rk-jam' + (r.tg && r.tg.telat && r.st !== "tanggal" ? ' telat" title="Menunggu lebih dari ' + window.rkTunggakan.BATAS + ' hari sejak ' + r.tg.sejak : '') + '"><b' + (r.st === "salur" ? ' class="u"' : "") + ">" + r.hari +
           "</b><s>hari</s></span>" +
           '<div class="rk-det"><div class="rk-a">' + esc(it.nama || "-") + "</div>" +
           '<div class="rk-b">' + esc(baris2 || "-") + "</div>" +
@@ -16112,7 +16200,10 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
         baris("Muat ulang sekarang", '<span id="rkp-tarik-info">&nbsp;</span>',
           '<button type="button" class="rkd-tombol-garis" id="rkp-tarik"><span class="material-symbols-outlined">refresh</span> Muat ulang</button>') +
         baris("Rentang saringan bawaan", "Rentang waktu yang langsung terpilih di panel saringan saat web dibuka.",
-          seg("rentangBawaan", [["all", "Semua"], ["tahun", "Tahun ini"], ["90", "90 hari"], ["30", "30 hari"]]))) +
+          seg("rentangBawaan", [["all", "Semua"], ["tahun", "Tahun ini"], ["90", "90 hari"], ["30", "30 hari"]])) +
+        baris("Periksa laporan ganda", "Mencari pasangan laporan yang kemungkinan sama: nama KK sama atau sangat mirip, desa sama atau titiknya berdekatan (maks. 300 m), dan tanggal asesmen berdekatan (maks. 60 hari). Hasilnya hanya untuk dicek - tidak ada yang dihapus otomatis.",
+          '<button type="button" class="rkd-tombol-garis" id="rkp-ganda"><span class="material-symbols-outlined">plagiarism</span> Periksa sekarang</button>' +
+          '<div id="rkp-ganda-hasil" class="rkg-hasil" hidden></div>', "tumpuk")) +
 
       bagian("rkp-notif", "04", "Notifikasi", "Notifikasi", "Apa yang terjadi saat laporan baru masuk.",
         baris("Suara laporan baru", "", sakelar("suara", "Suara laporan baru")) +
@@ -16398,6 +16489,108 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
       if (jadwal) return;
       jadwal = requestAnimationFrame(function () { jadwal = 0; tandaiLoncat(); });
     }, { passive: true });
+
+    /* ── periksa laporan ganda ─────────────────────────────────────────── */
+    const KUNCI_BUKAN_GANDA = "rk-bukan-ganda";
+    const bacaBukanGanda = function () { try { return JSON.parse(localStorage.getItem(KUNCI_BUKAN_GANDA) || "[]"); } catch (e) { return []; } };
+    const rataTeks = function (v) { return String(v == null ? "" : v).toLowerCase().replace(/\s+/g, " ").trim(); };
+    const normNama = function (v) {
+      return rataTeks(v).replace(/\([^)]*\)/g, " ").replace(/\b(bapak|bpk|pak|ibu|bu|alm|almh|almarhum|almarhumah|hj|haji|hajah|h)\b\.?/g, " ")
+        .replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+    };
+    const miripNama = function (a, b) {
+      if (!a || !b) return 0;
+      if (a === b) return 1;
+      const m = a.length, n = b.length; let prev = []; for (let j = 0; j <= n; j++) prev[j] = j;
+      for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+      return 1 - prev[n] / Math.max(m, n);
+    };
+    const jarakMeter = function (a, b) {
+      const la1 = parseFloat(a.lat), ln1 = parseFloat(a.lng), la2 = parseFloat(b.lat), ln2 = parseFloat(b.lng);
+      if (![la1, ln1, la2, ln2].every(isFinite) || !la1 || !la2) return null;
+      const r = Math.PI / 180, dLa = (la2 - la1) * r, dLn = (ln2 - ln1) * r;
+      const h = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dLn / 2) * Math.sin(dLn / 2);
+      return 6371000 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+    };
+    function cariLaporanGanda() {
+      const semua = (Array.isArray(window.rkDataAsli) ? window.rkDataAsli : (typeof allData !== "undefined" ? allData : []))
+        .filter(function (it) { return it && it.dateObj && !isNaN(it.dateObj) && normNama(it.nama); });
+      const abaikan = bacaBukanGanda(), hasil = [];
+      for (let i = 0; i < semua.length; i++) for (let j = i + 1; j < semua.length; j++) {
+        const a = semua[i], b = semua[j];
+        const hari = Math.abs(a.dateObj - b.dateObj) / 864e5;
+        if (hari > 60) continue;
+        const na = normNama(a.nama), nb = normNama(b.nama), mirip = miripNama(na, nb);
+        if (mirip < 0.85 || (mirip < 1 && Math.min(na.length, nb.length) < 5)) continue;
+        const desaSama = !!rataTeks(a.desakelurahan) && rataTeks(a.desakelurahan) === rataTeks(b.desakelurahan) && rataTeks(a.kec) === rataTeks(b.kec);
+        const jarak = jarakMeter(a, b);
+        if (!desaSama && !(jarak !== null && jarak <= 300)) continue;
+        const kunci = [a.timestamp, b.timestamp].map(String).sort().join("|");
+        if (abaikan.indexOf(kunci) !== -1) continue;
+        const jenisSama = rataTeks(a.bencana) === rataTeks(b.bencana);
+        const kuat = mirip === 1 && jenisSama && hari <= 7;
+        hasil.push({ a: a.dateObj <= b.dateObj ? a : b, b: a.dateObj <= b.dateObj ? b : a, mirip: mirip, hari: hari, desaSama: desaSama, jarak: jarak, jenisSama: jenisSama, kuat: kuat, kunci: kunci });
+      }
+      hasil.sort(function (x, y) { return (y.kuat - x.kuat) || (x.hari - y.hari); });
+      return hasil;
+    }
+    const bukaLaporanDariPengaturan = async function (it) {
+      if (document.documentElement.dataset.saku && window.rkSaku2) {
+        try { await window.rkSaku2.pergi("peta"); } catch (e) {}
+        try { window.rkSaku2.detail(it); } catch (e) { openSidebarWithData(it); }
+        return;
+      }
+      tutup();
+      setTimeout(function () {
+        try { const la = parseFloat(it.lat), ln = parseFloat(it.lng); if (isFinite(la) && isFinite(ln) && la) map.flyTo([la, ln], 16); } catch (e) {}
+        openSidebarWithData(it);
+      }, 320);
+    };
+    function gambarGanda() {
+      const wadah = $("rkp-ganda-hasil");
+      const hasil = cariLaporanGanda();
+      wadah.hidden = false;
+      if (!hasil.length) { wadah.innerHTML = '<p class="rkg-kosong"><span class="material-symbols-outlined">task_alt</span>Tidak ditemukan laporan yang kemungkinan ganda.</p>'; return; }
+      const e = function (v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+      const rpx = function (v) { const n = parseFloat(v); try { return isFinite(n) ? formatRupiah(n) : "-"; } catch (x) { return isFinite(n) ? "Rp " + n.toLocaleString("id-ID") : "-"; } };
+      const kartu = function (it, sisi) {
+        const foto = (it.photos || []).filter(Boolean).length;
+        return '<div class="rkg-lap"><s>' + sisi + " · " + e(it.dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })) + " " +
+          e(it.dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })) + "</s><b>" + e(it.nama) + "</b>" +
+          "<em>" + e([it.desakelurahan, it.kec].filter(Boolean).join(", ")) + " · " + e(it.bencana || "-") + "</em>" +
+          "<em>Kerusakan " + rpx(it.nilaiKerusakan) + " · " + foto + " foto</em>" +
+          '<button type="button" class="rkd-tombol-garis kecil" data-buka="' + e(it.timestamp) + '"><span class="material-symbols-outlined">open_in_new</span> Buka</button></div>';
+      };
+      wadah.innerHTML = '<p class="rkg-ringkas">' + hasil.length + " pasangan perlu dicek" + (hasil.some(function (h) { return h.kuat; }) ? " · " + hasil.filter(function (h) { return h.kuat; }).length + " sangat mirip" : "") + ". Buka keduanya, lalu hapus baris yang salah di spreadsheet.</p>" +
+        hasil.map(function (h) {
+          const alasan = [h.mirip === 1 ? "nama sama" : "nama mirip " + Math.round(h.mirip * 100) + "%", h.desaSama ? "desa sama" : "",
+            h.jarak !== null ? "jarak " + (h.jarak < 1000 ? Math.round(h.jarak) + " m" : (h.jarak / 1000).toFixed(1) + " km") : "",
+            h.hari < 1 ? "hari yang sama" : "selisih " + Math.round(h.hari) + " hari", h.jenisSama ? "jenis bencana sama" : "jenis bencana beda"].filter(Boolean);
+          return '<div class="rkg-pasang' + (h.kuat ? " kuat" : "") + '" data-kunci="' + e(h.kunci) + '"><div class="rkg-pasang-kep"><span class="rkg-tingkat">' + (h.kuat ? "Sangat mirip" : "Perlu dicek") + "</span>" +
+            '<span class="rkg-alasan">' + alasan.map(e).join(" · ") + '</span><button type="button" class="rkg-abaikan" data-abaikan="' + e(h.kunci) + '">Bukan ganda</button></div>' +
+            '<div class="rkg-dua">' + kartu(h.a, "Lebih dulu") + kartu(h.b, "Lebih baru") + "</div></div>";
+        }).join("");
+    }
+    $("rkp-ganda").addEventListener("click", function () {
+      if (!admin()) { beriTahu("Masuk sebagai petugas dulu untuk memeriksa laporan ganda."); return; }
+      gambarGanda();
+    });
+    $("rkp-ganda-hasil").addEventListener("click", function (ev) {
+      const buka = ev.target.closest("[data-buka]");
+      if (buka) {
+        const semua = Array.isArray(window.rkDataAsli) ? window.rkDataAsli : allData;
+        const it = semua.find(function (x) { return String(x.timestamp) === buka.dataset.buka; });
+        if (it) bukaLaporanDariPengaturan(it);
+        return;
+      }
+      const ab = ev.target.closest("[data-abaikan]");
+      if (ab) {
+        const daftar = bacaBukanGanda(); daftar.push(ab.dataset.abaikan);
+        try { localStorage.setItem(KUNCI_BUKAN_GANDA, JSON.stringify(daftar)); } catch (e) {}
+        gambarGanda();
+        beriTahu("Ditandai bukan ganda - tidak akan muncul lagi di perangkat ini.");
+      }
+    });
 
     $("rkp-tarik").addEventListener("click", function () {
       if (window.rkIrama && window.rkIrama.paksa) window.rkIrama.paksa();
@@ -18698,11 +18891,19 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
   function antrean() {
     return semua().map(function (it) {
       const st = statusOf(it);
-      return st === "tuntas" ? null : { it: it, st: st, hari: hariSejak(it) };
+      if (st === "tuntas") return null;
+      // monitoring dihitung sejak serah terima bila tanggalnya ada
+      const tg = window.rkTunggakan ? window.rkTunggakan(it) : null;
+      return { it: it, st: st, hari: tg && tg.st === st ? tg.hari : hariSejak(it), telat: !!(tg && tg.telat) };
     }).filter(Boolean).sort(function (a, b) {
       if (a.st !== b.st) return a.st === "salur" ? -1 : 1;
       return b.hari - a.hari;
     });
+  }
+  function tanggalKosong() {
+    if (!window.rkTunggakan) return [];
+    return semua().map(function (it) { const t = window.rkTunggakan(it); return t && t.tglKosong.length ? { it: it, t: t } : null; }).filter(Boolean)
+      .sort(function (a, b) { return b.t.hari - a.t.hari; });
   }
   function statusAktif() { return (typeof currentStatusFilter !== "undefined") ? currentStatusFilter : "all"; }
   const CIP = { salur: ["merah", "Salurkan"], monitor: ["emas", "Monitor"], tuntas: ["laut", "Tuntas"] };
@@ -18806,7 +19007,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       }).join("") + "</div>";
   }
   function htmlBarisKerja(a) {
-    return '<button type="button" class="sk-baris" data-idx="' + a.it.idx + '"><span class="sk-jam"><b class="sk-tebal"' + (a.st === "salur" ? ' style="color:var(--sk-api)"' : "") + ">" + a.hari +
+    return '<button type="button" class="sk-baris" data-idx="' + a.it.idx + '"><span class="sk-jam"><b class="sk-tebal"' + (a.telat ? ' style="color:var(--sk-merah,#E5534B)" title="Menunggu lebih dari 30 hari"' : a.st === "salur" ? ' style="color:var(--sk-api)"' : "") + ">" + a.hari +
       '</b><s>hari</s></span><span class="sk-det"><b>' + esc(a.it.nama || "-") + "</b><s>" + esc([a.it.desakelurahan, a.it.kec].filter(Boolean).join(", ")) +
       '</s></span><span class="sk-cip ' + CIP[a.st][0] + '">' + CIP[a.st][1] + "</span></button>";
   }
@@ -18817,6 +19018,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       '<div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:' + (judulUkuran || 14.5) + 'px">Paling lama menunggu</b><span class="sk-mono sk-kanan" style="color:var(--sk-api);font-size:12px">' + fmt(q.length) + "</span></div>" +
       '<div class="sk-daftar" style="margin-top:4px">' + (baris.length ? baris.map(htmlBarisKerja).join("") : '<div class="sk-kosong">Tidak ada laporan yang menunggu.</div>') +
       (q.length > jumlahBaris ? '<button type="button" class="sk-baris" data-aksi="semua-antrean" style="justify-content:center;color:var(--sk-api);font-size:12.5px;font-weight:700">Lihat semua ' + fmt(q.length) + "</button>" : "") +
+      (function () { const n = tanggalKosong().length; return n ? '<button type="button" class="sk-baris" data-aksi="tanggal-kosong" style="justify-content:space-between;gap:10px;color:var(--sk-emas,#C98A12);font-size:12.5px;font-weight:700"><span>Tanggal serah terima/monitoring belum diisi</span><span class="sk-mono">' + fmt(n) + "</span></button>" : ""; })() +
       "</div></div>";
   }
 
@@ -19867,7 +20069,12 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       case "ke-cuaca": pergi("cuaca"); break;
       case "semua-antrean":
         bukaPilih("Menunggu penanganan", antrean().slice(0, 80).map(function (x) {
-          return { label: x.it.nama || "-", sub: x.hari + " hari · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
+          return { label: x.it.nama || "-", sub: x.hari + " hari" + (x.telat ? " (lewat 30 hari)" : "") + " · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
+        }), function (o) { bukaDetail(o.it); });
+        break;
+      case "tanggal-kosong":
+        bukaPilih("Tanggal belum diisi", tanggalKosong().slice(0, 80).map(function (x) {
+          return { label: x.it.nama || "-", sub: "Tgl. " + x.t.tglKosong.join(" & ") + " kosong · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", "), it: x.it };
         }), function (o) { bukaDetail(o.it); });
         break;
       case "pilih-kec": {
@@ -21454,37 +21661,56 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     return Math.round((y - x) / 864e5);
   };
   const tglPendek = function (d) { return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }); };
-  function tahapan(it) {
+  // acuan (opsional): tanggal sudut pandang, mis. akhir bulan laporan. Tahap yang
+  // baru terjadi SETELAH acuan dianggap belum terjadi, dan lama menunggu dihitung
+  // sampai acuan. Tanpa acuan (dasbor, laporan tahunan) = keadaan hari ini.
+  function tahapan(it, acuan) {
     let dibantu = false, terpal = false;
     try { dibantu = checkIsDibantu(it); terpal = checkIsOnlyTerpal(it); } catch (e) {}
-    const kaji = it.dateObj, kini = new Date();
+    const kaji = it.dateObj, sekarang = new Date();
+    const pakaiAcuan = !!acuan && acuan < sekarang;
+    const kini = pakaiAcuan ? acuan : sekarang;
     const serahMentah = tglAman(it.tglSerahTerima), monMentah = tglAman(it.tglMonitoring);
     // Tanggal salah ketik (mis. 2002-03-09) atau urutannya mustahil tidak dipakai
     // untuk hitungan hari - tetap ditampilkan dengan tanda "perlu dicek".
-    const wajar = function (d, sesudah) { return d && (!sesudah || hariAntara(sesudah, d) >= 0) && hariAntara(d, kini) >= 0; };
-    const serah = wajar(serahMentah, kaji) ? serahMentah : null;
-    const mon = wajar(monMentah, serah || kaji) ? monMentah : null;
+    const wajar = function (d, sesudah) { return d && (!sesudah || hariAntara(sesudah, d) >= 0) && hariAntara(d, sekarang) >= 0; };
+    const serahSah = wajar(serahMentah, kaji) ? serahMentah : null;
+    const monSah = wajar(monMentah, serahSah || kaji) ? monMentah : null;
+    const serahNanti = pakaiAcuan && serahSah && hariAntara(kini, serahSah) > 0;
+    const monNanti = pakaiAcuan && monSah && hariAntara(kini, monSah) > 0;
+    const serah = serahNanti ? null : serahSah, mon = monNanti ? null : monSah;
     const cek = function (d, mentah) { return { k: "selesai", teks: d ? tglPendek(d) : String(mentah), ket: "tanggal perlu dicek" }; };
     const t = { kaji: kaji, serahTgl: serah, monTgl: mon, dibantu: dibantu, terpal: terpal, status: statusOf(it) };
     // tiap langkah: keadaan (selesai | tunggu | lewat), teks utama, keterangan
+    const tunggSerah = { k: "tunggu", teks: "Belum disalurkan", ket: kaji ? "menunggu " + hariAntara(kaji, kini) + " hari" : "" };
     if (!dibantu) t.serah = { k: "lewat", teks: "Tanpa bantuan", ket: "" };
-    else if (serahMentah && !serah) t.serah = cek(serahMentah, it.tglSerahTerima);
+    else if (serahNanti) t.serah = tunggSerah;
+    else if (serahMentah && !serahSah) t.serah = cek(serahMentah, it.tglSerahTerima);
     else if (serah) t.serah = { k: "selesai", teks: tglPendek(serah), ket: kaji ? hariAntara(kaji, serah) + " hari setelah pengkajian" : "" };
     else if (it.linkSerahTerima) t.serah = { k: "selesai", teks: "Selesai", ket: "tanggal tidak dicatat" };
     else if (monMentah || it.linkMonitoring) t.serah = { k: "selesai", teks: "Selesai", ket: "tanggal tidak dicatat" };
     else if (terpal) t.serah = { k: "selesai", teks: "Terpal", ket: "diserahkan saat pengkajian" };
-    else t.serah = { k: "tunggu", teks: "Belum disalurkan", ket: kaji ? "menunggu " + hariAntara(kaji, kini) + " hari" : "" };
+    else t.serah = tunggSerah;
 
+    const tunggMon = { k: "tunggu", teks: "Belum dimonitor", ket: serah ? "menunggu " + hariAntara(serah, kini) + " hari" : "" };
     if (!dibantu || (terpal && !monMentah && !it.linkMonitoring)) t.mon = { k: "lewat", teks: "Tidak diperlukan", ket: "" };
-    else if (monMentah && !mon) t.mon = cek(monMentah, it.tglMonitoring);
+    else if (monNanti) t.mon = t.serah.k === "selesai" ? tunggMon : { k: "lewat", teks: "Belum", ket: "setelah serah terima" };
+    else if (monMentah && !monSah) t.mon = cek(monMentah, it.tglMonitoring);
     else if (mon) t.mon = { k: "selesai", teks: tglPendek(mon), ket: serah ? hariAntara(serah, mon) + " hari setelah serah terima" : "" };
     else if (it.linkMonitoring) t.mon = { k: "selesai", teks: "Selesai", ket: "tanggal tidak dicatat" };
-    else if (t.serah.k === "selesai") t.mon = { k: "tunggu", teks: "Belum dimonitor", ket: serah ? "menunggu " + hariAntara(serah, kini) + " hari" : "" };
+    else if (t.serah.k === "selesai") t.mon = tunggMon;
     else t.mon = { k: "lewat", teks: "Belum", ket: "setelah serah terima" };
+    // status per acuan diturunkan dari langkahnya; tanpa acuan tetap sama seperti dasbor
+    if (pakaiAcuan) t.status = !dibantu ? "tuntas" : t.serah.k === "tunggu" ? "salur" : t.mon.k === "tunggu" ? "monitor" : "tuntas";
     return t;
   }
-  function tahapHtml(it) {
-    const t = tahapan(it);
+  // akhir bulan laporan (atau hari ini bila bulannya belum selesai)
+  function acuanBulan(k) {
+    const p = k.split("-"), akhir = new Date(+p[0], +p[1], 0, 23, 59, 59), kini = new Date();
+    return akhir < kini ? akhir : kini;
+  }
+  function tahapHtml(it, acuan) {
+    const t = tahapan(it, acuan);
     const langkah = function (nama, l) {
       return '<div class="th th-' + l.k + '"><i></i><s>' + nama + "</s><b>" + esc(l.teks) + "</b>" + (l.ket ? "<em>" + esc(l.ket) + "</em>" : "") + "</div>";
     };
@@ -21924,6 +22150,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
 
   function susunDokumen(k, opsi) {
     const daftar = laporanBulan(k);
+    const acuan = acuanBulan(k);        // status di laporan bulanan = posisi per akhir bulan
     const p = k.split("-");
     const lalu = kunciBulan(new Date(+p[0], +p[1] - 2, 1));
     const jumlahLalu = laporanBulan(lalu).length;
@@ -21936,7 +22163,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const tingkat = { "Rusak Ringan": 0, "Rusak Sedang": 0, "Rusak Berat": 0 };
     daftar.forEach(function (it) { if (tingkat[it.kerusakan] !== undefined) tingkat[it.kerusakan]++; });
     const status = { salur: 0, monitor: 0, tuntas: 0 };
-    daftar.forEach(function (it) { status[statusOf(it)]++; });
+    daftar.forEach(function (it) { status[tahapan(it, acuan).status]++; });
     let dibantu = 0; daftar.forEach(function (it) { try { if (checkIsDibantu(it)) dibantu++; } catch (e) {} });
     const jenis = urutJenis(daftar);
     const disusun = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
@@ -21995,7 +22222,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     }
 
     const rincian = daftar.map(function (it, i) {
-      const st = statusOf(it);
+      const st = tahapan(it, acuan).status;
       const jenisW = KEC_KOTA.indexOf(String(it.kec || "").toLowerCase().trim()) >= 0 ? "Kelurahan" : "Desa";
       const alamat = [it.jalandusun && it.jalandusun !== "-" ? it.jalandusun : "",
         (it.rt && it.rt !== "-") || (it.rw && it.rw !== "-") ? "RT " + (it.rt || "-") + " / RW " + (it.rw || "-") : "",
@@ -22020,7 +22247,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
           sel("Jiwa terdampak", adaAngka(it.jumlahKeluarga) ? angka(it.jumlahKeluarga) + " jiwa" : "-") +
           sel("Status rumah", esc(it.statusRumah && it.statusRumah !== "-" ? it.statusRumah : "")) +
         "</div>" +
-        tahapHtml(it) +
+        tahapHtml(it, acuan) +
         (it.pengkajian && it.pengkajian !== "-" ? '<div class="blok"><s>Pengkajian dampak</s><p>' + esc(it.pengkajian) + "</p></div>" : "") +
         (it.rekomendasi && it.rekomendasi !== "-" ? '<div class="blok"><s>Rekomendasi</s><p>' + esc(it.rekomendasi) + "</p></div>" : "") +
         (bantuan.length ? '<div class="blok"><s>Bantuan</s><div class="cip-daftar">' + bantuan.map(function (b) { return '<span class="cip lembut">' + esc(b) + "</span>"; }).join("") + "</div></div>" : "") +
@@ -22173,7 +22400,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
       (opsi.sematkan ? "" : '<div class="alat"><b>Laporan ' + esc(judulBulan) + '</b><span id="status">Menyiapkan…</span><button id="cetak" type="button">Simpan PDF</button></div>') +
       '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
         (tlHtml ? (daftar.length ? '<div class="halaman-baru"></div>' : '') + tlHtml : "") +
-        (daftar.length ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian kejadian</h2><span>' + daftar.length + " laporan · urut tanggal</span></div>" + rincian : "") +
+        (daftar.length ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian kejadian</h2><span>' + daftar.length + " laporan · urut tanggal · status per " + esc(acuan.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })) + "</span></div>" + rincian : "") +
         '<p class="penutup">Angka taksiran mengikuti rumus pengkajian JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
       "</main>" + (opsi.sematkan ? "" : "<script>" + skrip + "<\/script>") + "<\/body><\/html>";
     return { html: html, jumlah: daftar.length, foto: jumlahFoto, sampul: sampulData.desain };
@@ -22929,6 +23156,89 @@ html[data-saku] #rkg-menu hr{background:var(--sk-garis,rgba(255,255,255,.1))}
 html[data-saku] #rkg-menu button.rkg-bahaya,html[data-saku] #rkg-menu button.rkg-bahaya .material-symbols-outlined{color:#E5534B}
 html[data-saku] .rkd-foto-pindah{width:34px;height:34px;border-radius:12px}
 html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
+/* (2) kolom angka kerusakan hanya muncul saat Edit - saat dibaca sudah tampil di kepala panel */
+#sidebar:not(.rkd-menyunting) .rkd-saat-edit{display:none}
+/* (5) pemilih berkas di panel dokumen */
+body.rk #sidebar .rkd-file-tersembunyi{position:absolute;width:1px;height:1px;margin:0;padding:0;opacity:0;overflow:hidden;pointer-events:none}
+body.rk #sidebar .rkd-pilih{position:relative;display:flex;align-items:center;gap:10px;width:100%;min-width:0;padding:10px 12px;border:1.5px dashed var(--rk-sekat);
+  border-radius:11px;cursor:pointer;color:var(--rk-tinta);transition:border-color .15s,background-color .15s}
+body.rk #sidebar .rkd-pilih:hover{border-color:var(--rk-api)}
+body.rk #sidebar .rkd-pilih:focus-within{outline:2px solid var(--rk-api);outline-offset:2px}
+body.rk #sidebar .rkd-pilih > .material-symbols-outlined{flex:0 0 auto;font-size:20px;color:var(--rk-api)}
+body.rk #sidebar .rkd-pilih-teks{display:flex;flex-direction:column;min-width:0}
+body.rk #sidebar .rkd-pilih-teks b{font-size:12.5px;font-weight:700}
+body.rk #sidebar .rkd-pilih-teks s{text-decoration:none;font-size:11px;color:var(--rk-tipis);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.rk #sidebar .rkd-pilih.terisi{border-style:solid;border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 8%,transparent)}
+html[data-saku] body.rk #sidebar .rkd-pilih{border-color:var(--sk-garis,rgba(255,255,255,.14));border-radius:16px;color:var(--sk-tinta)}
+html[data-saku] body.rk #sidebar .rkd-pilih > .material-symbols-outlined{color:var(--sk-api)}
+html[data-saku] body.rk #sidebar .rkd-pilih-teks s{color:var(--sk-tipis)}
+html[data-saku] body.rk #sidebar .rkd-pilih.terisi{border-color:var(--sk-api);background:color-mix(in srgb,var(--sk-api) 10%,transparent)}
+/* (8) hasil periksa laporan ganda di Pengaturan */
+.rkg-hasil{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:4px}
+.rkg-ringkas{margin:0;font-size:12px;color:var(--rk-tipis)}
+.rkg-kosong{display:flex;align-items:center;gap:8px;margin:0;font-size:12.5px;color:var(--rk-laut)}
+.rkg-pasang{padding:10px;border:1px solid var(--rk-sekat);border-radius:12px}
+.rkg-pasang.kuat{border-color:color-mix(in srgb,var(--rk-merah) 45%,transparent)}
+.rkg-pasang-kep{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:8px}
+.rkg-tingkat{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:color-mix(in srgb,var(--rk-emas) 16%,transparent);color:var(--rk-emas)}
+.rkg-pasang.kuat .rkg-tingkat{background:color-mix(in srgb,var(--rk-merah) 14%,transparent);color:var(--rk-merah)}
+.rkg-alasan{flex:1;min-width:0;font-size:11.5px;color:var(--rk-tipis)}
+.rkg-abaikan{border:0;background:none;padding:2px 4px;font:600 11.5px "Plus Jakarta Sans",sans-serif;color:var(--rk-tipis);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.rkg-abaikan:hover{color:var(--rk-tinta)}
+.rkg-dua{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rkg-lap{display:flex;flex-direction:column;gap:2px;min-width:0;padding:9px 10px;border-radius:10px;background:var(--rk-muka)}
+.rkg-lap s{text-decoration:none;font:500 10.5px "DM Mono",monospace;letter-spacing:.03em;color:var(--rk-tipis)}
+.rkg-lap b{font-size:13px;color:var(--rk-tinta);overflow-wrap:anywhere}
+.rkg-lap em{font-style:normal;font-size:11.5px;color:var(--rk-tipis);overflow-wrap:anywhere}
+.rkg-lap .rkd-tombol-garis{align-self:flex-start;margin-top:6px}
+@media (max-width:560px){.rkg-dua{grid-template-columns:minmax(0,1fr)}}
+html[data-saku] .rkg-pasang{border-color:var(--sk-garis,rgba(255,255,255,.1));border-radius:18px}
+html[data-saku] .rkg-lap{background:var(--sk-kartu2);border-radius:14px}
+html[data-saku] .rkg-lap b{color:var(--sk-tinta)}
+html[data-saku] .rkg-lap s,html[data-saku] .rkg-lap em,html[data-saku] .rkg-alasan,html[data-saku] .rkg-ringkas{color:var(--sk-tipis)}
+/* kalkulator kerusakan di panel Edit */
+.rkd-kalk{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--rk-sekat);border-radius:12px}
+.rkd-kalk-kep{display:flex;align-items:flex-start;gap:10px}
+.rkd-kalk-kep > .material-symbols-outlined{font-size:20px;color:var(--rk-api)}
+.rkd-kalk-kep b{display:block;font-size:13px;color:var(--rk-tinta)}
+.rkd-kalk-kep s{display:block;margin-top:2px;text-decoration:none;font-size:11.5px;line-height:1.5;color:var(--rk-tipis)}
+.rkd-kalk-catatan{margin:0;padding:8px 10px;border-radius:9px;font-size:11.5px;line-height:1.5;color:var(--rk-tinta);background:color-mix(in srgb,var(--rk-emas) 15%,transparent)}
+.rkd-kalk-kisi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rkd-kalk-kisi label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.rkd-kalk-kisi label.lebar{grid-column:1 / -1}
+.rkd-kalk-kisi label > span{font:500 10.5px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--rk-tipis)}
+.rkd-kalk-kisi .rkd-input{width:100%;min-width:0;text-overflow:ellipsis}
+.rkd-kalk-hasil{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rkd-kalk-hasil > div{min-width:0;padding:8px 10px;border-radius:10px;background:var(--rk-muka)}
+.rkd-kalk-hasil s{display:block;text-decoration:none;font:500 10px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--rk-tipis)}
+.rkd-kalk-hasil b{display:block;margin-top:2px;font-size:13px;color:var(--rk-tinta);overflow-wrap:anywhere}
+.rkd-kalk-hasil em{grid-column:1 / -1;font-style:normal;font-size:11px;color:var(--rk-tipis)}
+.rkd-kalk.berubah .rkd-kalk-hasil > div{background:color-mix(in srgb,var(--rk-api) 12%,transparent)}
+.rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--rk-api)}
+html[data-saku] .rkd-kalk{border-color:var(--sk-garis,rgba(255,255,255,.1));border-radius:18px}
+html[data-saku] .rkd-kalk-hasil > div{background:var(--sk-kartu2);border-radius:12px}
+html[data-saku] .rkd-kalk-kep b,html[data-saku] .rkd-kalk-hasil b{color:var(--sk-tinta)}
+html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
+/* tanggal serah terima/monitoring kosong */
+.rkd-tgl-peringatan{display:none;align-items:flex-start;gap:6px;margin-top:6px;font-style:normal;font-size:11.5px;line-height:1.45;color:var(--rk-emas)}
+.rkd-tgl-peringatan .material-symbols-outlined{font-size:16px}
+.rkd-tanggal-kosong .rkd-tgl-peringatan{display:flex}
+.rkd-tanggal-kosong .rkd-input{border-color:var(--rk-emas) !important;box-shadow:0 0 0 3px color-mix(in srgb,var(--rk-emas) 18%,transparent)}
+.rkd-tanggal-sorot .rkd-input{animation:rkd-sorot-tgl 1.2s ease 2}
+@keyframes rkd-sorot-tgl{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--rk-emas) 35%,transparent)}}
+@media (prefers-reduced-motion:reduce){.rkd-tanggal-sorot .rkd-input{animation:none}}
+.rkd-cip.tunggu{color:var(--rk-emas);background:color-mix(in srgb,var(--rk-emas) 14%,transparent)}
+html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
+/* daftar tunggakan (panel kanan) */
+.rk-kerja-tgl{display:inline-flex;align-items:center;gap:4px;margin-left:auto;height:24px;padding:0 9px;border:1px solid color-mix(in srgb,var(--rk-emas) 45%,transparent);border-radius:99px;
+  background:color-mix(in srgb,var(--rk-emas) 12%,transparent);color:var(--rk-emas);font:600 11px "Plus Jakarta Sans",sans-serif;cursor:pointer;white-space:nowrap}
+.rk-kerja-tgl .material-symbols-outlined{font-size:14px}
+.rk-kerja-tgl.aktif{background:var(--rk-emas);color:#fff;border-color:var(--rk-emas)}
+.rk-kerja-tgl[hidden]{display:none}
+#rk-kerja .rk-kep .rk-kerja-tgl:not([hidden]) + s{margin-left:0}
+#rk-kerja .rk-jam.telat b{color:var(--rk-merah) !important}
+#rk-kerja .rk-jam.telat s::after{content:" !";font-weight:700;color:var(--rk-merah)}
+.rk-cip.t{color:var(--rk-emas)}.rk-cip.t::before{background:var(--rk-emas)}
 </style>
 <script>
 (function () {
@@ -23313,6 +23623,188 @@ html[data-saku] #rk-kosong div{flex:1 1 220px}
   // modul lain bisa membungkus ulang belakangan; pastikan pemeriksaan tetap terpasang
   setTimeout(pasang, 3000);
   setInterval(function () { if (!(window.applyFiltersAndProcess && window.applyFiltersAndProcess.__rkKosong)) pasang(); }, 5000);
+})();
+</script>
+
+<script>
+/* =========================================================================
+   RUMUS KERUSAKAN, KALKULATOR PANEL EDIT, DAN TUNGGAKAN
+   -------------------------------------------------------------------------
+   Tingkat dan taksiran kerusakan TIDAK diketik. Keduanya hasil rumus dari
+   ukuran rumah, jenis konstruksi, dan kerusakan tiap komponen:
+     persen  = jumlah persen komponen (angka dalam kurung di teks pilihan,
+               mis. "Tulangan tertekuk (15%)")
+     tingkat = 1-29% Rusak Ringan, 30-70% Rusak Sedang, >70% Rusak Berat
+     nilai   = panjang x lebar x persen x harga per m2 menurut konstruksi
+   Formulir Laporan Baru dan kalkulator di panel Edit memakai fungsi yang
+   sama (rkHitungKerusakan), jadi hasilnya tidak mungkin berbeda.
+   ========================================================================= */
+(function () {
+  "use strict";
+  const HARGA_KONSTRUKSI = { "Non Permanen": 470000, "Semi Permanen": 950000, "Permanen": 2250000 };
+  const KOMPONEN = [
+    { kolom: "Kerusakan Pondasi", kunci: "rusakPondasi", form: "kerusakanPondasi", label: "Pondasi", bagian: "Pondasi" },
+    { kolom: "Kerusakan Rangka Struktur", kunci: "rusakRangkaStruktur", form: "kerusakanRangkaStruktur", label: "Rangka struktur (kolom/balok)", bagian: "Dinding" },
+    { kolom: "Kerusakan Rangka Atap", kunci: "rusakRangkaAtap", form: "kerusakanRangkaAtap", label: "Rangka atap / kuda-kuda", bagian: "Atap" },
+    { kolom: "Kerusakan Penutup Atap", kunci: "rusakPenutupAtap", form: "kerusakanPenutupAtap", label: "Penutup atap / genteng", bagian: "Atap" },
+    { kolom: "Kerusakan Plafon", kunci: "rusakPlafon", form: "kerusakanLangit", label: "Plafon / langit-langit", bagian: "Atap" },
+    { kolom: "Kerusakan Dinding", kunci: "rusakDinding", form: "kerusakanDinding", label: "Dinding", bagian: "Dinding" },
+    { kolom: "Kerusakan Lantai", kunci: "rusakLantai", form: "kerusakanLantai", label: "Lantai", bagian: "Lantai" }
+  ];
+  const BAGIAN_BAKU = ["Pondasi", "Dinding", "Atap", "Lantai"];
+
+  const persenDari = function (v) { const m = String(v || "").match(/\((\d+)%\)/); return m ? parseInt(m[1], 10) : 0; };
+  function hitung(o) {
+    const persen = (o.komponen || []).reduce(function (s, v) { return s + persenDari(v); }, 0);
+    let tingkat = "-";
+    if (persen > 0) tingkat = persen <= 29 ? "Rusak Ringan" : persen <= 70 ? "Rusak Sedang" : "Rusak Berat";
+    const harga = HARGA_KONSTRUKSI[o.konstruksi] || 0;
+    const luas = (parseFloat(o.panjang) || 0) * (parseFloat(o.lebar) || 0);
+    return { persen: persen, tingkat: tingkat, harga: harga, luas: luas, nilai: Math.round(luas * (persen / 100) * harga) };   // rupiah penuh
+  }
+  window.rkHitungKerusakan = hitung;
+
+  const esc = function (v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  const rp = function (n) { try { return formatRupiah(n); } catch (e) { return "Rp " + Math.round(n || 0).toLocaleString("id-ID"); } };
+  const angkaTeks = function (v) { const n = parseFloat(v); return isFinite(n) && n > 0 ? String(n) : ""; };
+  const isian = function (v) { v = String(v == null ? "" : v).trim(); return v && v !== "-" ? v : ""; };
+
+  function opsiDari(idForm, nilai, kosong) {
+    const sel = document.getElementById(idForm);
+    const daftar = [];
+    if (sel) Array.prototype.forEach.call(sel.options, function (o) { if (o.value && daftar.indexOf(o.value) === -1) daftar.push(o.value); });
+    const v = isian(nilai);
+    if (v && daftar.indexOf(v) === -1) daftar.unshift(v);
+    return '<option value="">' + kosong + "</option>" + daftar.map(function (x) {
+      return '<option value="' + esc(x) + '"' + (x === v ? " selected" : "") + ">" + esc(x) + "</option>";
+    }).join("");
+  }
+
+  function hasilHtml(h, simpan) {
+    return "<div><s>Persentase</s><b>" + h.persen + "%</b></div>" +
+      "<div><s>Tingkat</s><b>" + esc(h.tingkat === "-" ? "Belum ada kerusakan" : h.tingkat) + "</b></div>" +
+      "<div><s>Taksiran kerusakan</s><b>" + rp(h.nilai) + "</b></div>" +
+      "<em>" + (h.harga ? esc(String(Math.round(h.luas * 100) / 100).replace(".", ",")) + " m² × " + h.persen + "% × " + rp(h.harga) + "/m²" : "Pilih jenis konstruksi untuk menghitung nilai") +
+      (simpan ? " · tersimpan sekarang: " + esc(simpan) : "") + "</em>";
+  }
+
+  // HTML kalkulator untuk satu laporan (hanya dipanggil untuk petugas yang login)
+  window.rkKalkulatorKerusakan = function (data) {
+    const adaKomponen = KOMPONEN.some(function (k) { return isian(data[k.kunci]); });
+    const awal = { p: angkaTeks(data.panjang), l: angkaTeks(data.lebar), k: isian(data.konstruksi) };
+    const h = hitung({ panjang: awal.p, lebar: awal.l, konstruksi: awal.k, komponen: KOMPONEN.map(function (k) { return data[k.kunci]; }) });
+    const simpan = [isian(data.kerusakan), isFinite(parseFloat(data.nilaiKerusakan)) ? rp(parseFloat(data.nilaiKerusakan)) : ""].filter(Boolean).join(" · ");
+    const pilihKonstruksi = (function () {
+      const daftar = Object.keys(HARGA_KONSTRUKSI);
+      if (awal.k && daftar.indexOf(awal.k) === -1) daftar.unshift(awal.k);
+      return '<option value="">Pilih...</option>' + daftar.map(function (x) { return '<option value="' + esc(x) + '"' + (x === awal.k ? " selected" : "") + ">" + esc(x) + "</option>"; }).join("");
+    })();
+    return '<div class="rkd-kalk" data-bagian-lama="' + esc(data.bagianRusak || "") + '" data-ada-komponen="' + (adaKomponen ? 1 : 0) + '" data-simpan="' + esc(simpan) + '">' +
+      '<div class="rkd-kalk-kep"><span class="material-symbols-outlined">calculate</span><div><b>Tingkat &amp; taksiran kerusakan</b>' +
+        "<s>Tidak diketik, tetapi dihitung dari ukuran rumah, jenis konstruksi, dan kerusakan tiap komponen - rumus yang sama dengan formulir laporan.</s></div></div>" +
+      (adaKomponen ? "" : '<p class="rkd-kalk-catatan">Rincian komponen laporan ini belum tercatat. Kalau ada yang diubah di sini, pilih <b>semua</b> komponen yang rusak supaya hasilnya benar.</p>') +
+      '<div class="rkd-kalk-kisi">' +
+        '<label><span>Panjang (m)</span><input type="number" step="0.01" min="0" inputmode="decimal" class="rkd-input" data-k="Panjang (m)" data-awal="' + esc(awal.p) + '" value="' + esc(awal.p) + '"></label>' +
+        '<label><span>Lebar (m)</span><input type="number" step="0.01" min="0" inputmode="decimal" class="rkd-input" data-k="Lebar (m)" data-awal="' + esc(awal.l) + '" value="' + esc(awal.l) + '"></label>' +
+        '<label class="lebar"><span>Jenis konstruksi</span><select class="rkd-input" data-k="Jenis Konstruksi" data-awal="' + esc(awal.k) + '">' + pilihKonstruksi + "</select></label>" +
+        KOMPONEN.map(function (k) {
+          const v = isian(data[k.kunci]);
+          return '<label class="lebar"><span>' + esc(k.label) + '</span><select class="rkd-input" data-k="' + esc(k.kolom) + '" data-awal="' + esc(v) + '">' + opsiDari(k.form, v, "Tidak rusak") + "</select></label>";
+        }).join("") +
+      "</div>" +
+      '<div class="rkd-kalk-hasil" aria-live="polite">' + hasilHtml(h, simpan) + "</div></div>";
+  };
+
+  function baca(kalk) {
+    const nilai = function (k) { const el = kalk.querySelector('[data-k="' + k + '"]'); return el ? el.value : ""; };
+    const komp = KOMPONEN.map(function (k) { return nilai(k.kolom); });
+    return { p: nilai("Panjang (m)"), l: nilai("Lebar (m)"), k: nilai("Jenis Konstruksi"), komp: komp,
+      h: hitung({ panjang: nilai("Panjang (m)"), lebar: nilai("Lebar (m)"), konstruksi: nilai("Jenis Konstruksi"), komponen: komp }) };
+  }
+  function berubah(kalk) {
+    return Array.prototype.some.call(kalk.querySelectorAll("[data-k]"), function (el) { return el.value !== (el.dataset.awal || ""); });
+  }
+  function perbarui(kalk) {
+    const b = baca(kalk);
+    kalk.classList.toggle("berubah", berubah(kalk));
+    const hasil = kalk.querySelector(".rkd-kalk-hasil");
+    if (hasil) hasil.innerHTML = hasilHtml(b.h, kalk.dataset.simpan);
+  }
+  document.addEventListener("input", function (e) { const k = e.target.closest && e.target.closest(".rkd-kalk"); if (k) perbarui(k); });
+  document.addEventListener("change", function (e) { const k = e.target.closest && e.target.closest(".rkd-kalk"); if (k) perbarui(k); });
+
+  // Dipanggil simpanEditSemua: hanya mengirim bila ada yang diubah di kalkulator.
+  window.rkBacaKalkulator = function (kalk) {
+    if (!berubah(kalk)) return { berubah: false };
+    const b = baca(kalk);
+    const p = parseFloat(b.p), l = parseFloat(b.l);
+    if (!(p > 0) || !(l > 0)) return { berubah: true, galat: "panjang dan lebar rumah harus diisi (lebih dari 0)" };
+    if (!HARGA_KONSTRUKSI[b.k]) return { berubah: true, galat: "pilih jenis konstruksi untuk menghitung kerusakan" };
+    if (!(b.h.persen > 0)) return { berubah: true, galat: "pilih minimal satu komponen yang rusak - tanpa itu tingkat kerusakan tidak bisa dihitung" };
+    // Bagian kerusakan mengikuti komponen yang rusak; bagian "lainnya" yang diketik manual dipertahankan
+    const bagian = [];
+    KOMPONEN.forEach(function (k, i) { if (persenDari(b.komp[i]) > 0 && bagian.indexOf(k.bagian) === -1) bagian.push(k.bagian); });
+    String(kalk.dataset.bagianLama || "").split(",").map(function (x) { return x.trim(); })
+      .filter(function (x) { return x && x !== "-" && BAGIAN_BAKU.indexOf(x) === -1 && bagian.indexOf(x) === -1; })
+      .forEach(function (x) { bagian.push(x); });
+    const teksBagian = bagian.join(", ");
+    const updates = { "Panjang (m)": p, "Lebar (m)": l, "Jenis Konstruksi": b.k, "Tingkat Kerusakan": b.h.tingkat, "Nilai Kerusakan (Rp)": b.h.nilai, "Bagian Kerusakan": teksBagian };
+    const lokal = { panjang: p, lebar: l, konstruksi: b.k, kerusakan: b.h.tingkat, nilaiKerusakan: b.h.nilai, bagianRusak: teksBagian };
+    KOMPONEN.forEach(function (k, i) { updates[k.kolom] = b.komp[i] || "-"; lokal[k.kunci] = b.komp[i] || "-"; });
+    return { berubah: true, updates: updates, lokal: lokal, hasil: b.h };
+  };
+
+  // Buka/batal Edit: kalkulator selalu mulai dari nilai tersimpan
+  ["bukaEditSemua", "batalEditSemua"].forEach(function (nama) {
+    const asli = window[nama];
+    if (typeof asli !== "function") return;
+    window[nama] = function () {
+      const r = asli.apply(this, arguments);
+      document.querySelectorAll("#sidebar .rkd-kalk").forEach(function (kalk) {
+        kalk.querySelectorAll("[data-k]").forEach(function (el) { el.value = el.dataset.awal || ""; });
+        perbarui(kalk);
+      });
+      return r;
+    };
+  });
+
+  /* ── tunggakan: lama menunggu yang benar + tanggal yang belum diisi ──
+     salur   : sejak asesmen
+     monitor : sejak serah terima (bila tanggalnya tercatat), selain itu sejak asesmen
+     telat   : menunggu lebih dari BATAS hari
+     tglKosong: berkas serah terima/monitoring ada, tanggalnya belum diisi */
+  const BATAS = 30;
+  const tglDari = function (v) {
+    if (!v || v === "-") return null;
+    if (v instanceof Date) return isNaN(v) ? null : v;
+    const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+    const d = new Date(v); return isNaN(d) ? null : d;
+  };
+  window.rkTunggakan = function (it) {
+    if (!it) return null;
+    let dibantu = false, terpal = false;
+    try { dibantu = checkIsDibantu(it); terpal = checkIsOnlyTerpal(it); } catch (e) {}
+    if (!dibantu) return null;
+    const kini = new Date();
+    const kaji = it.dateObj && !isNaN(it.dateObj) ? it.dateObj : null;
+    const hariDari = function (d) { return d ? Math.max(0, Math.floor((kini - d) / 864e5)) : 0; };
+    const serah = tglDari(it.tglSerahTerima), mon = tglDari(it.tglMonitoring);
+    const awalKaji = kaji ? new Date(kaji.getFullYear(), kaji.getMonth(), kaji.getDate()) : null;
+    const serahSah = serah && serah <= kini && (!awalKaji || serah >= awalKaji) ? serah : null;
+    let st = null;
+    if (!terpal && !it.linkSerahTerima && !it.linkMonitoring) st = "salur";
+    else if (!terpal && it.linkSerahTerima && !it.linkMonitoring) st = "monitor";
+    const dariSerah = st === "monitor" && !!serahSah;
+    const hari = dariSerah ? hariDari(serahSah) : hariDari(kaji);
+    const tglKosong = [];
+    if (!terpal) {
+      if (it.linkSerahTerima && !serah) tglKosong.push("serah terima");
+      if (it.linkMonitoring && !mon) tglKosong.push("monitoring");
+    }
+    return { st: st, hari: hari, sejak: dariSerah ? "serah terima" : "asesmen", telat: !!st && hari > BATAS, tglKosong: tglKosong };
+  };
+  window.rkTunggakan.BATAS = BATAS;
 })();
 </script>
 
