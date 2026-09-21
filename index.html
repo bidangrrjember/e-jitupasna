@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzMHh0LGiRFgvMKaq5k4JvLWo-6tYaj6rHYF7lO8U03QHqKbl8m_pqNvBDRsQdMV6oE/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -21400,9 +21400,18 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
 
   /* ── data per bulan ── */
   function daftarBulan() {
-    const hit = {};
-    data().forEach(function (it) { if (it.dateObj && !isNaN(it.dateObj)) { const k = kunciBulan(it.dateObj); hit[k] = (hit[k] || 0) + 1; } });
-    return Object.keys(hit).sort().reverse().map(function (k) { return { kunci: k, jumlah: hit[k] }; });
+    // jumlah = asesmen bulan itu; tindak = laporan bulan sebelumnya yang serah terima/monitoringnya jatuh di bulan itu
+    const hit = {}, tindak = {};
+    data().forEach(function (it, i) {
+      if (!it.dateObj || isNaN(it.dateObj)) return;
+      const k = kunciBulan(it.dateObj); hit[k] = (hit[k] || 0) + 1;
+      let t; try { t = tahapan(it); } catch (e) { return; }
+      if (!t.dibantu) return;
+      [t.serahTgl, t.monTgl].forEach(function (d) { if (!d) return; const kd = kunciBulan(d); if (kd > k) (tindak[kd] = tindak[kd] || {})[i] = true; });
+    });
+    return Object.keys(Object.assign({}, hit, tindak)).sort().reverse().map(function (k) {
+      return { kunci: k, jumlah: hit[k] || 0, tindak: tindak[k] ? Object.keys(tindak[k]).length : 0 };
+    });
   }
   function laporanBulan(k) {
     return data().filter(function (it) { return it.dateObj && !isNaN(it.dateObj) && kunciBulan(it.dateObj) === k; })
@@ -21484,6 +21493,105 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
       langkah("Serah terima bantuan", t.serah) +
       langkah("Monitoring", t.mon) +
     "</div>";
+  }
+
+  /* ── tindak lanjut laporan bulan-bulan sebelumnya ─────────────────────
+     Laporan bulanan tidak berhenti pada asesmen bulan itu saja. Laporan dari
+     bulan sebelumnya yang serah terima atau monitoringnya JATUH di bulan ini
+     diingatkan lagi ("bergerak bulan ini"), begitu juga yang sampai akhir
+     bulan masih menunggu. Semua status dihitung PER AKHIR BULAN laporan -
+     laporan Oktober tetap menulis "menunggu monitoring" walau monitoringnya
+     baru terjadi November. Tahap yang selesai tanpa tanggal dianggap sudah
+     (waktunya tidak diketahui), supaya tidak jadi pengingat palsu.
+     ──────────────────────────────────────────────────────────────────── */
+  function tindakLanjutBulan(k) {
+    const p = k.split("-"), awal = new Date(+p[0], +p[1] - 1, 1), akhir = new Date(+p[0], +p[1], 0, 23, 59, 59);
+    const kini = new Date(), acuan = akhir < kini ? akhir : kini;
+    const diBulan = function (d) { return !!d && d >= awal && d <= akhir; };
+    const bergerak = [], menunggu = [];
+    data().forEach(function (it) {
+      if (!it.dateObj || isNaN(it.dateObj) || it.dateObj >= awal) return;
+      let t; try { t = tahapan(it); } catch (e) { return; }
+      if (!t.dibantu) return;
+      const serahSudah = t.serahTgl ? t.serahTgl <= akhir : t.serah.k === "selesai";
+      const monSudah = t.monTgl ? t.monTgl <= akhir : t.mon.k === "selesai";
+      const tanpaMonitor = !t.monTgl && t.mon.k === "lewat" && serahSudah;      // terpal: cukup diserahkan
+      const status = !serahSudah ? "salur" : (monSudah || tanpaMonitor) ? "tuntas" : "monitor";
+      const peristiwa = [];
+      if (diBulan(t.serahTgl)) peristiwa.push("serah");
+      if (diBulan(t.monTgl)) peristiwa.push("mon");
+      if (peristiwa.length) { bergerak.push({ it: it, t: t, peristiwa: peristiwa, status: status }); return; }
+      if (status === "tuntas") return;
+      const sejak = status === "salur" ? t.kaji : (t.serahTgl || null);
+      menunggu.push({ it: it, t: t, status: status, sejak: sejak, hari: sejak ? hariAntara(sejak, acuan) : null });
+    });
+    bergerak.sort(function (a, b) { return a.t.kaji - b.t.kaji; });
+    menunggu.sort(function (a, b) { return (b.hari || 0) - (a.hari || 0); });
+    return { awal: awal, akhir: akhir, acuan: acuan, bergerak: bergerak, menunggu: menunggu, diBulan: diBulan };
+  }
+
+  function ringkasTindakLanjut(tl) {
+    const nSerah = tl.bergerak.filter(function (x) { return x.peristiwa.indexOf("serah") !== -1; }).length;
+    const nMon = tl.bergerak.filter(function (x) { return x.peristiwa.indexOf("mon") !== -1; }).length;
+    return { serah: nSerah, mon: nMon };
+  }
+
+  function htmlTindakLanjut(tl, k) {
+    if (!tl.bergerak.length && !tl.menunggu.length) return "";
+    const bln = namaBulan(k);
+    const akhirTeks = tl.akhir.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const r = ringkasTindakLanjut(tl);
+    const chip = function (st) { return '<span class="cip st" style="--c:' + STATUS[st][1] + '">' + STATUS[st][0] + "</span>"; };
+    const lokasi = function (it) { return [it.desakelurahan, it.kec].filter(function (x) { return x && x !== "-"; }).map(esc).join(", ") || "-"; };
+    const tandaBulanIni = '<span class="tl-bulan-ini">bulan ini</span>';
+    const langkah = function (nama, keadaan, teks, ket, lanjutHijau) {
+      return '<li class="tl-' + keadaan + (lanjutHijau ? " tl-sambung" : "") + '"><i></i><s>' + nama + "</s><b>" + teks + "</b>" + (ket ? "<em>" + ket + "</em>" : "") + "</li>";
+    };
+
+    const kartu = tl.bergerak.map(function (x) {
+      const it = x.it, t = x.t;
+      // serah terima
+      let sK, sT, sE;
+      if (t.serahTgl) { sK = tl.diBulan(t.serahTgl) ? "kini" : "selesai"; sT = esc(tglPendek(t.serahTgl)) + (sK === "kini" ? tandaBulanIni : ""); sE = hariAntara(t.kaji, t.serahTgl) + " hari setelah asesmen"; }
+      else { sK = "selesai"; sT = esc(t.serah.teks); sE = t.serah.ket ? esc(t.serah.ket) : ""; }
+      // monitoring, per akhir bulan
+      let mK, mT, mE;
+      if (t.monTgl && t.monTgl <= tl.akhir) { mK = tl.diBulan(t.monTgl) ? "kini" : "selesai"; mT = esc(tglPendek(t.monTgl)) + (mK === "kini" ? tandaBulanIni : ""); mE = t.serahTgl ? hariAntara(t.serahTgl, t.monTgl) + " hari setelah serah terima" : ""; }
+      else if (x.status === "tuntas") { mK = "lewat"; mT = "Tidak diperlukan"; mE = ""; }
+      else { mK = "tunggu"; mT = "Belum"; mE = t.serahTgl ? "menunggu " + hariAntara(t.serahTgl, tl.acuan) + " hari per " + esc(tl.acuan.toLocaleDateString("id-ID", { day: "numeric", month: "short" })) : ""; }
+      return '<article class="tl"><header><div><s>Asesmen ' + esc(namaBulan(kunciBulan(t.kaji))) + " · " + esc(it.bencana || "Bencana") + "</s><b>" + esc(it.nama || "-") + "</b><em>" + lokasi(it) + "</em></div>" +
+        '<div class="tl-status"><s>Per akhir bulan</s>' + chip(x.status) + "</div></header>" +
+        '<ol class="tl-alur">' +
+          langkah("Asesmen", "selesai", esc(tglPendek(t.kaji)), "", true) +
+          langkah("Serah terima", sK, sT, sE, mK === "selesai" || mK === "kini") +
+          langkah("Monitoring", mK, mT, mE, false) +
+        "</ol></article>";
+    }).join("");
+
+    const baris = tl.menunggu.map(function (x, i) {
+      const it = x.it;
+      const tahap = x.status === "salur" ? "Penyaluran bantuan" : "Monitoring";
+      const dasar = x.status === "salur" ? "sejak asesmen" : "sejak serah terima";
+      return "<tr><td class=\"n\">" + (i + 1) + "</td><td><b>" + esc(it.nama || "-") + "</b><br><span class=\"redup\">" + esc(it.bencana || "") + "</span></td><td>" + lokasi(it) + "</td>" +
+        "<td>" + esc(tglPendek(x.t.kaji)) + "</td><td>" + chip(x.status) + "</td>" +
+        "<td class=\"n" + (x.hari > 30 ? " lama" : "") + "\">" + (x.hari === null ? "-" : x.hari + " hari") + "<br><span class=\"redup\">" + dasar + "</span></td></tr>";
+    }).join("");
+
+    const angkaTl = function (n, label, warna) { return '<div><b' + (warna ? ' style="color:' + warna + '"' : "") + ">" + n + "</b><s>" + label + "</s></div>"; };
+    return '<div class="bab"><h2>Tindak lanjut laporan sebelumnya</h2><span>posisi per ' + esc(akhirTeks) + "</span></div>" +
+      '<p class="pengantar">Laporan dari bulan-bulan sebelumnya yang tahap penanganannya berlanjut pada ' + esc(bln) +
+        ", serta yang sampai akhir bulan masih menunggu. Status di bab ini dihitung per akhir bulan laporan.</p>" +
+      '<div class="tl-angka">' +
+        angkaTl(tl.bergerak.length, "ditindaklanjuti") + angkaTl(r.serah, "serah terima", "#C98A12") +
+        angkaTl(r.mon, "monitoring", "#2A9384") + angkaTl(tl.menunggu.length, "masih menunggu", tl.menunggu.length ? "#CC4430" : "") +
+      "</div>" +
+      (tl.bergerak.length
+        ? '<h3 class="tl-sub">Bergerak bulan ini<span>' + tl.bergerak.length + " laporan</span></h3>" + kartu
+        : '<p class="pengantar">Tidak ada serah terima atau monitoring laporan lama pada bulan ini.</p>') +
+      (tl.menunggu.length
+        ? '<h3 class="tl-sub">Masih menunggu dari bulan sebelumnya<span>' + tl.menunggu.length + " laporan · urut terlama</span></h3>" +
+          '<table class="tl-tabel"><thead><tr><th class="n">No</th><th>Nama KK</th><th>Desa / Kecamatan</th><th>Asesmen</th><th>Tertunda di</th><th class="n">Lama</th></tr></thead><tbody>' + baris + "</tbody></table>"
+        : "");
   }
 
   /* ── grafik SVG (warna cetak, tanpa token tema) ── */
@@ -21833,6 +21941,8 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const jenis = urutJenis(daftar);
     const disusun = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
     const judulBulan = namaBulan(k);
+    const tl = tindakLanjutBulan(k);
+    const tlHtml = htmlTindakLanjut(tl, k);
     let jumlahFoto = 0;
     // benih baru tiap kali dokumen disusun -> sampul berbeda setiap klik "Buat PDF"
     const sampulData = sampulBulanan(k, daftar, { kejadian: daftar.length, jiwa: jiwa, nilai: nilai, disusun: disusun },
@@ -21846,8 +21956,15 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
         "<h1>Laporan Bulanan<br>Kejadian Bencana</h1>" +
         '<p class="bulan">' + esc(judulBulan) + "</p></div></header>";
 
+    // catatan singkat di halaman ringkasan yang menunjuk bab tindak lanjut
+    const rTl = ringkasTindakLanjut(tl);
+    const catatanTl = tlHtml
+      ? '<section class="tl-catatan"><b>Tindak lanjut laporan sebelumnya</b>' +
+          (tl.bergerak.length ? tl.bergerak.length + " laporan bulan sebelumnya berlanjut bulan ini (" + [rTl.serah ? rTl.serah + " serah terima" : "", rTl.mon ? rTl.mon + " monitoring" : ""].filter(String).join(", ") + ")" : "Tidak ada laporan lama yang berlanjut bulan ini") +
+          (tl.menunggu.length ? " · " + tl.menunggu.length + " masih menunggu" : "") + ". Rinciannya di bab Tindak lanjut.</section>"
+      : "";
     if (!daftar.length) {
-      ringkasan += '<div class="kosong">Tidak ada laporan kejadian pada ' + esc(judulBulan) + ".</div>";
+      ringkasan += '<div class="kosong">Tidak ada asesmen baru pada ' + esc(judulBulan) + ".</div>";
     } else {
       ringkasan +=
         '<section class="kpi-kisi">' +
@@ -21859,7 +21976,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
           kpi("Rusak berat", angka(tingkat["Rusak Berat"]), persen(tingkat["Rusak Berat"])) +
           kpi("Menerima bantuan", angka(dibantu), persen(dibantu)) +
           kpi("Penanganan tuntas", angka(status.tuntas), persen(status.tuntas)) +
-        "</section>" +
+        "</section>" + catatanTl +
         '<section class="grafik lebar"><h2>Kejadian per tanggal</h2>' + grafikTanggal(daftar, k) +
           '<div class="leg">' + jenis.map(function (j, i) { return '<span><i style="background:' + WARNA_JENIS[i % WARNA_JENIS.length] + '"></i>' + esc(j.nama) + " (" + j.n + ")</span>"; }).join("") + "</div></section>" +
         '<div class="dua">' +
@@ -21994,6 +22111,44 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 .foto figure:has(img.gagal)::after{content:"Foto tidak dapat dimuat";position:absolute;inset:0;display:grid;place-items:center;font-size:7pt;color:#8A948F}
 .foto figcaption{position:absolute;left:5px;bottom:5px;padding:1px 6px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;font:6.5pt "DM Mono",monospace}
 .penutup{margin-top:14px;font-size:7.5pt;color:#8A948F}
+/* tindak lanjut laporan sebelumnya */
+.tl-catatan{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:#FFF4EB;border:1px solid #F4D5BC;font-size:8.4pt;color:#5C3B22;line-height:1.45}
+.tl-catatan b{display:block;margin-bottom:1px;font-size:8.8pt;color:#9A430C}
+.pengantar{margin:-2px 0 10px;max-width:160mm;font-size:8.5pt;color:#56605B}
+.tl-angka{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.tl-angka div{padding:8px 10px;border-radius:10px;background:#F1F4F1}
+.tl-angka b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:17pt;font-weight:800;line-height:1;letter-spacing:-.02em}
+.tl-angka s{display:block;margin-top:4px;text-decoration:none;font:500 6.8pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
+.tl-sub{display:flex;align-items:baseline;gap:8px;margin:14px 0 7px;font-size:10pt;font-weight:800;break-after:avoid}
+.tl-sub span{font:400 7.5pt "DM Mono",monospace;color:#8A948F}
+.tl{break-inside:avoid;margin-bottom:7px;padding:10px 12px 11px;border:1px solid #E3E7E4;border-radius:12px}
+.tl header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.tl header s{display:block;text-decoration:none;font:500 6.6pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
+.tl header b{display:block;margin-top:1px;font-family:"Bricolage Grotesque",sans-serif;font-size:11.5pt;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.tl header em{font-style:normal;font-size:8pt;color:#56605B}
+.tl-status{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
+.tl-alur{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,1fr)}
+.tl-alur li{position:relative;padding:14px 10px 0 0;min-width:0}
+.tl-alur li::before{content:"";position:absolute;left:5px;right:0;top:4px;height:2px;background:#DDE3E0}
+.tl-alur li.tl-sambung::before{background:#2A9384}
+.tl-alur li:last-child::before{display:none}
+.tl-alur i{position:absolute;left:0;top:0;width:10px;height:10px;border-radius:50%;background:#2A9384;box-shadow:0 0 0 2px #fff}
+.tl-alur .tl-kini i{background:#E0600E;box-shadow:0 0 0 2px #fff,0 0 0 4px #FAD9C1}
+.tl-alur .tl-tunggu i{background:#fff;box-shadow:inset 0 0 0 2px #C98A12,0 0 0 2px #fff}
+.tl-alur .tl-lewat i{background:#CDD3CF}
+.tl-alur s{display:block;text-decoration:none;font:500 6.6pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
+.tl-alur b{display:block;margin-top:1px;font-size:8.8pt;font-weight:700;line-height:1.3}
+.tl-alur .tl-kini b{color:#B8480C}.tl-alur .tl-tunggu b{color:#B26F0A}.tl-alur .tl-lewat b{color:#8A948F;font-weight:600}
+.tl-alur em{display:block;font-style:normal;font-size:7pt;color:#8A948F;line-height:1.35}
+.tl-bulan-ini{display:inline-block;margin-left:5px;padding:1px 6px;border-radius:99px;background:#FCE3D0;color:#9A430C;font:600 6.2pt "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;vertical-align:1px}
+.tl-tabel{width:100%;border-collapse:collapse;font-size:8pt}
+.tl-tabel th{padding:5px 6px;border-bottom:1.5px solid #141917;text-align:left;font:500 6.6pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
+.tl-tabel td{padding:6px;border-bottom:1px solid #E3E7E4;vertical-align:top;line-height:1.35}
+.tl-tabel tr{break-inside:avoid}
+.tl-tabel .n{text-align:right;white-space:nowrap;font-family:"DM Mono",monospace}
+.tl-tabel td.lama{color:#CC4430;font-weight:600}
+.tl-tabel .redup{font-size:7pt;color:#8A948F;font-weight:400}
+@media screen and (max-width:760px){.tl-angka{grid-template-columns:repeat(2,1fr)}.tl-alur{grid-template-columns:1fr;gap:6px}.tl-alur li::before{display:none}}
 @media print{html,body{background:#fff}.alat{display:none}.kertas{width:auto;margin:0;padding:0;box-shadow:none}.sampul{margin:0;box-shadow:none}}
 @media screen and (max-width:760px){.sampul,.sampul-svg{width:100%;height:auto}}
 @media screen and (max-width:760px){.alat{gap:10px;padding:8px 12px}.alat b{display:none}.alat span{font-size:11.5px;line-height:1.35}.alat button{height:34px;padding:0 14px}.kertas{padding:5mm}.kpi-kisi{grid-template-columns:repeat(2,1fr)}.dua{grid-template-columns:1fr}.sel-kisi{grid-template-columns:1fr 1fr}}`;
@@ -22017,6 +22172,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
       "<style>" + gaya + "</style><\/head><body>" +
       (opsi.sematkan ? "" : '<div class="alat"><b>Laporan ' + esc(judulBulan) + '</b><span id="status">Menyiapkan…</span><button id="cetak" type="button">Simpan PDF</button></div>') +
       '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
+        (tlHtml ? (daftar.length ? '<div class="halaman-baru"></div>' : '') + tlHtml : "") +
         (daftar.length ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian kejadian</h2><span>' + daftar.length + " laporan · urut tanggal</span></div>" + rincian : "") +
         '<p class="penutup">Angka taksiran mengikuti rumus pengkajian JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
       "</main>" + (opsi.sematkan ? "" : "<script>" + skrip + "<\/script>") + "<\/body><\/html>";
@@ -22583,7 +22739,10 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     const l = pastikanDialog();
     const sel = $("rlb-bulan");
     const daftar = tahunan() ? daftarTahun() : daftarBulan();
-    sel.innerHTML = daftar.map(function (b) { return '<option value="' + b.kunci + '">' + (tahunan() ? "Tahun " + b.kunci : namaBulan(b.kunci)) + " · " + b.jumlah + " kejadian</option>"; }).join("");
+    sel.innerHTML = daftar.map(function (b) {
+      const isi = tahunan() ? b.jumlah + " kejadian" : (b.jumlah ? b.jumlah + " kejadian" : "tanpa asesmen baru") + (b.tindak ? " · " + b.tindak + " tindak lanjut" : "");
+      return '<option value="' + b.kunci + '">' + (tahunan() ? "Tahun " + b.kunci : namaBulan(b.kunci)) + " · " + isi + "</option>";
+    }).join("");
     const kunci = tahunan() ? "tahun" : "bulan";
     if (!pilihan[kunci] || !daftar.some(function (b) { return b.kunci === pilihan[kunci]; })) pilihan[kunci] = daftar.length ? daftar[0].kunci : null;
     sel.value = pilihan[kunci];
@@ -22605,10 +22764,14 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     const isi = tahunan()
       ? "Sampul, ringkasan per bulan, sebaran, penanganan bantuan, daftar seluruh kejadian dengan tanggal serah terima &amp; monitoring" + (nFoto ? ", lalu lampiran foto ukuran besar." : ".")
       : "Grafik kejadian dan rincian tiap laporan, termasuk tanggal serah terima &amp; monitoring.";
+    const tl = (!tahunan() && periodeAktif()) ? tindakLanjutBulan(pilihan.bulan) : null;
+    const nTl = tl ? tl.bergerak.length : 0, nTunggu = tl ? tl.menunggu.length : 0;
+    const teksTl = nTl || nTunggu ? "Tindak lanjut laporan sebelumnya: " + [nTl ? nTl + " berlanjut bulan ini" : "", nTunggu ? nTunggu + " masih menunggu" : ""].filter(String).join(", ") + "." : "";
     $("rlb-ringkas").innerHTML = daftar.length
-      ? "<b>" + daftar.length + " kejadian</b> · " + (nFoto ? foto + " foto" : "tanpa foto") + " · sekitar " + halaman + " halaman.<br>" + isi
+      ? "<b>" + daftar.length + " kejadian</b> · " + (nFoto ? foto + " foto" : "tanpa foto") + " · sekitar " + (halaman + (teksTl ? 1 : 0)) + " halaman.<br>" + isi + (teksTl ? "<br>" + teksTl : "")
+      : nTl ? "<b>Tanpa asesmen baru</b> · sekitar 2 halaman.<br>" + teksTl
       : "Tidak ada laporan pada periode ini.";
-    l.querySelector('[data-rlb="buat"]').disabled = !daftar.length;
+    l.querySelector('[data-rlb="buat"]').disabled = !daftar.length && !nTl;
   }
   function buka() {
     if (!admin()) {
