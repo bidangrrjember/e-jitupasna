@@ -17662,6 +17662,10 @@ canvas.sk-peta{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sk-tirai{position:fixed;inset:0;z-index:66;background:var(--sk-tirai);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
   opacity:0;pointer-events:none;transition:opacity .3s}
 .sk-tirai.on{opacity:1;pointer-events:auto}
+/* Lembar pilihan (mis. "Jenis bencana lain") dibuka DARI formulir Laporan Baru -
+   harus di atasnya; tirai ikut naik supaya formulir di belakangnya redup. */
+#sk-pilih{z-index:72}
+html:has(#sk-lapor.on):has(#sk-pilih.on) #sk-tirai{z-index:71}
 .sk-lembar{position:fixed;left:0;right:0;bottom:0;z-index:70;max-height:calc(100% - var(--sk-aman-a) - 40px);overflow-y:auto;overscroll-behavior:contain;
   background:var(--sk-kartu);border-radius:30px 30px 0 0;box-shadow:0 -20px 50px -30px rgba(0,0,0,.4);
   padding:10px 18px var(--sk-ruang-nav);display:flex;flex-direction:column;gap:14px;
@@ -19390,6 +19394,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
     }
   }
   function tutupLapor() {
+    if (S.lembarAtas === "sk-pilih") { $("sk-pilih").classList.remove("on"); S.lembarAtas = "sk-lapor"; }
     S.lapor = false;
     $("sk-lapor").classList.remove("on");
     if (!S.lembarAtas || S.lembarAtas === "sk-lapor") { S.lembarAtas = null; $("sk-tirai").classList.remove("on"); }
