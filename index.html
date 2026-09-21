@@ -6700,6 +6700,20 @@ function toggleFormView() {
                 const lanjut = await customConfirm('Nama KK dan Desa masih kosong. Yakin ingin mengirim?', 'Data Tidak Lengkap');
 if (!lanjut) return;
             }
+            // Laporan untuk KK dan desa yang sama sudah tercatat? Membetulkan
+            // laporan lewat formulir ini membuat baris ganda di spreadsheet -
+            // yang benar lewat tombol Edit di panel laporannya.
+            const kembar = cariLaporanKembar(namaKK, alamatDesa);
+            if (kembar) {
+                const tetapKirim = await showCustomPopup({
+                    title: 'Laporan sudah ada',
+                    message: `Laporan atas nama ${kembar.nama} di ${kembar.desakelurahan} sudah tercatat (${kembar.tanggalWaktu || '-'}). ` +
+                             `Kalau ingin membetulkan laporan itu, tekan Batal lalu buka laporannya dan tekan Edit. ` +
+                             `Kirim di sini hanya kalau ini memang kejadian yang berbeda.`,
+                    type: 'confirm', confirmText: 'Kirim sebagai laporan baru', cancelText: 'Batal', cancelable: true
+                });
+                if (!tetapKirim) return;
+            }
             submitButton.disabled = true;
             submitButton.innerHTML = '<span class="material-symbols-outlined animate-spin text-base">progress_activity</span> Mengirim...';
 
@@ -6743,6 +6757,17 @@ if (!lanjut) return;
                 submitButton.innerHTML = 'Kirim Laporan';
             }
         });
+
+        // Cari laporan yang sudah ada untuk Nama KK + Desa yang sama. Memakai
+        // data asli (bukan salinan samaran tamu); ikut jalan saat offline
+        // karena data terakhir tetap ada di memori.
+        function cariLaporanKembar(nama, desa) {
+            const rata = v => String(v == null ? '' : v).toLowerCase().replace(/\s+/g, ' ').trim();
+            const n = rata(nama), d = rata(desa);
+            if (!n || n === '-' || !d) return null;
+            const sumber = window.rkDataAsli || (typeof allData !== 'undefined' ? allData : []) || [];
+            return sumber.find(x => rata(x.nama) === n && rata(x.desakelurahan) === d) || null;
+        }
 
         async function createFormDataObject() {
             const formData = {};
