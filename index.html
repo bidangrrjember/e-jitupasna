@@ -5272,33 +5272,58 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 
                 if(addPhotoBox) {
                     originalContent = addPhotoBox.innerHTML;
-                    addPhotoBox.innerHTML = `
-                        <div class="flex flex-col items-center justify-center w-full h-full animate-pulse">
-                            <span class="material-symbols-outlined animate-spin text-3xl text-primary">progress_activity</span>
-                            <span class="text-[10px] text-gray-500 font-medium mt-2">Uploading...</span>
-                            <span class="text-[10px] text-gray-400 font-bold" id="upload-progress-text">0/${filesToUpload.length}</span>
-                        </div>
-                    `;
+                    // Kartu unggah: pratinjau foto yang sedang dikirim + cincin progres (lihat gaya rk-unggah-foto)
+                    addPhotoBox.innerHTML =
+                        '<img class="rkd-unggah-pratinjau" alt="">' +
+                        '<span class="rkd-unggah-cincin"><svg viewBox="0 0 44 44" aria-hidden="true"><circle class="jalur" cx="22" cy="22" r="18"/><circle class="isi" cx="22" cy="22" r="18" pathLength="100"/></svg>' +
+                        '<b id="upload-progress-text">0/' + filesToUpload.length + '</b></span>' +
+                        '<span class="rkd-unggah-label">Mengunggah</span>';
                     addPhotoBox.onclick = null;
-                    addPhotoBox.classList.add('cursor-not-allowed', 'bg-gray-100', 'dark:bg-gray-800');
+                    addPhotoBox.classList.add('rkd-foto-unggah');
+                    addPhotoBox.setAttribute('role', 'status');
+                    addPhotoBox.setAttribute('aria-live', 'polite');
                 }
             } else if (uploadButton) {
                 uploadButton.disabled = true;
-                uploadButton.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Mengupload...';
+                uploadButton.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Mengunggah…';
             }
             
             let filesUploaded = 0;
+            const jumlahBerkas = filesToUpload.length;
+            let urlPratinjau = null;
+            // selesai = berkas yang sudah terkirim; sedang = nomor berkas yang sedang dikirim (0 = tidak ada)
+            const aturUnggah = function (selesai, sedang) {
+                if (!addPhotoBox) return;
+                const isi = addPhotoBox.querySelector('.rkd-unggah-cincin .isi');
+                const angka = document.getElementById('upload-progress-text');
+                if (angka) angka.textContent = (sedang || selesai) + '/' + jumlahBerkas;
+                if (!isi) return;
+                // selagi satu berkas dikirim, cincin merayap pelan ke ~85% bagiannya; begitu selesai, melompat penuh
+                const tuju = sedang ? (selesai + 0.85) / jumlahBerkas : selesai / jumlahBerkas;
+                isi.style.transition = sedang ? 'stroke-dashoffset 9s cubic-bezier(.1,.6,.3,1)' : 'stroke-dashoffset .35s ease';
+                void isi.getBoundingClientRect();
+                isi.style.strokeDashoffset = String(100 - tuju * 100);
+            };
+            const tampilkanPratinjau = function (file) {
+                if (!addPhotoBox || !file || !/^image\//.test(file.type)) return;
+                const img = addPhotoBox.querySelector('.rkd-unggah-pratinjau');
+                if (!img) return;
+                if (urlPratinjau) URL.revokeObjectURL(urlPratinjau);
+                urlPratinjau = URL.createObjectURL(file);
+                img.onload = function () { img.classList.add('ada'); addPhotoBox.classList.add('ada-pratinjau'); };
+                img.src = urlPratinjau;
+            };
 
             try {
                 for (const file of filesToUpload) {
-                    const fileBase64 = await readFileAsBase64(file);
-                    filesUploaded++;
-                    
-                    if (jenisGaleri && document.getElementById('upload-progress-text')) {
-                        document.getElementById('upload-progress-text').innerText = `${filesUploaded}/${filesToUpload.length}`;
+                    const nomor = filesUploaded + 1;
+                    if (jenisGaleri) {
+                        tampilkanPratinjau(file);
+                        aturUnggah(filesUploaded, nomor);
                     } else if (uploadButton) {
-                         uploadButton.innerHTML = `<span class="material-symbols-outlined animate-spin">progress_activity</span> (${filesUploaded}/${filesToUpload.length})...`;
+                        uploadButton.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Mengunggah ' + nomor + '/' + jumlahBerkas + '…';
                     }
+                    const fileBase64 = await readFileAsBase64(file);
                     
                     const payload = {
                         mode: 'update', 
@@ -5311,7 +5336,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
                             alamatKecamatan: reportData.kec,
                             namaKK: reportData.nama
                         },
-                        fileIndex: filesUploaded, 
+                        fileIndex: nomor, 
                         tanggalLaporan: reportData.tanggalWaktu ? reportData.tanggalWaktu.split(' ').slice(0, 3).join(' ') : ""
                     };
 
@@ -5321,9 +5346,22 @@ async function handleSidebarUpload(fileType, reportIndex) {
                         body: JSON.stringify(payload),
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     });
+                    filesUploaded++;
+                    if (jenisGaleri) aturUnggah(filesUploaded, 0);
                 }
 
-                showNotification(`Sukses! ${filesToUpload.length} file berhasil diupload.`);
+                // cincin penuh + centang sebentar sebelum panel ditutup
+                if (jenisGaleri && addPhotoBox) {
+                    addPhotoBox.classList.add('selesai');
+                    const angka = document.getElementById('upload-progress-text');
+                    if (angka) angka.innerHTML = '<span class="material-symbols-outlined">check</span>';
+                    const label = addPhotoBox.querySelector('.rkd-unggah-label');
+                    if (label) label.textContent = 'Terunggah';
+                    await new Promise(function (ok) { setTimeout(ok, 700); });
+                }
+                if (urlPratinjau) URL.revokeObjectURL(urlPratinjau);
+
+                showNotification(jumlahBerkas + (jenisGaleri ? ' foto' : ' berkas') + ' berhasil diunggah.');
                 
                 closeSidebar(); 
                 if(fetchInterval) clearInterval(fetchInterval);
@@ -5334,10 +5372,13 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 console.error('Gagal upload file:', error);
                 showNotification(`Gagal: ${error.message}`);
                 
+                if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
                 if (jenisGaleri && addPhotoBox) {
                     addPhotoBox.innerHTML = originalContent;
                     addPhotoBox.onclick = function() { document.getElementById('file-' + fileType + '-input').click(); };
-                    addPhotoBox.classList.remove('cursor-not-allowed', 'bg-gray-100', 'dark:bg-gray-800');
+                    addPhotoBox.classList.remove('rkd-foto-unggah', 'ada-pratinjau', 'selesai');
+                    addPhotoBox.removeAttribute('role');
+                    addPhotoBox.removeAttribute('aria-live');
                 } else if (uploadButton) {
                     uploadButton.disabled = false;
                     uploadButton.innerHTML = '<span class="material-symbols-outlined">upload_file</span> Upload';
@@ -15391,6 +15432,25 @@ body.rk #sidebar .rkd-file::file-selector-button{margin-right:10px;height:30px;p
 .rkd-foto-tambah > .material-symbols-outlined{font-size:24px}
 .rkd-foto-tambah > span:last-child{font-size:11px;font-weight:600}
 .rkd-foto-tambah:hover{border-color:var(--rk-api);color:var(--rk-api)}
+/* kartu unggah foto (rk-unggah-foto): pratinjau berkas + cincin progres */
+.rkd-foto.rkd-foto-unggah{cursor:progress !important;border:1.5px solid var(--rk-api,#E0600E) !important;background:var(--rk-muka) !important;color:var(--rk-tinta) !important;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.rkd-foto-unggah.ada-pratinjau{color:#fff !important}
+.rkd-foto-unggah.selesai{border-color:#2A9384 !important}
+.rkd-unggah-pratinjau{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);
+  filter:blur(1.5px) brightness(.42) saturate(.85);transition:opacity .3s ease}
+.rkd-unggah-pratinjau.ada{opacity:1}
+.rkd-unggah-cincin{position:relative;z-index:1;width:48%;max-width:54px;aspect-ratio:1 / 1;display:grid;place-items:center}
+.rkd-unggah-cincin svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.rkd-unggah-cincin circle{fill:none;stroke-width:3.4}
+.rkd-unggah-cincin .jalur{stroke:currentColor;opacity:.18}
+.rkd-unggah-cincin .isi{stroke:var(--rk-api,#E0600E);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}
+.rkd-foto-unggah.selesai .rkd-unggah-cincin .isi{stroke:#2A9384}
+.rkd-unggah-cincin b{position:relative;font:600 11.5px/1 "DM Mono",ui-monospace,monospace;letter-spacing:-.02em}
+.rkd-unggah-cincin b .material-symbols-outlined{font-size:18px;color:#2A9384;font-weight:700}
+.rkd-foto-unggah.ada-pratinjau .rkd-unggah-cincin b .material-symbols-outlined{color:#7FD6C6}
+.rkd-unggah-label{position:relative;z-index:1;font-size:10.5px;font-weight:600;letter-spacing:.01em;opacity:.85}
+@media (prefers-reduced-motion:reduce){.rkd-unggah-cincin .isi{transition:none !important}}
 
 /* ── kaki ── */
 .rkd-kaki{flex:0 0 auto;display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;
