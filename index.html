@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbw57RFNdzk8DIEf-17CUHRCQ91_2obDd_dEN6alolyz7D6HOnGO_4bZxFcIzCOTJaUs/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -22724,7 +22724,9 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
      Link Dokumentasi) yang dipakai laporan PDF, asisten foto, dan cetak
      laporan kajian. Galeri KTP/KK & kegiatan hanya untuk petugas.
      Dalam mode Edit, tiap foto punya tombol pindah untuk membetulkan foto
-     yang salah tempat (aksi GAS "pindahFoto" - berkas Drive tidak diubah).
+     yang salah tempat (aksi GAS "pindahFoto" - berkas Drive tidak diubah),
+     dan pilihan "Hapus foto" (aksi GAS "hapusFoto" - tautan dicabut dari
+     laporan, berkas Drive dipindah ke Sampah, bisa dipulihkan 30 hari).
      ══════════════════════════════════════════════════════════════════════ -->
 <style id="rk-galeri-foto-gaya">
 .rkd-foto-pindah{position:absolute;top:5px;right:5px;z-index:3;display:none;width:30px;height:30px;padding:0;border:0;border-radius:9px;cursor:pointer;
@@ -22744,11 +22746,18 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
   font:600 13px "Plus Jakarta Sans",system-ui,sans-serif;color:var(--rk-tinta);text-align:left}
 #rkg-menu button:hover,#rkg-menu button:focus-visible{background:var(--rk-muka);outline:none}
 #rkg-menu button .material-symbols-outlined{font-size:18px;color:var(--rk-api)}
+#rkg-menu hr{height:1px;margin:5px 4px;border:0;background:var(--rk-sekat)}
+#rkg-menu button.rkg-bahaya,#rkg-menu button.rkg-bahaya .material-symbols-outlined{color:#D8443A}
+#rkg-menu button.rkg-bahaya:hover,#rkg-menu button.rkg-bahaya:focus-visible{background:color-mix(in srgb,#D8443A 12%,transparent)}
+.rkd-foto.rkg-menghapus::after{background:rgba(120,20,16,.45)}
+.rkd-foto.rkg-hilang{transform:scale(.85);opacity:0;transition:transform .25s ease,opacity .25s ease}
 html[data-saku] #rkg-menu{border:0;border-radius:20px;background:var(--sk-kartu);box-shadow:var(--sk-bayang-tinggi)}
 html[data-saku] #rkg-menu button{border-radius:14px;padding:12px;font-size:14px;color:var(--sk-tinta)}
 html[data-saku] #rkg-menu button:hover{background:var(--sk-kartu2)}
 html[data-saku] #rkg-menu button .material-symbols-outlined{color:var(--sk-api)}
 html[data-saku] #rkg-menu s{color:var(--sk-tipis)}
+html[data-saku] #rkg-menu hr{background:var(--sk-garis,rgba(255,255,255,.1))}
+html[data-saku] #rkg-menu button.rkg-bahaya,html[data-saku] #rkg-menu button.rkg-bahaya .material-symbols-outlined{color:#E5534B}
 html[data-saku] .rkd-foto-pindah{width:34px;height:34px;border-radius:12px}
 html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
 </style>
@@ -22778,7 +22787,7 @@ html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
         '<span class="material-symbols-outlined rkd-foto-latar">image</span>' +
         '<img src="' + escA(getDriveImgUrl(url)) + '" class="opacity-0" alt="' + J.judul + " " + (i + 1) + '" loading="lazy" onload="this.classList.remove(\'opacity-0\')" onerror="this.style.display=\'none\'">' +
         '<span class="material-symbols-outlined rkd-foto-lihat">visibility</span>' +
-        (masuk() ? '<button type="button" class="rkd-foto-pindah" title="Pindahkan foto" aria-label="Pindahkan foto ' + (i + 1) + '" onclick="event.stopPropagation(); rkGaleriFoto.menu(this, \'' + escJs(data.idx) + "', '" + escJs(url) + "', '" + j + '\')"><span class="material-symbols-outlined">drive_file_move</span></button>' : "") +
+        (masuk() ? '<button type="button" class="rkd-foto-pindah" title="Pindahkan atau hapus foto" aria-label="Pindahkan atau hapus foto ' + (i + 1) + '" onclick="event.stopPropagation(); rkGaleriFoto.menu(this, \'' + escJs(data.idx) + "', '" + escJs(url) + "', '" + j + '\')"><span class="material-symbols-outlined">more_horiz</span></button>' : "") +
       "</div>";
     });
     if (masuk() && foto.length < J.maks) {
@@ -22787,7 +22796,7 @@ html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
     }
     if (!foto.length && !masuk()) h += '<p class="rkd-kosong rkd-lebar">' + J.kosong + "</p>";
     h += "</div>" +
-      (j === "kerusakan" && masuk() ? '<p class="rkg-catatan rkg-catatan-edit">Foto KTP/KK atau kegiatan yang tercampur di sini? Pindahkan lewat tombol di pojok foto - hanya foto kerusakan yang masuk laporan PDF.</p>' : "") +
+      (j === "kerusakan" && masuk() ? '<p class="rkg-catatan rkg-catatan-edit">Foto KTP/KK atau kegiatan yang tercampur di sini, atau foto yang salah? Pindahkan atau hapus lewat tombol ••• di pojok foto - hanya foto kerusakan yang masuk laporan PDF.</p>' : "") +
       '<input type="file" id="file-' + J.unggah + '-input" accept="image/*" multiple class="hidden" onchange="handleSidebarUpload(\'' + J.unggah + "', '" + escJs(data.idx) + '\')">' +
       "</section>";
     return h;
@@ -22807,8 +22816,11 @@ html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
     }
     menuEl.innerHTML = "<s>Pindahkan ke</s>" + Object.keys(JENIS).filter(function (k) { return k !== dari; }).map(function (k) {
       return '<button type="button" role="menuitem" data-ke="' + k + '"><span class="material-symbols-outlined">' + JENIS[k].ikon + "</span>" + JENIS[k].judul + "</button>";
-    }).join("");
+    }).join("") +
+      '<hr><button type="button" role="menuitem" class="rkg-bahaya" data-hapus="1"><span class="material-symbols-outlined">delete</span>Hapus foto</button>';
     menuEl.onclick = function (e) {
+      const h = e.target.closest("button[data-hapus]");
+      if (h) { tutupMenu(); hapus(idx, url, dari, tombol.closest(".rkd-foto")); return; }
       const b = e.target.closest("button[data-ke]"); if (!b) return;
       tutupMenu();
       pindah(idx, url, dari, b.dataset.ke, tombol.closest(".rkd-foto"));
@@ -22849,6 +22861,40 @@ html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
     }
   }
 
+  // Hapus satu foto: konfirmasi dulu, pratinjau foto ikut ditampilkan supaya tidak salah pilih.
+  async function hapus(idx, url, dari, kotak) {
+    const cari = function (arr) { return Array.isArray(arr) ? arr.find(function (x) { return String(x.idx) === String(idx); }) : null; };
+    const item = cari(window.rkDataAsli) || cari(typeof allData !== "undefined" ? allData : null);
+    if (!item) return;
+    const ya = typeof customConfirm === "function"
+      ? await customConfirm("Foto ini akan dihapus dari " + JENIS[dari].judul.toLowerCase() + " laporan " + (item.nama || "ini") + ". Berkasnya dipindah ke Sampah Google Drive dan masih bisa dipulihkan dari sana selama 30 hari.", "Hapus foto?")
+      : confirm("Hapus foto ini?");
+    if (!ya) return;
+    if (kotak) kotak.classList.add("rkg-sibuk", "rkg-menghapus");
+    try {
+      const res = await fetch(DATA_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "hapusFoto", laporanId: item.timestamp, url: url }) });
+      const j = await res.json();
+      if (!j || j.status !== "success" || !j.data) {
+        const pesan = (j && j.message) || "Tidak ada jawaban dari server.";
+        throw new Error(/tidak dikenal/i.test(pesan) ? "Server belum mendukung hapus foto. Deploy ulang GAS GABUNGAN." : pesan);
+      }
+      [cari(window.rkDataAsli), cari(typeof allData !== "undefined" ? allData : null)].forEach(function (it) {
+        if (!it) return;
+        it.photos = j.data.photos; it.fotoIdentitas = j.data.fotoIdentitas; it.fotoKegiatan = j.data.fotoKegiatan;
+        it.linkDokumentasi = j.data.photos.join(", ");
+        it.linkFotoIdentitas = j.data.fotoIdentitas.join(", ");
+        it.linkFotoKegiatan = j.data.fotoKegiatan.join(", ");
+      });
+      if (kotak) { kotak.classList.add("rkg-hilang"); await new Promise(function (ok) { setTimeout(ok, 260); }); }
+      segarkan(item);
+      try { showNotification(j.sampah === false ? "Foto dihapus dari laporan (berkas Drive tidak bisa dipindah ke Sampah)." : "Foto dihapus. Berkasnya ada di Sampah Google Drive selama 30 hari."); } catch (e) {}
+    } catch (e) {
+      if (kotak) kotak.classList.remove("rkg-sibuk", "rkg-menghapus");
+      try { customAlert("Foto belum dihapus: " + e.message, "error"); } catch (x) {}
+    }
+  }
+
   function segarkan(item) {
     document.querySelectorAll('#sidebar section[data-galeri][data-idx="' + String(item.idx).replace(/"/g, "") + '"]').forEach(function (sek) {
       const wadah = document.createElement("div");
@@ -22858,7 +22904,7 @@ html[data-saku] .rkg-catatan{color:var(--sk-tipis)}
     });
   }
 
-  window.rkGaleriFoto = { html: html, menu: menu, pindah: pindah, segarkan: segarkan };
+  window.rkGaleriFoto = { html: html, menu: menu, pindah: pindah, hapus: hapus, segarkan: segarkan };
 
 })();
 </script>
