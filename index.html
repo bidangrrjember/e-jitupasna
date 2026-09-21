@@ -21419,6 +21419,295 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
   }
 
   /* ── dokumen ── */
+  /* ══ SAMPUL BULANAN ══════════════════════════════════════════════════
+     Sengaja kebalikan sampul tahunan (malam gelap, cahaya berpendar, garis
+     tipis, angka tahun raksasa). Sampul bulanan TERANG dan DATAR: kertas
+     muda + satu bidang warna pekat berisi motif geometri padat, nama BULAN
+     sebagai judul, dan kalender bulan itu dengan tanggal kejadian ditandai.
+
+     Setiap bulan punya warna sendiri (RONA_BULAN - bulan yang berurutan
+     dibuat kontras) dan keluarga motif sendiri (MOTIF_BULAN), jadi dua
+     bulan tidak pernah bersampul serupa. Rincian motif, nada warna, dan
+     tata letak diacak ulang setiap kali "Buat PDF" diklik.
+     ════════════════════════════════════════════════════════════════════ */
+  const RONA_BULAN = [210, 330, 88, 180, 12, 240, 38, 300, 150, 270, 55, 120];
+  const MOTIF_BULAN = ["kolom", "matahari", "ubin", "diagonal", "cincin", "tangga", "ombak", "titik", "truchet", "hujan", "teras", "segitiga"];
+
+  function sampulBulanan(k, daftar, info, benih) {
+    const p = k.split("-"), th = +p[0], bl = +p[1] - 1;
+    const r = acakBenih(benih);
+    const W = 210, H = 297;
+    const f1 = function (n) { return (Math.round(n * 10) / 10).toString(); };
+    let defs = "", urutId = 0;
+    const idBaru = function (x) { return "b" + th + bl + x + (urutId++); };
+
+    /* ── warna: satu rona per bulan, dalam beberapa nada ── */
+    const h = RONA_BULAN[bl] + r.antara(-6, 6);
+    const kuning = h > 40 && h < 100;                    // kuning & zaitun perlu lebih gelap supaya tidak kusam
+    const s = r.antara(34, 46);
+    const L = kuning ? r.antara(27, 31) : r.antara(30, 35);
+    const DASAR = hsl(h, s, L);
+    const MUDA = hsl(h + r.antara(-8, 8), s - 4, L + 12);
+    const MUDA2 = hsl(h + r.antara(-8, 8), s - 10, L + 26);
+    const GELAP = hsl(h, s + 4, L - 10);
+    const PUCAT = hsl(h, 24, 84);
+    const dekatJingga = Math.abs(((h - 22 + 540) % 360) - 180) < 42;
+    const AKSEN = dekatJingga ? hsl(h + 180, 30, 88) : "#E0600E";
+    const KERTAS = hsl(h, 22, 95.5), TINTA = hsl(h, 30, 13), REDUP = hsl(h, 10, 42), GARIS = hsl(h, 14, 84);
+    const nada = function () { return r.pilih([MUDA, MUDA, MUDA2, GELAP, GELAP]); };
+
+    // potongan kotak untuk ubin truchet (seperempat lingkaran per sel)
+    const idSel = function (x, y, sel) {
+      const id = idBaru("t");
+      defs += '<clipPath id="' + id + '"><rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(sel + 0.2) + '" height="' + f1(sel + 0.2) + '"/></clipPath>';
+      return id;
+    };
+
+    /* ── motif: bangun padat di dalam bidang warna ── */
+    const MOTIF = {
+      kolom: function (b) {
+        let g = "", x = b.x - r.antara(0, 8), i = 0;
+        const aksen = r.bulat(2, 5);
+        while (x < b.x + b.w) {
+          const lb = r.antara(12, 30), t = r.antara(b.h * 0.3, b.h * 0.92), y = b.y + b.h - t;
+          const c = i === aksen ? AKSEN : nada();
+          g += r() < 0.45
+            ? '<path d="M' + f1(x) + " " + f1(y + lb / 2) + "A" + f1(lb / 2) + " " + f1(lb / 2) + " 0 0 1 " + f1(x + lb) + " " + f1(y + lb / 2) + "V" + f1(b.y + b.h) + "H" + f1(x) + 'Z" fill="' + c + '"/>'
+            : '<rect x="' + f1(x) + '" y="' + f1(y) + '" width="' + f1(lb) + '" height="' + f1(t) + '" fill="' + c + '"/>';
+          x += lb + r.antara(0, 2.5); i++;
+        }
+        return g;
+      },
+      matahari: function (b) {
+        const cx = b.x + b.w * r.antara(0.25, 0.75), cy = b.y + b.h + r.antara(-10, 10), n = r.bulat(5, 8), R = b.w * r.antara(0.6, 0.85);
+        const urut = r.kocok([MUDA, MUDA2, GELAP, PUCAT, MUDA]);
+        let g = "";
+        for (let i = 0; i < n; i++) g += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * (1 - i / n)) + '" fill="' + (i % 2 ? DASAR : urut[i % urut.length]) + '"/>';
+        return g + '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R / n * 0.7) + '" fill="' + AKSEN + '"/>';
+      },
+      ubin: function (b) {
+        const kol = r.bulat(6, 9), sel = b.w / kol, bar = Math.ceil(b.h / sel) + 1;
+        let g = "";
+        for (let j = 0; j < bar; j++) for (let i = 0; i < kol; i++) {
+          const u = r();
+          if (u < 0.28) continue;
+          const c = u < 0.34 ? AKSEN : u < 0.7 ? MUDA : u < 0.86 ? GELAP : MUDA2;
+          g += '<rect x="' + f1(b.x + i * sel + sel * 0.08) + '" y="' + f1(b.y + j * sel + sel * 0.08) + '" width="' + f1(sel * 0.84) + '" height="' + f1(sel * 0.84) + '" rx="' + f1(sel * 0.2) + '" fill="' + c + '"/>';
+        }
+        return g;
+      },
+      diagonal: function (b) {
+        const sudut = r.pilih([28, -28, 40, -40, 55, -55]), cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+        const aksen = r.bulat(3, 8);
+        let g = '<g transform="rotate(' + sudut + " " + f1(cx) + " " + f1(cy) + ')">', x = cx - 260, i = 0;
+        while (x < cx + 260) {
+          const lb = r.antara(8, 24);
+          if (r() < 0.75) g += '<rect x="' + f1(x) + '" y="' + f1(cy - 260) + '" width="' + f1(lb) + '" height="520" fill="' + (i === aksen ? AKSEN : nada()) + '"/>';
+          x += lb + r.antara(2, 14); i++;
+        }
+        return g + "</g>";
+      },
+      cincin: function (b) {
+        const pj = r.pilih([[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 1]]);
+        const cx = b.x + b.w * pj[0], cy = b.y + b.h * pj[1], n = r.bulat(7, 11), R = Math.hypot(b.w, b.h) * r.antara(0.75, 0.95);
+        const urut = [MUDA, GELAP, MUDA2, DASAR];
+        let g = "";
+        for (let i = 0; i < n; i++) g += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R * (1 - i / n)) + '" fill="' + (i === n - 2 ? AKSEN : urut[i % urut.length]) + '"/>';
+        return g;
+      },
+      tangga: function (b) {
+        const n = r.bulat(6, 10), lb = b.w / n, naik = r() < 0.5;
+        let g = "";
+        for (let i = 0; i < n; i++) {
+          const k2 = naik ? i : n - 1 - i, t = b.h * (0.18 + 0.78 * (k2 + 1) / n);
+          const c = k2 === n - 1 ? AKSEN : [MUDA2, MUDA, GELAP][i % 3];
+          g += '<rect x="' + f1(b.x + i * lb) + '" y="' + f1(b.y + b.h - t) + '" width="' + f1(lb + 0.3) + '" height="' + f1(t) + '" fill="' + c + '"/>';
+          if (r() < 0.5) g += '<rect x="' + f1(b.x + i * lb) + '" y="' + f1(b.y + b.h - t) + '" width="' + f1(lb + 0.3) + '" height="' + f1(Math.min(t, r.antara(3, 7))) + '" fill="' + PUCAT + '" fill-opacity=".55"/>';
+        }
+        return g;
+      },
+      ombak: function (b) {
+        const n = r.bulat(4, 7), amp = r.antara(4, 11), fr = r.antara(0.025, 0.05), urut = r.kocok([MUDA, MUDA2, GELAP, PUCAT, MUDA]);
+        let g = "";
+        for (let i = 0; i < n; i++) {
+          const y0 = b.y + b.h * (0.15 + 0.8 * i / n), fase = r.antara(0, 6);
+          let d = "M" + f1(b.x - 2) + " " + f1(y0);
+          for (let x = b.x - 2; x <= b.x + b.w + 2; x += 3) d += "L" + f1(x) + " " + f1(y0 + Math.sin(x * fr + fase) * amp);
+          g += '<path d="' + d + "L" + f1(b.x + b.w + 2) + " " + f1(b.y + b.h + 2) + "L" + f1(b.x - 2) + " " + f1(b.y + b.h + 2) + 'Z" fill="' + (i === n - 1 && r() < 0.6 ? AKSEN : urut[i % urut.length]) + '"/>';
+        }
+        return g;
+      },
+      titik: function (b) {
+        const jarak = r.antara(6.5, 10), fx = b.x + b.w * r.antara(0, 1), fy = b.y + b.h * r.antara(0, 1), maks = Math.hypot(b.w, b.h);
+        const warna = r.pilih([MUDA2, PUCAT, MUDA]);
+        let g = "";
+        for (let y = b.y + jarak / 2; y < b.y + b.h; y += jarak) for (let x = b.x + jarak / 2; x < b.x + b.w; x += jarak) {
+          const rad = jarak * 0.48 * Math.pow(Math.max(0, 1 - Math.hypot(x - fx, y - fy) / maks), 1.6);
+          if (rad > 0.35) g += '<circle cx="' + f1(x) + '" cy="' + f1(y) + '" r="' + f1(rad) + '" fill="' + warna + '"/>';
+        }
+        return g + '<circle cx="' + f1(fx) + '" cy="' + f1(fy) + '" r="' + f1(jarak * 0.9) + '" fill="' + AKSEN + '"/>';
+      },
+      truchet: function (b) {
+        const sel = r.antara(15, 24), kol = Math.ceil(b.w / sel), bar = Math.ceil(b.h / sel);
+        let g = "";
+        for (let j = 0; j < bar; j++) for (let i = 0; i < kol; i++) {
+          const x = b.x + i * sel, y = b.y + j * sel, pj = r.bulat(0, 3);
+          const cx = x + (pj === 1 || pj === 2 ? sel : 0), cy = y + (pj >= 2 ? sel : 0);
+          const c = r() < 0.06 ? AKSEN : (i + j) % 2 ? MUDA : GELAP;
+          g += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(sel) + '" fill="' + c + '" clip-path="url(#' + idSel(x, y, sel) + ')"/>';
+        }
+        return g;
+      },
+      hujan: function (b) {
+        const lb = r.antara(3.2, 5.5), jarak = lb + r.antara(2, 5);
+        let g = "";
+        for (let x = b.x + jarak / 2; x < b.x + b.w; x += jarak) {
+          const pj = b.h * r.antara(0.15, 0.85);
+          const c = r() < 0.05 ? AKSEN : r.pilih([MUDA, MUDA2, MUDA, GELAP]);
+          g += '<line x1="' + f1(x) + '" y1="' + f1(b.y - 5) + '" x2="' + f1(x) + '" y2="' + f1(b.y + pj) + '" stroke="' + c + '" stroke-width="' + f1(lb) + '" stroke-linecap="round"/>';
+        }
+        return g;
+      },
+      teras: function (b) {
+        const n = r.bulat(6, 10), urut = r.kocok([MUDA, MUDA2, GELAP, PUCAT, MUDA, GELAP]);
+        let g = "";
+        for (let i = 0; i < n; i++) {
+          const y0 = b.y + b.h * (0.08 + 0.9 * i / n), lengk = r.antara(-26, 26), kanan = y0 + r.antara(-14, 14);
+          g += '<path d="M' + f1(b.x - 2) + " " + f1(y0) + "Q" + f1(b.x + b.w * r.antara(0.3, 0.7)) + " " + f1(y0 + lengk) + " " + f1(b.x + b.w + 2) + " " + f1(kanan) +
+            "V" + f1(b.y + b.h + 2) + "H" + f1(b.x - 2) + 'Z" fill="' + (i === n - 3 ? AKSEN : urut[i % urut.length]) + '"/>';
+        }
+        return g;
+      },
+      segitiga: function (b) {
+        const sisi = r.antara(18, 30), t = sisi * 0.866;
+        let g = "";
+        for (let j = 0; j * t < b.h + t; j++) for (let i = -1; i * sisi / 2 < b.w + sisi; i++) {
+          const u = r();
+          if (u < 0.35) continue;
+          const c = u < 0.4 ? AKSEN : u < 0.72 ? MUDA : u < 0.88 ? GELAP : MUDA2;
+          const x = b.x + i * sisi / 2, y = b.y + j * t, atas = (i + j) % 2 === 0;
+          g += '<path d="' + (atas
+            ? "M" + f1(x) + " " + f1(y + t) + "L" + f1(x + sisi / 2) + " " + f1(y) + "L" + f1(x + sisi) + " " + f1(y + t)
+            : "M" + f1(x) + " " + f1(y) + "L" + f1(x + sisi) + " " + f1(y) + "L" + f1(x + sisi / 2) + " " + f1(y + t)) + 'Z" fill="' + c + '"/>';
+        }
+        return g;
+      }
+    };
+
+    const motif = MOTIF_BULAN[bl];
+    const bidang = function (b) {
+      const id = idBaru("b");
+      defs += '<clipPath id="' + id + '"><rect x="' + f1(b.x) + '" y="' + f1(b.y) + '" width="' + f1(b.w) + '" height="' + f1(b.h) + '"/></clipPath>';
+      return '<rect x="' + f1(b.x) + '" y="' + f1(b.y) + '" width="' + f1(b.w) + '" height="' + f1(b.h) + '" fill="' + DASAR + '"/><g clip-path="url(#' + id + ')">' + MOTIF[motif](b) + "</g>";
+    };
+
+    /* ── tulisan ── */
+    const T = function (x, y, isi, o) {
+      o = o || {};
+      return '<text x="' + f1(x) + '" y="' + f1(y) + '" font-family="' + (o.font || "Plus Jakarta Sans") + '" font-size="' + (o.size || 3) + '" font-weight="' + (o.w || 400) + '" fill="' + (o.warna || TINTA) + '"' +
+        (o.anchor ? ' text-anchor="' + o.anchor + '"' : "") + (o.ls !== undefined ? ' letter-spacing="' + o.ls + '"' : "") + ">" + isi + "</text>";
+    };
+    const DISP = "Bricolage Grotesque", MONO = "DM Mono";
+    const nama = BULAN[bl];
+    const ukuranJudul = function (lebar, maks) { return Math.min(maks, lebar / (nama.length * 0.6)); };
+    const ringkasRp = function (n) {
+      n = parseFloat(n) || 0;
+      if (n >= 1e9) return "Rp" + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
+      if (n >= 1e6) return "Rp" + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
+      return rp(n);
+    };
+    const kop = function (x, y, warna) {
+      return '<circle cx="' + f1(x + 6.3) + '" cy="' + f1(y + 6.3) + '" r="6.9" fill="#fff"/><image href="' + LOGO + '" x="' + f1(x) + '" y="' + f1(y) + '" width="12.6" height="12.6"/>' +
+        T(x + 16.5, y + 5.4, "Badan Penanggulangan Bencana Daerah", { size: 3, w: 600, warna: warna }) +
+        T(x + 16.5, y + 9.8, "Kabupaten Jember", { size: 3, w: 600, warna: warna });
+    };
+    // kop di atas bidang bermotif diberi alas warna dasar supaya tetap terbaca
+    const kopBidang = function (x, y) {
+      return '<rect x="' + f1(x - 4) + '" y="' + f1(y - 4) + '" width="94" height="20.6" rx="10.3" fill="' + DASAR + '"/>' + kop(x, y, "#fff");
+    };
+    const label = function (x, y, warna) {
+      return '<rect x="' + f1(x) + '" y="' + f1(y - 2.4) + '" width="7" height="2" fill="' + AKSEN + '"/>' +
+        T(x + 10, y, "LAPORAN BULANAN · JITUPASNA", { font: MONO, size: 2.6, w: 500, warna: warna, ls: 0.45 });
+    };
+    const angkaAngka = [[angka(info.kejadian), "kejadian dikaji"], [angka(info.jiwa), "jiwa terdampak"], [ringkasRp(info.nilai), "taksiran kerusakan"]];
+
+    /* kalender: Senin di kiri, tanggal berkejadian diisi warna bulan */
+    const hitung = {};
+    daftar.forEach(function (it) { if (it.dateObj && !isNaN(it.dateObj)) { const d = it.dateObj.getDate(); hitung[d] = (hitung[d] || 0) + 1; } });
+    const kalender = function (x, y, sel) {
+      const geser = (new Date(th, bl, 1).getDay() + 6) % 7, jml = new Date(th, bl + 1, 0).getDate();
+      let g = "";
+      ["S", "S", "R", "K", "J", "S", "M"].forEach(function (hh, i) {
+        g += T(x + i * sel + sel / 2, y, hh, { font: MONO, size: 2.3, w: 500, warna: i === 6 ? AKSEN : REDUP, anchor: "middle" });
+      });
+      for (let d = 1; d <= jml; d++) {
+        const pos = geser + d - 1, cx = x + (pos % 7) * sel, cy = y + 3 + Math.floor(pos / 7) * sel;
+        if (hitung[d]) {
+          g += '<rect x="' + f1(cx + 0.5) + '" y="' + f1(cy + 0.5) + '" width="' + f1(sel - 1) + '" height="' + f1(sel - 1) + '" rx="' + f1(sel * 0.22) + '" fill="' + DASAR + '"/>' +
+            T(cx + sel / 2, cy + sel * 0.66, d, { font: MONO, size: 2.6, w: 500, warna: "#fff", anchor: "middle" });
+          if (hitung[d] > 1) g += '<circle cx="' + f1(cx + sel - 1.4) + '" cy="' + f1(cy + 1.4) + '" r="1.5" fill="' + AKSEN + '"/>' +
+            T(cx + sel - 1.4, cy + 2.15, hitung[d], { size: 1.9, w: 700, warna: "#fff", anchor: "middle" });
+        } else {
+          g += T(cx + sel / 2, cy + sel * 0.66, d, { font: MONO, size: 2.5, warna: REDUP, anchor: "middle" });
+        }
+      }
+      const yk = y + 3 + Math.ceil((geser + jml) / 7) * sel + 4;
+      return g + '<rect x="' + f1(x + 0.5) + '" y="' + f1(yk - 2.3) + '" width="2.6" height="2.6" rx=".6" fill="' + DASAR + '"/>' +
+        T(x + 4.6, yk, "tanggal dengan kejadian", { size: 2.3, warna: REDUP });
+    };
+    const statistikTegak = function (x, y, lebar) {
+      return angkaAngka.map(function (a, i) {
+        const yy = y + i * 15;
+        return '<line x1="' + f1(x) + '" y1="' + f1(yy) + '" x2="' + f1(x + lebar) + '" y2="' + f1(yy) + '" stroke="' + GARIS + '" stroke-width=".3"/>' +
+          T(x, yy + 8.4, a[0], { font: DISP, size: 7.4, w: 800, ls: -0.2 }) + T(x, yy + 12.4, a[1], { size: 2.6, warna: REDUP });
+      }).join("");
+    };
+    const statistikDatar = function (x0, x1, y) {
+      const lb = (x1 - x0) / 3;
+      return '<line x1="' + f1(x0) + '" y1="' + f1(y) + '" x2="' + f1(x1) + '" y2="' + f1(y) + '" stroke="' + GARIS + '" stroke-width=".3"/>' +
+        angkaAngka.map(function (a, i) {
+          const x = x0 + i * lb;
+          return (i ? '<line x1="' + f1(x - 3) + '" y1="' + f1(y + 3) + '" x2="' + f1(x - 3) + '" y2="' + f1(y + 15) + '" stroke="' + GARIS + '" stroke-width=".3"/>' : "") +
+            T(x, y + 10, a[0], { font: DISP, size: 7.4, w: 800, ls: -0.2 }) + T(x, y + 14.4, a[1], { size: 2.6, warna: REDUP });
+        }).join("");
+    };
+    const judulBulan = function (x, y, uk) { return T(x - uk * 0.03, y, nama, { font: DISP, size: f1(uk), w: 800, ls: f1(-uk * 0.04) }); };
+    const tahunBaris = function (x, y, uk) {
+      return T(x, y, th, { font: DISP, size: uk, w: 800, warna: DASAR, ls: -0.2 }) +
+        T(x + uk * 2.5, y, "· periode 1–" + new Date(th, bl + 1, 0).getDate() + " " + nama + " " + th, { font: MONO, size: 2.6, warna: REDUP });
+    };
+    // blok teks di atas kertas: label, nama bulan, tahun, angka (kiri), kalender (kanan)
+    const blokKertas = function (x0, x1, t0) {
+      const uk = ukuranJudul(x1 - x0, 42), yJ = t0 + 8 + uk * 0.8, yT = yJ + 11, sel = 7.8, kx = x1 - 7 * sel;
+      return label(x0, t0, REDUP) + judulBulan(x0, yJ, uk) + tahunBaris(x0, yT, 10) +
+        statistikTegak(x0, yT + 10, kx - x0 - 14) + kalender(kx, yT + 13, sel);
+    };
+
+    const tata = r.pilih(["atas", "bawah", "bingkai"]);
+    const disusun = function (x, y, warna) { return T(x, y, "Disusun " + esc(info.disusun), { font: MONO, size: 2.3, warna: warna }); };
+    let isi = '<rect width="' + W + '" height="' + H + '" fill="' + KERTAS + '"/>';
+    if (tata === "atas") {
+      const fh = r.antara(138, 150);
+      isi += bidang({ x: 0, y: 0, w: W, h: fh }) + kopBidang(16, 16) + blokKertas(18, 192, fh + 17) + disusun(18, 289, REDUP);
+    } else if (tata === "bawah") {
+      const fy = r.antara(142, 152), uk = ukuranJudul(174, 44), yJ = 58 + uk * 0.8, sel = 7.4, kw = 7 * sel + 12, kh = 8 * sel + 12;
+      isi += bidang({ x: 0, y: fy, w: W, h: H - fy }) + kop(18, 18, TINTA) + label(18, 56, REDUP) +
+        judulBulan(18, yJ, uk) + tahunBaris(18, yJ + 12, 11) + statistikDatar(18, 192, yJ + 22) +
+        '<rect x="' + f1(198 - kw) + '" y="' + f1(285 - kh) + '" width="' + f1(kw) + '" height="' + f1(kh) + '" rx="3" fill="' + KERTAS + '"/>' +
+        kalender(198 - kw + 6, 285 - kh + 8, sel) + disusun(18, 289, "#fff");
+    } else {
+      const ky = r.antara(128, 142);
+      isi += bidang({ x: 0, y: 0, w: W, h: H }) + kopBidang(18, 18) +
+        '<rect x="12" y="' + f1(ky) + '" width="186" height="' + f1(285 - ky) + '" rx="4" fill="' + KERTAS + '"/>' +
+        blokKertas(22, 188, ky + 14) + disusun(22, 279, REDUP);
+    }
+
+    return {
+      svg: '<svg class="sampul-svg" viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + "</defs>" + isi + "<\/svg>",
+      desain: motif + " · " + tata + " · rona " + Math.round(h) + "°"
+    };
+  }
+
   function susunDokumen(k, opsi) {
     const daftar = laporanBulan(k);
     const p = k.split("-");
@@ -21439,6 +21728,9 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const disusun = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
     const judulBulan = namaBulan(k);
     let jumlahFoto = 0;
+    // benih baru tiap kali dokumen disusun -> sampul berbeda setiap klik "Buat PDF"
+    const sampulData = sampulBulanan(k, daftar, { kejadian: daftar.length, jiwa: jiwa, nilai: nilai, disusun: disusun },
+      opsi.benih !== undefined ? opsi.benih : Math.floor(Math.random() * 4294967295));
 
     const persen = function (n) { return Math.round(n / Math.max(1, daftar.length) * 100) + "% dari kejadian"; };
     const kpi = function (label, isi, catatan) { return '<div class="kpi"><s>' + label + "</s><b>" + isi + "</b>" + (catatan ? "<em>" + catatan + "</em>" : "") + "</div>"; };
@@ -21521,6 +21813,9 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
   @top-center{content:""}
   @bottom-left{content:"Laporan Bulanan JITUPASNA · ${judulBulan} · BPBD Kabupaten Jember";font:7.5pt "DM Mono",monospace;color:#8A948F}
   @bottom-right{content:"Halaman " counter(page) " dari " counter(pages);font:7.5pt "DM Mono",monospace;color:#8A948F}}
+@page sampul{margin:0}
+.sampul{page:sampul;width:210mm;height:297mm;margin:16px auto 0;overflow:hidden;break-after:page;background:#fff;box-shadow:0 10px 30px -18px rgba(0,0,0,.4)}
+.sampul-svg{display:block;width:210mm;height:297mm}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 html,body{margin:0;background:#E9EDEA;color:#141917;font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:9.5pt;line-height:1.5}
 .alat{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:#141917;color:#F3F5F2;font-size:13px}
@@ -21593,7 +21888,8 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 .foto figure:has(img.gagal)::after{content:"Foto tidak dapat dimuat";position:absolute;inset:0;display:grid;place-items:center;font-size:7pt;color:#8A948F}
 .foto figcaption{position:absolute;left:5px;bottom:5px;padding:1px 6px;border-radius:99px;background:rgba(0,0,0,.55);color:#fff;font:6.5pt "DM Mono",monospace}
 .penutup{margin-top:14px;font-size:7.5pt;color:#8A948F}
-@media print{html,body{background:#fff}.alat{display:none}.kertas{width:auto;margin:0;padding:0;box-shadow:none}}
+@media print{html,body{background:#fff}.alat{display:none}.kertas{width:auto;margin:0;padding:0;box-shadow:none}.sampul{margin:0;box-shadow:none}}
+@media screen and (max-width:760px){.sampul,.sampul-svg{width:100%;height:auto}}
 @media screen and (max-width:760px){.alat{gap:10px;padding:8px 12px}.alat b{display:none}.alat span{font-size:11.5px;line-height:1.35}.alat button{height:34px;padding:0 14px}.kertas{padding:5mm}.kpi-kisi{grid-template-columns:repeat(2,1fr)}.dua{grid-template-columns:1fr}.sel-kisi{grid-template-columns:1fr 1fr}}`;
 
     const skrip = `
@@ -21614,11 +21910,11 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
       '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
       "<style>" + gaya + "</style><\/head><body>" +
       (opsi.sematkan ? "" : '<div class="alat"><b>Laporan ' + esc(judulBulan) + '</b><span id="status">Menyiapkan…</span><button id="cetak" type="button">Simpan PDF</button></div>') +
-      '<main class="kertas">' + ringkasan +
+      '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
         (daftar.length ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian kejadian</h2><span>' + daftar.length + " laporan · urut tanggal</span></div>" + rincian : "") +
         '<p class="penutup">Angka taksiran mengikuti rumus pengkajian JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
       "</main>" + (opsi.sematkan ? "" : "<script>" + skrip + "<\/script>") + "<\/body><\/html>";
-    return { html: html, jumlah: daftar.length, foto: jumlahFoto };
+    return { html: html, jumlah: daftar.length, foto: jumlahFoto, sampul: sampulData.desain };
   }
 
   /* ══ LAPORAN TAHUNAN ══════════════════════════════════════════════════
