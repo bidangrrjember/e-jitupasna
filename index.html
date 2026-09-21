@@ -145,7 +145,7 @@
   var akar = document.documentElement;
   var HAPUS = ["jalandusun", "rt", "rw", "tempatTinggal", "statusRumah", "pengkajian", "personil",
                "noSuratPengiriman", "noBAPenyerahan", "noBATerpal"];
-  var TAUTAN = ["linkDisposisi", "linkSerahTerima", "linkMonitoring", "linkLaporan", "linkDokumen", "linkFotoIdentitas"];
+  var TAUTAN = ["linkDisposisi", "linkSerahTerima", "linkMonitoring", "linkLaporan", "linkDokumen", "linkFotoIdentitas", "linkDokSerahTerima", "linkDokMonitoring", "fotoSerahTerima", "fotoMonitoring"];
   var CURIGA = /(^|_)(nik|ktp|kk|hp|telp|telepon|phone|wa|whatsapp|kontak|email)($|_)|nomor ?hp|no ?hp|no ?telp/i;
   var PENANDA = "tersembunyi";
 
@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzrqQoANoW9HN19CNxR2WqEYvQfZMnFnbUJGyAtL6BWfpqddv0RsesiSfT_YrK5z8KH/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyp2GPo2Fmzg4gZmsNWhYfYnJRivw6T2DxIkvXik91i4_6-Rnx2lUgKf-ShMI8Vp-j6/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4566,6 +4566,14 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
             const processedData = rawData.map((item, index) => {
                 item.dateObj = parseIndonesianDate(item.tanggalWaktu);
                 item.idx = index;
+                // Foto serah terima/monitoring dan dokumennya ada di kolom terpisah. Untuk
+                // STATUS, tahapnya dianggap sudah berjalan bila salah satunya ada - jadi
+                // link* dipakai sebagai penanda, foto* untuk galeri fotonya.
+                const adaIsi = v => !!v && v !== '-' && String(v).trim() !== '';
+                item.fotoSerahTerima = item.linkSerahTerima || '';
+                item.fotoMonitoring = item.linkMonitoring || '';
+                if (!adaIsi(item.linkSerahTerima) && adaIsi(item.linkDokSerahTerima)) item.linkSerahTerima = item.linkDokSerahTerima;
+                if (!adaIsi(item.linkMonitoring) && adaIsi(item.linkDokMonitoring)) item.linkMonitoring = item.linkDokMonitoring;
                 return item;
             });
 
@@ -5011,9 +5019,11 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
             if (docType === 'laporan') {
                 targetPhotos = item.photos || [];
             } else if (docType === 'serahTerima') {
-                targetPhotos = item.linkSerahTerima ? String(item.linkSerahTerima).split(',').map(s => s.trim()).filter(Boolean) : [];
+                const fotoST = item.fotoSerahTerima !== undefined ? item.fotoSerahTerima : item.linkSerahTerima;
+                targetPhotos = fotoST ? String(fotoST).split(',').map(s => s.trim()).filter(Boolean) : [];
             } else if (docType === 'monitoring') {
-                targetPhotos = item.linkMonitoring ? String(item.linkMonitoring).split(',').map(s => s.trim()).filter(Boolean) : [];
+                const fotoMon = item.fotoMonitoring !== undefined ? item.fotoMonitoring : item.linkMonitoring;
+                targetPhotos = fotoMon ? String(fotoMon).split(',').map(s => s.trim()).filter(Boolean) : [];
             }
 
             // 1. Format Tanggal
@@ -5126,7 +5136,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
 		photos: targetPhotos,
                 laporanId: item.timestamp,
                 columnName: docType === 'laporan' ? 'Link Laporan' : null,
-		oldLinkUrl: docType === 'laporan' ? item.linkLaporan : (docType === 'serahTerima' ? item.linkSerahTerima : item.linkMonitoring),
+		oldLinkUrl: docType === 'laporan' ? item.linkLaporan : (docType === 'serahTerima' ? (item.fotoSerahTerima !== undefined ? item.fotoSerahTerima : item.linkSerahTerima) : (item.fotoMonitoring !== undefined ? item.fotoMonitoring : item.linkMonitoring)),
                 replacements: {
                     '<<BENCANA>>': item.bencana || '-',
                     '<<SEKTOR>>': item.sektor || '-',
@@ -5256,6 +5266,13 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 fileInput = document.getElementById('file-dokumentasi-input');
                 uploadButton = null; 
                 columnName = 'Link Dokumentasi'; 
+            } else if (fileType === 'dokumen') {
+                // tile Dokumen: kolom tujuan mengikuti jenis yang dipilih
+                fileInput = document.getElementById('file-dokumen-input');
+                uploadButton = document.getElementById('upload-dokumen-btn');
+                const pilihanJenis = document.querySelector('#sidebar input[name="jenis-dokumen"]:checked');
+                var jenisDokumen = pilihanJenis ? pilihanJenis.value : 'disposisi';
+                columnName = { disposisi: 'Link Disposisi', serahTerima: 'Link Dokumen Serah Terima', monitoring: 'Link Dokumen Monitoring' }[jenisDokumen] || 'Link Disposisi';
             } else if (fileType === 'identitas' || fileType === 'kegiatan') {
                 fileInput = document.getElementById('file-' + fileType + '-input');
                 uploadButton = null;
@@ -5401,26 +5418,38 @@ async function handleSidebarUpload(fileType, reportIndex) {
 
                 showNotification(jumlahBerkas + (jenisGaleri ? ' foto' : ' berkas') + ' berhasil diunggah.');
                 
-                const kotakTgl = (fileType === 'serahTerima' || fileType === 'monitoring') ? document.getElementById('input-tgl-' + fileType) : null;
+                // Panel detail TETAP TERBUKA supaya bisa langsung mengunggah berkas lain.
+                // Tombol & pemilih berkas kembali siap; berkas baru muncul di panel
+                // begitu data terbaru dari server memuatnya (rkSegarkanPanelSetelahUnggah).
+                if (uploadButton) {
+                    uploadButton.disabled = false;
+                    uploadButton.classList.remove('rkd-tombol-unggah', 'selesai');
+                    uploadButton.removeAttribute('aria-live');
+                    uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Unggah';
+                }
+                if (jenisGaleri && addPhotoBox) {
+                    addPhotoBox.innerHTML = originalContent;
+                    addPhotoBox.onclick = function() { document.getElementById('file-' + fileType + '-input').click(); };
+                    addPhotoBox.classList.remove('rkd-foto-unggah', 'ada-pratinjau', 'selesai');
+                    addPhotoBox.removeAttribute('role');
+                    addPhotoBox.removeAttribute('aria-live');
+                }
+                fileInput.value = '';
+                if (!jenisGaleri && typeof rkPilihBerkas === 'function') rkPilihBerkas(fileInput);
+
+                const tipeTgl = fileType === 'dokumen' ? jenisDokumen : fileType;
+                const kotakTgl = (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') ? document.getElementById('input-tgl-' + tipeTgl) : null;
                 if (kotakTgl && !kotakTgl.value) {
-                    // tanggalnya belum ada: panel dibiarkan terbuka dan kotak tanggal ditunjuk
-                    if (uploadButton) {
-                        uploadButton.disabled = false;
-                        uploadButton.classList.remove('rkd-tombol-unggah', 'selesai');
-                        uploadButton.removeAttribute('aria-live');
-                        uploadButton.innerHTML = originalContent || '<span class="material-symbols-outlined">cloud_upload</span> Unggah';
-                    }
-                    fileInput.value = '';
-                    if (typeof rkPilihBerkas === 'function') rkPilihBerkas(fileInput);
+                    // tanggalnya belum ada: kotak tanggal ditunjuk
                     const wadahTgl = kotakTgl.closest('.rkd-tanggal');
                     if (wadahTgl) wadahTgl.classList.add('rkd-tanggal-kosong', 'rkd-tanggal-sorot');
                     kotakTgl.scrollIntoView({ block: 'center', behavior: 'smooth' });
                     setTimeout(function () { try { kotakTgl.focus(); } catch (e) {} }, 400);
-                    showNotification('Berkas terunggah. Sekarang isi ' + (fileType === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring') + ' - dipakai laporan bulanan.');
-                } else {
-                    closeSidebar();
-                } 
+                    showNotification('Berkas terunggah. Sekarang isi ' + (tipeTgl === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring') + ' - dipakai laporan bulanan.');
+                }
+                rkSegarkanPanelSetelahUnggah(reportData);
                 if(fetchInterval) clearInterval(fetchInterval);
+                window.__rkTarikPaksa = true;       // lewati jalan pintas "data tidak berubah"
                 fetchData(); 
                 fetchInterval = setInterval(fetchData, 5000);
 
@@ -5444,6 +5473,55 @@ async function handleSidebarUpload(fileType, reportIndex) {
             }
         }
 
+	/* Setelah mengunggah, panel detail tetap terbuka. Unggahan dikirim tanpa
+	   balasan (no-cors), jadi tautan berkas barunya baru diketahui dari data
+	   berikutnya. Fungsi ini menunggu data itu, lalu menggambar ulang panel untuk
+	   laporan yang sama di posisi gulir yang sama. Tidak menggambar ulang bila:
+	   panel sudah ditutup/pindah laporan, sedang mode Edit, atau petugas sedang
+	   mengetik di salah satu kotak (menunggu sampai selesai). */
+	function rkSegarkanPanelSetelahUnggah(laporanLama) {
+	    const sb = document.getElementById('sidebar');
+	    if (!sb || !laporanLama) return;
+	    const tanda = function (it) {
+	        return JSON.stringify(Object.keys(it || {}).filter(function (k) { return /^(link|foto)/.test(k) || k === 'photos'; }).sort().map(function (k) { return it[k]; }));
+	    };
+	    const sebelum = tanda(laporanLama), ts = String(laporanLama.timestamp), idxLama = String(laporanLama.idx).replace(/"/g, '');
+	    const masihSama = function () { return !sb.classList.contains('translate-x-full') && !!sb.querySelector('[data-idx="' + idxLama + '"]'); };
+	    const sibuk = function () {
+	        const a = document.activeElement;
+	        return sb.classList.contains('rkd-menyunting') || (a && sb.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.type !== 'file' && a.type !== 'radio');
+	    };
+	    const cariGulir = function () {
+	        const daftar = [sb].concat(Array.prototype.slice.call(sb.querySelectorAll('*')));
+	        for (let i = 0; i < daftar.length; i++) {
+	            const oy = getComputedStyle(daftar[i]).overflowY;
+	            if ((oy === 'auto' || oy === 'scroll') && daftar[i].scrollHeight > daftar[i].clientHeight + 4) return daftar[i];
+	        }
+	        return null;
+	    };
+	    const gambarUlang = function (baru) {
+	        // tanggal yang baru saja diisi tapi belum sampai di data server jangan sampai hilang
+	        [['serahTerima', 'tglSerahTerima'], ['monitoring', 'tglMonitoring']].forEach(function (p) {
+	            const k = document.getElementById('input-tgl-' + p[0]);
+	            if (k && k.value && !baru[p[1]]) baru[p[1]] = k.value;
+	        });
+	        const g = cariGulir(), pos = g ? g.scrollTop : 0;
+	        openSidebarWithData(baru);
+	        requestAnimationFrame(function () { const g2 = cariGulir(); if (g2) g2.scrollTop = pos; });
+	    };
+	    let coba = 0;
+	    (function tunggu() {
+	        if (!masihSama()) return;
+	        const semua = Array.isArray(window.rkDataAsli) ? window.rkDataAsli : (typeof allData !== 'undefined' ? allData : []);
+	        const baru = semua.find(function (x) { return String(x.timestamp) === ts; });
+	        const siap = baru && tanda(baru) !== sebelum;
+	        if (siap && !sibuk()) { gambarUlang(baru); return; }
+	        if (++coba > 60) { if (baru && !sibuk()) gambarUlang(baru); return; }   // paling lama sekitar 1 menit
+	        if (coba % 8 === 0 && !siap && typeof fetchData === 'function') { window.__rkTarikPaksa = true; fetchData(); }
+	        setTimeout(tunggu, 1000);
+	    })();
+	}
+
 	// Pemilih berkas di panel dokumen: nama berkas terpilih ditulis di kotaknya
 	function rkPilihBerkas(inp) {
 	    const kotak = inp.closest('.rkd-pilih');
@@ -5451,7 +5529,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
 	    const judul = kotak.querySelector('.rkd-pilih-teks b'), ket = kotak.querySelector('.rkd-pilih-teks s');
 	    const daftar = Array.from(inp.files || []);
 	    kotak.classList.toggle('terisi', daftar.length > 0);
-	    if (judul) judul.textContent = daftar.length ? daftar.length + ' berkas siap diunggah' : 'Pilih berkas';
+	    if (judul) judul.textContent = daftar.length ? daftar.length + ' berkas siap diunggah' : (judul.dataset.kosong || 'Pilih berkas');
 	    if (ket) ket.textContent = daftar.length ? daftar.map(function (x) { return x.name; }).join(', ') : (ket.dataset.kosong || '');
 	    if (kotak.title !== undefined) kotak.title = daftar.map(function (x) { return x.name; }).join('\n');
 	}
@@ -5468,7 +5546,8 @@ async function handleSidebarUpload(fileType, reportIndex) {
             }).format(number);
         }
 
-function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
+function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue, adaDokumen) {
+    const tileFoto = tipeInput === 'serahTerima' || tipeInput === 'monitoring';
     let linksHtml = '';
     let jumlahBerkas = 0;
 
@@ -5532,7 +5611,7 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
                        accept="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'image/png, image/jpeg, image/jpg' : '.pdf,.jpg,.jpeg,.png'}"
                        multiple class="rkd-file rkd-file-tersembunyi" onchange="rkPilihBerkas(this)">
                 <span class="material-symbols-outlined">attach_file</span>
-                <span class="rkd-pilih-teks"><b>Pilih berkas</b><s data-kosong="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}">${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}</s></span>
+                <span class="rkd-pilih-teks"><b data-kosong="${tileFoto ? 'Pilih foto' : 'Pilih berkas'}">${tileFoto ? 'Pilih foto' : 'Pilih berkas'}</b><s data-kosong="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}">${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}</s></span>
             </label>
             <div class="rkd-tombol-baris kiri">
                 <button id="upload-${tipeInput}-btn" onclick="handleSidebarUpload('${tipeInput}', '${idx}')" class="rkd-tombol-garis">
@@ -5545,7 +5624,7 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
 
     // Berkas serah terima/monitoring sudah ada tapi tanggalnya belum diisi: laporan
     // bulanan tidak bisa mencatat kapan tahap itu terjadi, jadi diingatkan di sini.
-    const tglKosong = (tipeInput === 'serahTerima' || tipeInput === 'monitoring') && jumlahBerkas > 0 && !tglValue;
+    const tglKosong = (tipeInput === 'serahTerima' || tipeInput === 'monitoring') && (jumlahBerkas > 0 || !!adaDokumen) && !tglValue;
     let dateInputHtml = '';
     if (tipeInput === 'serahTerima' || tipeInput === 'monitoring') {
         const labelTgl = tipeInput === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring';
@@ -5555,18 +5634,18 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
                 <span class="rkd-label">${labelTgl}</span>
                 <input type="date" id="input-tgl-${tipeInput}" value="${tglValue || ''}"
                        onchange="if (this.value) this.closest('.rkd-tanggal').classList.remove('rkd-tanggal-kosong', 'rkd-tanggal-sorot'); updateTanggalKeDatabase('${colNameTgl}', this.value, '${idx}')" class="rkd-input">
-                <em class="rkd-tgl-peringatan"><span class="material-symbols-outlined">event_busy</span>Berkas sudah ada, tanggalnya belum diisi. Laporan bulanan memakai tanggal ini untuk mencatat kapan ${tipeInput === 'serahTerima' ? 'bantuan diserahkan' : 'monitoring dilakukan'}.</em>
+                <em class="rkd-tgl-peringatan"><span class="material-symbols-outlined">event_busy</span>Dokumen atau foto ${tipeInput === 'serahTerima' ? 'serah terima' : 'monitoring'} sudah ada, tanggalnya belum diisi. Laporan bulanan memakai tanggal ini untuk mencatat kapan ${tipeInput === 'serahTerima' ? 'bantuan diserahkan' : 'monitoring dilakukan'}.</em>
             </label>`;
     }
 
     const status = (jumlahBerkas > 0
-        ? `<span class="rkd-cip tuntas">${jumlahBerkas} berkas</span>`
+        ? `<span class="rkd-cip tuntas">${jumlahBerkas} ${tileFoto ? 'foto' : 'berkas'}</span>`
         : `<span class="rkd-cip kosong">Belum ada</span>`) + (tglKosong ? `<span class="rkd-cip tunggu">Tanggal kosong</span>` : '');
 
     return `
         <div class="rkd-dok${jumlahBerkas > 0 ? ' ada' : ''}">
             <div class="rkd-dok-kep">
-                <span class="material-symbols-outlined">folder_managed</span>
+                <span class="material-symbols-outlined">${tileFoto ? 'photo_library' : 'folder_managed'}</span>
                 <b>${judul}</b>
                 ${status}
             </div>
@@ -5575,6 +5654,57 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue) {
             ${uploadHtml}
         </div>
     `;
+}
+
+const rkAdaTautan = function (v) { return !!v && v !== '-' && String(v).trim() !== ''; };
+
+/* Tile "Dokumen": satu tempat untuk semua dokumen laporan - disposisi, dokumen
+   serah terima, dan dokumen monitoring (PDF atau foto berita acara). Foto serah
+   terima & monitoring punya tile-nya sendiri. */
+function renderDokumenGabungan(data) {
+    const dibantu = checkIsDibantu(data);
+    const jenis = [{ k: 'disposisi', judul: 'Disposisi', link: data.linkDisposisi }];
+    if (dibantu) {
+        jenis.push({ k: 'serahTerima', judul: 'Serah terima', link: data.linkDokSerahTerima });
+        jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring });
+    }
+    const pecah = function (v) { return rkAdaTautan(v) ? String(v).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : []; };
+    const escA = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+    let total = 0;
+    const baris = jenis.map(function (j) {
+        const urls = pecah(j.link);
+        total += urls.length;
+        let isi;
+        if (!urls.length) isi = '<em class="rkd-dokj-kosong">Belum ada</em>';
+        else if (urls.every(function (u) { return u === 'tersembunyi'; })) isi = '<em class="rkd-dokj-kosong">Ada · khusus petugas</em>';
+        else isi = urls.map(function (u, i) {
+            const pdf = /\.(pdf|docx?|xlsx?)$/i.test(u) || /format=pdf/i.test(u);
+            return '<a href="' + escA(u) + '" target="_blank" rel="noopener" class="rkd-berkas-taut" title="Buka ' + escA(j.judul.toLowerCase()) + ' ' + (i + 1) + '">' +
+                '<span class="material-symbols-outlined">' + (pdf ? 'description' : 'image') + '</span> Berkas ' + (i + 1) + '</a>';
+        }).join('');
+        return '<div class="rkd-dokj-baris"><span class="rkd-dokj-nama">' + escA(j.judul) + '</span><div class="rkd-dokj-isi">' + isi + '</div></div>';
+    }).join('');
+    const unggah = isLoggedIn ?
+        '<div class="rkd-unggah">' +
+            '<div class="rkd-dokj-jenis" role="radiogroup" aria-label="Jenis dokumen">' +
+                jenis.map(function (j, i) {
+                    return '<label><input type="radio" name="jenis-dokumen" value="' + j.k + '"' + (i === 0 ? ' checked' : '') + '><span>' + escA(j.judul) + '</span></label>';
+                }).join('') +
+            '</div>' +
+            '<label class="rkd-pilih">' +
+                '<input type="file" id="file-dokumen-input" accept=".pdf,.jpg,.jpeg,.png" multiple class="rkd-file rkd-file-tersembunyi" onchange="rkPilihBerkas(this)">' +
+                '<span class="material-symbols-outlined">attach_file</span>' +
+                '<span class="rkd-pilih-teks"><b data-kosong="Pilih dokumen">Pilih dokumen</b><s data-kosong="PDF atau foto · boleh lebih dari satu">PDF atau foto · boleh lebih dari satu</s></span>' +
+            '</label>' +
+            '<div class="rkd-tombol-baris kiri"><button id="upload-dokumen-btn" onclick="handleSidebarUpload(\'dokumen\', \'' + data.idx + '\')" class="rkd-tombol-garis">' +
+                '<span class="material-symbols-outlined">cloud_upload</span> Unggah</button></div>' +
+        '</div>' : '';
+    return '<div class="rkd-dok' + (total ? ' ada' : '') + '">' +
+        '<div class="rkd-dok-kep"><span class="material-symbols-outlined">folder_managed</span><b>Dokumen</b>' +
+            (total ? '<span class="rkd-cip tuntas">' + total + ' berkas</span>' : '<span class="rkd-cip kosong">Belum ada</span>') + '</div>' +
+        '<div class="rkd-dokj-daftar">' + baris + '</div>' +
+        unggah +
+    '</div>';
 }
 
 function getDriveImgUrl(url) {
@@ -6021,9 +6151,9 @@ function openImagePreview(originalUrl) {
                 <section class="rkd-bagian">
                     ${kepBagian('folder_open', 'Dokumen Administrasi')}
                     <div class="rkd-dok-daftar">
-                        ${renderDokumenSection('Disposisi', data.linkDisposisi, 'disposisi', data.idx, '')}
-                        ${checkIsDibantu(data) ? renderDokumenSection('Serah Terima', data.linkSerahTerima, 'serahTerima', data.idx, data.tglSerahTerima) : ''}
-                        ${checkIsDibantu(data) ? renderDokumenSection('Monitoring', data.linkMonitoring, 'monitoring', data.idx, data.tglMonitoring) : ''}
+                        ${renderDokumenGabungan(data)}
+                        ${checkIsDibantu(data) ? renderDokumenSection('Foto Serah Terima', data.fotoSerahTerima !== undefined ? data.fotoSerahTerima : data.linkSerahTerima, 'serahTerima', data.idx, data.tglSerahTerima, rkAdaTautan(data.linkDokSerahTerima)) : ''}
+                        ${checkIsDibantu(data) ? renderDokumenSection('Foto Monitoring', data.fotoMonitoring !== undefined ? data.fotoMonitoring : data.linkMonitoring, 'monitoring', data.idx, data.tglMonitoring, rkAdaTautan(data.linkDokMonitoring)) : ''}
                     </div>
                 </section>
 
@@ -11813,10 +11943,11 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     pk.className = "rk-kaca";
     pk.innerHTML =
       '<div class="rk-kep"><h2 id="rk-kerja-judul">Paling lama menunggu</h2>' +
-      '<button type="button" id="rk-kerja-tgl" class="rk-kerja-tgl" hidden></button><s id="rk-kerja-jml">0</s></div>' +
+      '<s id="rk-kerja-jml">0</s></div>' +
       '<div class="rk-gulir"><ul id="rk-kerja-isi"></ul></div>' +
       '<div class="rk-kaki"><button type="button" id="rk-kerja-lain" class="rk-taut">' +
-      'Lihat semua <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/><\/svg></button></div>';
+      'Lihat semua <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/><\/svg></button>' +
+      '<button type="button" id="rk-kerja-tgl" class="rk-kerja-tgl" hidden></button></div>';
     utama.appendChild(pk);
 
     /* Dua keadaan panel. Dipegang satu penanda supaya penggambar dan
@@ -11909,10 +12040,10 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       const tTgl = document.getElementById("rk-kerja-tgl");
       if (tTgl) {
         const nTgl = window.rkTunggakan ? data.filter(function (it) { const t = window.rkTunggakan(it); return t && t.tglKosong.length; }).length : 0;
-        tTgl.hidden = !nTgl && !modeTanggal;
-        tTgl.classList.toggle("aktif", modeTanggal);
-        tTgl.innerHTML = modeTanggal ? "Kembali" : '<span class="material-symbols-outlined">event_busy</span>' + nTgl + " tgl. kosong";
-        tTgl.title = modeTanggal ? "Kembali ke daftar menunggu" : nTgl + " laporan: berkas serah terima/monitoring ada, tanggalnya belum diisi";
+        // di daftar tanggal sendiri tautan ini disembunyikan - "Yang menunggu" di kiri sudah jalan kembalinya
+        tTgl.hidden = !nTgl || modeTanggal;
+        tTgl.textContent = nTgl + " tanggal kosong";
+        tTgl.title = nTgl + " laporan: berkas serah terima/monitoring sudah ada, tanggalnya belum diisi";
       }
 
       if (!antre.length) {
@@ -23219,6 +23350,26 @@ html[data-saku] .rkd-kalk{border-color:var(--sk-garis,rgba(255,255,255,.1));bord
 html[data-saku] .rkd-kalk-hasil > div{background:var(--sk-kartu2);border-radius:12px}
 html[data-saku] .rkd-kalk-kep b,html[data-saku] .rkd-kalk-hasil b{color:var(--sk-tinta)}
 html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
+/* tile Dokumen gabungan */
+.rkd-dokj-daftar{display:flex;flex-direction:column}
+.rkd-dokj-baris{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:start;gap:10px;padding:8px 0;border-top:1px dashed var(--rk-sekat)}
+.rkd-dokj-baris:first-child{border-top:0;padding-top:2px}
+.rkd-dokj-nama{padding-top:5px;font:500 10.5px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--rk-tipis)}
+.rkd-dokj-isi{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.rkd-dokj-isi .rkd-berkas-taut{margin:0}
+.rkd-dokj-kosong{padding-top:4px;font-style:normal;font-size:12px;color:var(--rk-tipis)}
+.rkd-dokj-jenis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.rkd-dokj-jenis label{position:relative;cursor:pointer}
+.rkd-dokj-jenis input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.rkd-dokj-jenis span{display:inline-flex;align-items:center;height:28px;padding:0 11px;border:1px solid var(--rk-sekat);border-radius:99px;
+  font:600 11.5px "Plus Jakarta Sans",sans-serif;color:var(--rk-tipis);transition:border-color .15s,background-color .15s,color .15s}
+.rkd-dokj-jenis label:hover span{color:var(--rk-tinta)}
+.rkd-dokj-jenis input:checked + span{border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 12%,transparent);color:var(--rk-api)}
+.rkd-dokj-jenis input:focus-visible + span{outline:2px solid var(--rk-api);outline-offset:2px}
+html[data-saku] .rkd-dokj-baris{border-color:var(--sk-garis,rgba(255,255,255,.1))}
+html[data-saku] .rkd-dokj-nama,html[data-saku] .rkd-dokj-kosong{color:var(--sk-tipis)}
+html[data-saku] .rkd-dokj-jenis span{border-color:var(--sk-garis,rgba(255,255,255,.14));color:var(--sk-tipis)}
+html[data-saku] .rkd-dokj-jenis input:checked + span{border-color:var(--sk-api);background:color-mix(in srgb,var(--sk-api) 14%,transparent);color:var(--sk-api)}
 /* tanggal serah terima/monitoring kosong */
 .rkd-tgl-peringatan{display:none;align-items:flex-start;gap:6px;margin-top:6px;font-style:normal;font-size:11.5px;line-height:1.45;color:var(--rk-emas)}
 .rkd-tgl-peringatan .material-symbols-outlined{font-size:16px}
@@ -23230,14 +23381,14 @@ html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
 .rkd-cip.tunggu{color:var(--rk-emas);background:color-mix(in srgb,var(--rk-emas) 14%,transparent)}
 html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
 /* daftar tunggakan (panel kanan) */
-.rk-kerja-tgl{display:inline-flex;align-items:center;gap:4px;margin-left:auto;height:24px;padding:0 9px;border:1px solid color-mix(in srgb,var(--rk-emas) 45%,transparent);border-radius:99px;
-  background:color-mix(in srgb,var(--rk-emas) 12%,transparent);color:var(--rk-emas);font:600 11px "Plus Jakarta Sans",sans-serif;cursor:pointer;white-space:nowrap}
-.rk-kerja-tgl .material-symbols-outlined{font-size:14px}
-.rk-kerja-tgl.aktif{background:var(--rk-emas);color:#fff;border-color:var(--rk-emas)}
+#rk-kerja .rk-kaki{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rk-kerja-tgl{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap;
+  font:600 12px "Plus Jakarta Sans",system-ui,sans-serif;color:var(--rk-tipis);transition:color .15s}
+.rk-kerja-tgl::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rk-emas);flex:0 0 auto}
+.rk-kerja-tgl:hover{color:var(--rk-tinta)}
+.rk-kerja-tgl:focus-visible{outline:2px solid var(--rk-api);outline-offset:3px;border-radius:4px}
 .rk-kerja-tgl[hidden]{display:none}
-#rk-kerja .rk-kep .rk-kerja-tgl:not([hidden]) + s{margin-left:0}
 #rk-kerja .rk-jam.telat b{color:var(--rk-merah) !important}
-#rk-kerja .rk-jam.telat s::after{content:" !";font-weight:700;color:var(--rk-merah)}
 .rk-cip.t{color:var(--rk-emas)}.rk-cip.t::before{background:var(--rk-emas)}
 </style>
 <script>
