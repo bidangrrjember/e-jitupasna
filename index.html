@@ -2644,7 +2644,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwN_eTS2CYRS6kD0hdbzeAd04kM3MlIMABLCK9xs1H9kn9WAGAzoOJ4oxDYrPCKILrv/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -22047,7 +22047,8 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     let dibantu = false, terpal = false;
     try { dibantu = checkIsDibantu(it); terpal = checkIsOnlyTerpal(it); } catch (e) {}
     const kaji = it.dateObj, sekarang = new Date();
-    const pakaiAcuan = !!acuan && acuan < sekarang;
+    // acuan wajib objek Date yang sah - angka (mis. nomor urut dari .map) diabaikan
+    const pakaiAcuan = acuan instanceof Date && !isNaN(acuan) && acuan < sekarang;
     const kini = pakaiAcuan ? acuan : sekarang;
     const serahMentah = tglAman(it.tglSerahTerima), monMentah = tglAman(it.tglMonitoring);
     // Tanggal salah ketik (mis. 2002-03-09) atau urutannya mustahil tidak dipakai
@@ -23057,7 +23058,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
     const nilai = jumlahDari(daftar, function (it) { return it.nilaiKerusakan; });
     const rugi = jumlahDari(daftar, function (it) { return it.nilaiKerugian; });
     const jenis = urutJenis(daftar);
-    const t = daftar.map(tahapan);
+    const t = daftar.map(function (it) { return tahapan(it); });
     const kec = {};
     daftar.forEach(function (it) { if (it.kec && it.kec !== "-") { (kec[it.kec] = kec[it.kec] || Array(12).fill(0))[it.dateObj.getMonth()]++; } });
     const sektor = {};
@@ -23085,7 +23086,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
     /* 1. ringkasan */
     const perBulan = Array.from({ length: 12 }, function (_, i) {
       const b = daftar.filter(function (it) { return it.dateObj.getMonth() === i; });
-      const tb = b.map(tahapan);
+      const tb = b.map(function (it) { return tahapan(it); });
       return { n: b.length, jiwa: jumlahDari(b, function (it) { return it.jumlahKeluarga; }), nilai: jumlahDari(b, function (it) { return it.nilaiKerusakan; }),
         rugi: jumlahDari(b, function (it) { return it.nilaiKerugian; }), bantu: tb.filter(function (x) { return x.dibantu; }).length, tuntas: tb.filter(function (x) { return x.status === "tuntas"; }).length };
     });
@@ -23416,7 +23417,15 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
   }
   function susunDanCetak(ini) {
     aturTombol("Menyiapkan…");
-    const d = tahunan() ? susunTahunan(pilihan.tahun, { foto: pilihan.fotoTahun }) : susunDokumen(pilihan.bulan, { foto: pilihan.foto, sematkan: true });
+    let d;
+    try {
+      d = tahunan() ? susunTahunan(pilihan.tahun, { foto: pilihan.fotoTahun }) : susunDokumen(pilihan.bulan, { foto: pilihan.foto, sematkan: true });
+    } catch (e) {
+      console.error("[laporan] gagal menyusun:", e);
+      batalkan();
+      customAlert("Laporan gagal disusun: " + (e && e.message ? e.message : e) + ". Coba muat ulang halaman; kalau tetap gagal, kirim pesan ini ke pengelola.", "warning");
+      return;
+    }
     const namaBerkas = tahunan() ? "Laporan Tahunan JITUPASNA - " + pilihan.tahun : "Laporan Bulanan JITUPASNA - " + namaBulan(pilihan.bulan);
     const lama = $("rlb-cetak"); if (lama) lama.remove();
     const fr = document.createElement("iframe");
