@@ -24263,10 +24263,12 @@ html.dark .rkd-antre-lokal .galat,html[data-tema="gelap"] .rkd-antre-lokal .gala
    pindah ke roda gigi dan tombol halaman kembali abu-abu. */
 body.rk #rk-rel{position:relative}
 #rk-sorot{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:12px;background:var(--rk-api);
-  box-shadow:0 4px 14px -5px var(--rk-api);pointer-events:none;z-index:0;opacity:0;
-  transition:transform .42s cubic-bezier(.3,1.25,.5,1),opacity .2s ease}
+  box-shadow:0 4px 14px -5px var(--rk-api);pointer-events:none;z-index:0;opacity:0;scale:1;
+  transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .18s ease,scale .18s ease}
 #rk-sorot.tampak{opacity:1}
 #rk-sorot.tanpa-gerak{transition:none}
+/* lompatan jauh (ke/dari Pengaturan): tidak meluncur, tapi pudar lalu muncul */
+#rk-sorot.pudar{opacity:0;scale:.8;transition:opacity .14s ease,scale .14s ease}
 body.rk.rk-sorot-siap #main-nav > button,body.rk.rk-sorot-siap #rk-pengaturan-btn{position:relative;z-index:1}
 body.rk.rk-sorot-siap #main-nav > button.text-primary,
 body.rk.rk-sorot-siap #main-nav > button.text-primary:hover{background:none !important;box-shadow:none !important;color:#fff !important}
@@ -24303,7 +24305,7 @@ body.rk.rk-sorot-siap.rk-sorot-pindah #main-nav > button.text-primary:not(.rk-tu
        aktif berpindah. Supaya sorotan tidak terasa telat, ia langsung meluncur
        ke tombol yang diklik; kalau pergantiannya batal (mis. perlu login),
        batas waktu mengembalikannya ke halaman yang benar-benar aktif. */
-    let tertuju = null, jamTertuju = 0;
+    let tertuju = null, jamTertuju = 0, tujuanLalu = null, jamLompat = 0;
     function lepasTertuju() {
       if (tertuju) tertuju.classList.remove("rk-tuju");
       tertuju = null; clearTimeout(jamTertuju);
@@ -24329,10 +24331,26 @@ body.rk.rk-sorot-siap.rk-sorot-pindah #main-nav > button.text-primary:not(.rk-tu
       const tujuan = tertuju || (setelan ? roda : aktifNav);
       if (!tujuan || !tujuan.offsetParent) { sorot.classList.remove("tampak"); return; }
       const r = rel.getBoundingClientRect(), t = tujuan.getBoundingClientRect();
-      sorot.style.width = t.width + "px";
-      sorot.style.height = t.height + "px";
-      sorot.style.transform = "translate(" + (t.left - r.left - rel.clientLeft) + "px," + (t.top - r.top - rel.clientTop + rel.scrollTop) + "px)";
-      sorot.classList.add("tampak");
+      const x = t.left - r.left - rel.clientLeft, y = t.top - r.top - rel.clientTop + rel.scrollTop;
+      const pindahKelompok = tujuanLalu && (tujuanLalu === roda) !== (tujuan === roda);
+      tujuanLalu = tujuan;
+      clearTimeout(jamLompat);
+      const pasangDi = function () {
+        sorot.style.width = t.width + "px";
+        sorot.style.height = t.height + "px";
+        sorot.style.transform = "translate(" + x + "px," + y + "px)";
+        sorot.classList.add("tampak");
+      };
+      if (!pindahKelompok || !sorot.classList.contains("tampak")) { sorot.classList.remove("pudar"); pasangDi(); return; }
+      // antara menu halaman dan roda gigi jaraknya jauh: pudar di tempat, muncul di tujuan
+      sorot.classList.add("pudar");
+      jamLompat = setTimeout(function () {
+        sorot.classList.add("tanpa-gerak");
+        pasangDi();
+        void sorot.offsetWidth;
+        sorot.classList.remove("tanpa-gerak");
+        requestAnimationFrame(function () { sorot.classList.remove("pudar"); });
+      }, 140);
     }
     function jadwalkan() { if (!jadwal) jadwal = requestAnimationFrame(tempatkan); }
 
