@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwlBlquuw8zUIF09Z7YAq24qnx8nwLIM50nUyHIk2T_yPF73M08pkYnpLyHLPZRCeA2/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxL79Ay57EPEzGin2JuY08dmqV5Aao4casp3kpg60E-o_JvatbrLqvicsduDdPEkfcZ/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -6859,7 +6859,7 @@ function toggleFormView() {
             // Listener Button Add
             btnAdd.addEventListener('click', (e) => {
                 e.preventDefault(); // Cegah submit form
-                let val = (selectEl.value === 'Lainnya') ? inputLain.value : selectEl.value;
+                let val = String((selectEl.value === 'Lainnya') ? inputLain.value : selectEl.value).replace(/^[\s,;]+|[\s,;]+$/g, '');
                 if(!val) return customAlert("Pilih atau isi data dulu!", "warning");
                 
                 // Cek duplikat
@@ -6895,7 +6895,7 @@ function toggleFormView() {
             else if (prefix === 'bagianKerusakan') targetId = 'bagianKerusakan';
             
             const targetEl = document.getElementById(targetId);
-            if(targetEl) targetEl.value = items.join(', ');
+            if(targetEl) targetEl.value = (prefix === 'personil' || prefix === 'unsur') ? rapikanDaftarNama(items.join(', ')) : items.join(', ');
 
             // Khusus kerusakan, jika item dihapus, sembunyikan detailnya
             if (prefix === 'bagianKerusakan') {
@@ -7650,6 +7650,22 @@ function pisahPersonil(raw) {
   return potong.filter(Boolean);
 }
 
+/* Daftar nama yang rapi untuk dicetak dan disimpan: "A, S.T., , B,, C" ->
+   "A, S.T., B, C". Koma kosong muncul kalau nama diketik lewat "Lainnya"
+   dengan koma di ujung ("Parmuji,") lalu digabung lagi dengan ", ". */
+function rapikanDaftarNama(raw) {
+  const sudah = {};
+  return pisahPersonil(raw)
+    .map(function (n) { return n.replace(/^[\s,;]+|[\s,;]+$/g, "").replace(/\s+/g, " "); })
+    .filter(function (n) {
+      const k = n.toLowerCase();
+      if (!n || sudah[k]) return false;
+      sudah[k] = true;
+      return true;
+    })
+    .join(", ");
+}
+
 /* Nama yang pernah dipakai di laporan mana pun, yang tersering di atas.
    Inilah isi dropdownnya - bukan daftar tetap yang harus dirawat terpisah. */
 function daftarPersonilDikenal() {
@@ -7722,14 +7738,14 @@ function saringPersonil(idx) {
 }
 
 window.tambahPersonil = function (idx, nama) {
-  nama = String(nama == null ? "" : nama).trim();
+  nama = String(nama == null ? "" : nama).replace(/^[\s,;]+|[\s,;]+$/g, "");
   if (!nama) return;
   const hidden = document.getElementById("input-personil-" + idx);
   if (!hidden) return;
   const list = pisahPersonil(hidden.value);
   if (list.some(function (n) { return n.toLowerCase() === nama.toLowerCase(); })) return;
   list.push(nama);
-  hidden.value = list.join(", ");
+  hidden.value = rapikanDaftarNama(list.join(", "));
   gambarChipPersonil(idx);
   const cari = document.getElementById("cari-personil-" + idx);
   if (cari) { cari.value = ""; cari.focus(); }
@@ -7741,7 +7757,7 @@ window.hapusPersonil = function (idx, pos) {
   if (!hidden) return;
   const list = pisahPersonil(hidden.value);
   list.splice(pos, 1);
-  hidden.value = list.join(", ");
+  hidden.value = rapikanDaftarNama(list.join(", "));
   gambarChipPersonil(idx);
   saringPersonil(idx);
 };
@@ -22495,7 +22511,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
         (it.pengkajian && it.pengkajian !== "-" ? '<div class="blok"><s>Pengkajian dampak</s><p>' + esc(it.pengkajian) + "</p></div>" : "") +
         (it.rekomendasi && it.rekomendasi !== "-" ? '<div class="blok"><s>Rekomendasi</s><p>' + esc(it.rekomendasi) + "</p></div>" : "") +
         (bantuan.length ? '<div class="blok"><s>Bantuan</s><div class="cip-daftar">' + bantuan.map(function (b) { return '<span class="cip lembut">' + esc(b) + "</span>"; }).join("") + "</div></div>" : "") +
-        (it.personil && it.personil !== "-" ? '<div class="blok"><s>Personil</s><p class="kecil">' + esc(it.personil) + "</p></div>" : "") +
+        (it.personil && it.personil !== "-" && rapikanDaftarNama(it.personil) ? '<div class="blok"><s>Personil</s><p class="kecil">' + esc(rapikanDaftarNama(it.personil)) + "</p></div>" : "") +
         (foto.length ? '<div class="foto foto-' + foto.length + '">' + foto.map(function (src, fi) {
           return '<figure><img src="' + esc(src) + '" alt="Foto ' + (fi + 1) + '" referrerpolicy="no-referrer"><figcaption>Foto ' + (fi + 1) + "</figcaption></figure>";
         }).join("") + "</div>" : "") +
