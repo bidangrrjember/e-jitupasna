@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwjhBmQXxZ_CSeRYHnfo4Y0dgOwzEFXS24ub5BCe1f8u5sIlAxyxZA3tNv2t2RHr1RG/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5752,7 +5752,8 @@ function renderDokumenGabungan(data) {
     const jenis = [{ k: 'disposisi', judul: 'Disposisi', link: data.linkDisposisi }];
     if (dibantu) {
         jenis.push({ k: 'serahTerima', judul: 'Serah terima', link: data.linkDokSerahTerima });
-        jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring });
+        // bantuan yang hanya terpal tidak dimonitor - kecuali dokumennya terlanjur ada
+        if (!checkIsOnlyTerpal(data) || rkAdaTautan(data.linkDokMonitoring)) jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring });
     }
     const pecah = function (v) { return rkAdaTautan(v) ? String(v).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : []; };
     const escA = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -6239,7 +6240,7 @@ function openImagePreview(originalUrl) {
                     <div class="rkd-dok-daftar">
                         ${renderDokumenGabungan(data)}
                         ${checkIsDibantu(data) ? renderDokumenSection('Foto Serah Terima', data.fotoSerahTerima !== undefined ? data.fotoSerahTerima : data.linkSerahTerima, 'serahTerima', data.idx, data.tglSerahTerima, rkAdaTautan(data.linkDokSerahTerima)) : ''}
-                        ${checkIsDibantu(data) ? renderDokumenSection('Foto Monitoring', data.fotoMonitoring !== undefined ? data.fotoMonitoring : data.linkMonitoring, 'monitoring', data.idx, data.tglMonitoring, rkAdaTautan(data.linkDokMonitoring)) : ''}
+                        ${checkIsDibantu(data) && !checkIsOnlyTerpal(data) ? renderDokumenSection('Foto Monitoring', data.fotoMonitoring !== undefined ? data.fotoMonitoring : data.linkMonitoring, 'monitoring', data.idx, data.tglMonitoring, rkAdaTautan(data.linkDokMonitoring)) : ''}
                     </div>
                 </section>
 
@@ -14164,8 +14165,29 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       });
     }
 
+    /* Apps Script kadang tertahan ~30 detik lalu Google gagal menyerahkan
+       hasilnya: halaman googleusercontent.com/echo membalas 404, padahal
+       permintaan berikutnya biasanya langsung berhasil dalam 2-3 detik.
+       Permintaan BACA (GET) dicoba ulang sekali sebelum dianggap gagal.
+       Permintaan tulis (POST) tidak pernah diulang - bisa tersimpan dua kali. */
+    const metodeKirim = (pilihan && pilihan.method) ? String(pilihan.method).toUpperCase() : "GET";
+    const jeda = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
+    function kirim(sudahUlang) {
+      return aslinya.apply(diri, argumen).then(function (res) {
+        if (!res.ok && !sudahUlang && metodeKirim === "GET" && (res.status === 404 || res.status >= 500)) {
+          return jeda(1500).then(function () { return kirim(true); });
+        }
+        return res;
+      }, function (e) {
+        if (!sudahUlang && metodeKirim === "GET" && !(e && e.name === "AbortError")) {
+          return jeda(1500).then(function () { return kirim(true); });
+        }
+        throw e;
+      });
+    }
+
     return antre(function () {
-    return aslinya.apply(diri, argumen).then(function (res) {
+    return kirim(false).then(function (res) {
       if (!res.ok) {
         const sebab = "Server menjawab " + res.status + (res.statusText ? " " + res.statusText : "");
         const ganti = dariSimpanan(sebab);
