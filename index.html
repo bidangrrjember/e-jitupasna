@@ -1360,7 +1360,7 @@ html.dark #loader{background:#0B1215 !important}
         
         <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 dark:text-gray-100 tracking-tight mb-2 relative z-10 opacity-0"
             style="animation: fadeInUp 0.8s ease-out 0.2s forwards;">
-            JITUPASNA
+            E-JITUPASNA
         </h1>
         
         <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-bold tracking-widest uppercase mb-10 text-center leading-relaxed relative z-10 opacity-0"
@@ -1874,7 +1874,7 @@ html.dark #loader{background:#0B1215 !important}
                 <div class="rkf-kr">
                     <span class="rkr-no">01 &middot; Bencana</span>
                     <h3>Data Bencana</h3>
-                    <p>Jenis kejadian dan sektor JITUPASNA yang terdampak.</p>
+                    <p>Jenis kejadian dan sektor E-JITUPASNA yang terdampak.</p>
                 </div>
                 <div class="rkf-kisi">
                     <div style="display:none;"><input type="text" id="bencana" name="bencana"></div>
@@ -1883,7 +1883,7 @@ html.dark #loader{background:#0B1215 !important}
                         <select id="jenisBencana" name="jenisBencana"><option value="">Pilih...</option><option value="Cuaca Ekstrem">Cuaca Ekstrem</option><option value="Banjir">Banjir</option><option value="Kebakaran">Kebakaran</option><option value="Gempa Bumi">Gempa Bumi</option><option value="Gunung Meletus">Gunung Meletus</option><option value="Tsunami">Tsunami</option><option value="Tanah Longsor">Tanah Longsor</option></select>
                     </div>
                     <div class="rkf-medan s2">
-                        <label for="sektor" class="rkf-label">Sektor JITUPASNA</label>
+                        <label for="sektor" class="rkf-label">Sektor E-JITUPASNA</label>
                         <select id="sektor" name="sektor"><option value="">Pilih Sektor...</option><option value="Perumahan dan Permukiman">Perumahan dan Permukiman</option><option value="Infrastruktur Pembangunan">Infrastruktur Pembangunan</option><option value="Ekonomi">Ekonomi</option><option value="Sosial dan Kemanusiaan">Sosial dan Kemanusiaan</option><option value="Lintas Sektor">Lintas Sektor</option></select>
                     </div>
                     <div class="rkf-medan s2">
@@ -2333,7 +2333,7 @@ html.dark #loader{background:#0B1215 !important}
           </div>
         </div>
         <div class="papan-kaki">
-          &ldquo;Cukup untuk&rdquo; dihitung dari rata-rata pemakaian per rumah pada laporan JITUPASNA,
+          &ldquo;Cukup untuk&rdquo; dihitung dari rata-rata pemakaian per rumah pada laporan E-JITUPASNA,
           dibagi stok saat ini. Material yang jarang muncul di laporan ditandai agar angkanya
           tidak dipercaya berlebihan.
         </div>
@@ -2345,7 +2345,7 @@ html.dark #loader{background:#0B1215 !important}
             <div class="sc-head">
               <div>
                 <div class="sc-title">Penyaluran Terakhir</div>
-                <div class="sc-sub">Data pengeluaran logistik JITUPASNA &amp; manual</div>
+                <div class="sc-sub">Data pengeluaran logistik E-JITUPASNA &amp; manual</div>
               </div>
             </div>
             <div class="sc-body" style="padding:0;overflow-x:auto;">
@@ -2417,7 +2417,7 @@ html.dark #loader{background:#0B1215 !important}
     <div class="stm-page" id="stm-page-bantuan">
       <div class="sc">
         <div class="sc-head">
-          <div><div class="sc-title">Riwayat Pengeluaran Bantuan</div><div class="sc-sub">Otomatis dari laporan JITUPASNA, atau input manual</div></div>
+          <div><div class="sc-title">Riwayat Pengeluaran Bantuan</div><div class="sc-sub">Otomatis dari laporan E-JITUPASNA, atau input manual</div></div>
           <button class="btn btn-primary stm-admin" onclick="STM.openAddBantuan()"><span class="msym" style="font-size:16px;">add</span> Input Manual</button>
         </div>
         <div class="sc-body" style="padding:0;overflow-x:auto;">
@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyStzuw97ZabBuGtzoXsC_o1tQuLvfrZymv_HCkUvnk9frBuFeW5zxaed3D1dAPONGT/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -6441,7 +6441,7 @@ async function generateDampakAI() {
 
     } catch (error) {
         console.error("Error panggil Apps Script:", error);
-        textarea.value = "Gagal terhubung ke server JITUPASNA. Pastikan kamu sudah Deploy as New Version di Apps Script.";
+        textarea.value = "Gagal terhubung ke server E-JITUPASNA. Pastikan kamu sudah Deploy as New Version di Apps Script.";
     } finally {
         // 6. Kembalikan UI tombol ke semula
         btn.disabled = false;
@@ -7385,7 +7385,7 @@ formData.nilaiKerusakan = hasilKerusakan.nilai;
         <div class="bg-white dark:bg-card-dark rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-100 dark:border-gray-800">
             <div class="p-8 text-center">
                 <img src="https://bidangrrjember.github.io/peta-bencana-jember/logo-bpbd.png" alt="Logo BPBD" class="h-20 w-20 mx-auto mb-4 drop-shadow-md">
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">DASHBOARD JITUPASNA</h2>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-1">DASHBOARD E-JITUPASNA</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-8">BPBD Kabupaten Jember</p>
                 
                 <div class="space-y-4">
@@ -7542,11 +7542,11 @@ function customConfirm(message, title = 'Konfirmasi') {
     </div>
   </div>
 
-  <!-- MODAL: PENGELUARAN BANTUAN (MANUAL & DARI LAPORAN JITUPASNA) -->
+  <!-- MODAL: PENGELUARAN BANTUAN (MANUAL & DARI LAPORAN E-JITUPASNA) -->
   <div class="modal-ov" id="stm-modalBantuan">
     <div class="modal-box">
       <div class="modal-title" id="stm-banTitle">Input Pengeluaran Bantuan Manual</div>
-      <div class="modal-sub" id="stm-banSub">Untuk bantuan di luar alur JITUPASNA</div>
+      <div class="modal-sub" id="stm-banSub">Untuk bantuan di luar alur E-JITUPASNA</div>
       <input type="hidden" id="stm-banSumber" value="Manual">
       <input type="hidden" id="stm-banLaporanId" value="">
       <div id="stm-banWarnDuplikat" class="stm-hidden" style="display:none;padding:10px 14px;border-radius:10px;background:var(--stm-warning-light);color:var(--stm-warning);font-size:12px;font-weight:600;margin-bottom:14px;"></div>
@@ -7945,15 +7945,15 @@ document.addEventListener("DOMContentLoaded", function () {
 /* =========================================================================
    MODUL LOGISTIK BANTUAN STIMULAN (digabung dari aplikasi "index stimulan")
    - Semua fungsi dibungkus dalam objek global STM agar tidak bentrok dengan
-     fungsi milik dashboard JITUPASNA.
-   - Role mengikuti login JITUPASNA:
+     fungsi milik dashboard E-JITUPASNA.
+   - Role mengikuti login E-JITUPASNA:
        isLoggedIn === true  -> Admin (akses penuh)
        isLoggedIn === false -> Tamu (hanya lihat Ringkasan & Inventori)
    ========================================================================= */
 window.STM = (function () {
 
   // --- KONFIGURASI ---
-  // Satu deployment untuk JITUPASNA dan Logistik. Sengaja meminjam
+  // Satu deployment untuk E-JITUPASNA dan Logistik. Sengaja meminjam
   // DATA_URL, bukan menyalin alamatnya - supaya kalau URL-nya berganti
   // cukup diubah di satu tempat dan tidak mungkin tertinggal separuh.
   const API_URL = DATA_URL;
@@ -7970,7 +7970,7 @@ window.STM = (function () {
   // --- HELPER ---
   const $ = (id) => document.getElementById(id);
 
-  // isLoggedIn, allData, isWeatherMode & lastActiveView pada dashboard JITUPASNA
+  // isLoggedIn, allData, isWeatherMode & lastActiveView pada dashboard E-JITUPASNA
   // dideklarasikan dengan "let" sehingga bukan properti window. Diakses lewat
   // binding global (dibungkus typeof agar aman bila urutan skrip berubah).
   const isAdmin = () => (typeof isLoggedIn !== "undefined" && isLoggedIn === true);
@@ -8191,7 +8191,7 @@ window.STM = (function () {
   async function ensureStarted() {
     if (started) {
       // Kunjungan kedua dan seterusnya. Datanya bisa sudah berubah dari layar
-      // lain - misalnya penyaluran lewat panel detail laporan JITUPASNA - jadi
+      // lain - misalnya penyaluran lewat panel detail laporan E-JITUPASNA - jadi
       // selalu ditarik ulang. Tanpa ini yang tampil adalah sisa kunjungan
       // pertama, dan stok terlihat seolah belum terpotong.
       //
@@ -8221,7 +8221,7 @@ window.STM = (function () {
   let RUMAH_WASPADA = 25;
   let RUMAH_PENUH = 30;   // panjang penuh bar
 
-  // Nama material di Inventori dan di JITUPASNA tidak selalu sama
+  // Nama material di Inventori dan di E-JITUPASNA tidak selalu sama
   // ("Besi 6mm" vs "Besi ø 6 mm"), jadi dijembatani lewat legacySlot().
   function kunciMaterial(nama) {
     try {
@@ -8231,7 +8231,7 @@ window.STM = (function () {
     return String(nama == null ? "" : nama).trim();
   }
 
-  // Rata-rata kebutuhan tiap material per rumah, dari laporan JITUPASNA.
+  // Rata-rata kebutuhan tiap material per rumah, dari laporan E-JITUPASNA.
   // "sampel" = berapa laporan memakai material itu; dipakai untuk menandai
   // angka yang berdiri di atas terlalu sedikit data.
   function rataPemakaian() {
@@ -8376,7 +8376,7 @@ window.STM = (function () {
     if (sub) {
       sub.textContent = andal.length
         ? "Kapasitas ditentukan material yang paling cepat habis \u2014 saat ini " + andal[0].nama.toLowerCase() + ", bukan yang stoknya paling sedikit."
-        : "Data pemakaian per rumah dari laporan JITUPASNA belum cukup untuk menghitungnya.";
+        : "Data pemakaian per rumah dari laporan E-JITUPASNA belum cukup untuk menghitungnya.";
     }
 
     const kini = new Date();
@@ -8415,7 +8415,7 @@ window.STM = (function () {
           return '<tr>' +
             '<td style="white-space:nowrap;">' + fmtDate(p.Tanggal) + '</td>' +
             '<td style="font-weight:600;">' + esc(p.Nama_Penerima) + '</td>' +
-            '<td><span class="badge ' + (isAuto ? "blue" : "orange") + '">' + (isAuto ? "JITUPASNA" : "Manual") + '</span></td>' +
+            '<td><span class="badge ' + (isAuto ? "blue" : "orange") + '">' + (isAuto ? "E-JITUPASNA" : "Manual") + '</span></td>' +
             '<td style="color:var(--stm-faint);font-size:12px;">' + esc(ringkasan) + '</td></tr>';
         }).join("");
       } else {
@@ -8602,7 +8602,7 @@ window.STM = (function () {
       return '<tr><td style="white-space:nowrap;">' + fmtDate(p.Tanggal) + '</td>' +
         '<td style="font-weight:600;">' + esc(p.Nama_Penerima) + '</td>' +
         '<td>' + esc(ringkasan) + '</td>' +
-        '<td><span class="badge ' + (isAuto ? "blue" : "orange") + '">' + (isAuto ? "JITUPASNA" : "Manual") + '</span></td>' +
+        '<td><span class="badge ' + (isAuto ? "blue" : "orange") + '">' + (isAuto ? "E-JITUPASNA" : "Manual") + '</span></td>' +
         '<td>' + esc(p.Operator) + '</td></tr>';
     }).join("");
   }
@@ -8611,7 +8611,7 @@ window.STM = (function () {
     if (!isAdmin()) return;
     if (!invData.length) await loadInventory();
     $("stm-banTitle").textContent = "Input Pengeluaran Bantuan Manual";
-    $("stm-banSub").textContent = "Untuk bantuan di luar alur JITUPASNA";
+    $("stm-banSub").textContent = "Untuk bantuan di luar alur E-JITUPASNA";
     $("stm-banSumber").value = "Manual";
     $("stm-banLaporanId").value = "";
     $("stm-banPenerima").value = "";
@@ -8775,9 +8775,9 @@ window.STM = (function () {
   function closeModal(id) { const el = $(id); if (el) el.classList.remove("show"); }
 
   // =======================================================================
-  // INTEGRASI DENGAN LAPORAN JITUPASNA
+  // INTEGRASI DENGAN LAPORAN E-JITUPASNA
   // =======================================================================
-  // Mencocokkan nama material di laporan JITUPASNA dengan item Master_Barang
+  // Mencocokkan nama material di laporan E-JITUPASNA dengan item Master_Barang
   function normNama(s) {
     return String(s || "").toLowerCase().replace(/ø/g, "").replace(/[^a-z0-9]/g, "");
   }
@@ -8829,7 +8829,7 @@ window.STM = (function () {
     }
 
     $("stm-banTitle").textContent = "Salurkan Bantuan Stimulan";
-    $("stm-banSub").textContent = "Stok otomatis terpotong & tercatat dengan sumber JITUPASNA";
+    $("stm-banSub").textContent = "Stok otomatis terpotong & tercatat dengan sumber E-JITUPASNA";
     $("stm-banSumber").value = "JITUPASNA";
     $("stm-banLaporanId").value = item.timestamp || "";
     $("stm-banPenerima").value = item.nama || "";
@@ -8873,7 +8873,7 @@ window.STM = (function () {
     openModal("stm-modalBantuan");
   }
 
-  // Menyisipkan tombol "Salurkan Bantuan" ke panel detail laporan JITUPASNA
+  // Menyisipkan tombol "Salurkan Bantuan" ke panel detail laporan E-JITUPASNA
   function injectSalurButton(data) {
     if (!data || !isAdmin()) return;
     const host = document.getElementById("view-bantuan-" + data.idx);
@@ -8935,7 +8935,7 @@ window.STM = (function () {
   }
 
   // =======================================================================
-  // INTEGRASI TAMPILAN DENGAN switchView() JITUPASNA
+  // INTEGRASI TAMPILAN DENGAN switchView() E-JITUPASNA
   // =======================================================================
   const ANIM_VISIBLE = ["opacity-100", "scale-100"];
   const ANIM_HIDDEN = ["opacity-0", "scale-95"];
@@ -9050,7 +9050,7 @@ window.STM = (function () {
 })();
 
 /* ---------------------------------------------------------------------
-   PENYAMBUNGAN KE FUNGSI DASHBOARD JITUPASNA (tanpa mengubah kode aslinya)
+   PENYAMBUNGAN KE FUNGSI DASHBOARD E-JITUPASNA (tanpa mengubah kode aslinya)
    --------------------------------------------------------------------- */
 /* ---------------------------------------------------------------------
    PRAMUAT DATA LOGISTIK
@@ -9066,7 +9066,7 @@ window.STM = (function () {
      sama. Menembak barengan justru memperlambat peta yang lebih dulu
      dilihat orang.
    - WAJIB menunggu allData terisi. Papan Stok menghitung rata-rata
-     pemakaian dari laporan JITUPASNA; kalau dipanggil sebelum allData
+     pemakaian dari laporan E-JITUPASNA; kalau dipanggil sebelum allData
      ada, seluruh material akan tertulis "BELUM ADA DATA".
    --------------------------------------------------------------------- */
 (function () {
@@ -9111,7 +9111,7 @@ window.STM = (function () {
     return _origSwitchView.apply(this, arguments);
   };
 
-  // 2) updateAuthUI: role logistik ikut status login JITUPASNA
+  // 2) updateAuthUI: role logistik ikut status login E-JITUPASNA
   const _origUpdateAuthUI = window.updateAuthUI;
   if (typeof _origUpdateAuthUI === "function") {
     window.updateAuthUI = function () {
@@ -12933,7 +12933,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     kartu.innerHTML =
       '<div class="rk-kep">' +
         '<div class="rk-ubin"><img src="' + LOGO + '" alt="Logo BPBD"></div>' +
-        '<div><h2>Dashboard JITUPASNA</h2><p>BPBD Kabupaten Jember</p></div>' +
+        '<div><h2>Dashboard E-JITUPASNA</h2><p>BPBD Kabupaten Jember</p></div>' +
       "</div>" +
       '<label class="rk-lab" for="login-password">Kata sandi pengelola</label>' +
       '<div class="rk-isian"><span class="material-symbols-outlined rk-gembok">lock</span></div>' +
@@ -19825,7 +19825,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
         else { judul = c[2]; sub = c[3] || c[1]; }
         const d = tgl.split(" ");
         return '<div class="sk-baris" style="cursor:default"><span class="sk-jam"><b class="sk-tebal" style="font-size:19px">' + esc(d[0] || "") + "</b><s>" + esc((d[1] || "") + " " + (d[2] || "")) +
-          '</s></span><span class="sk-det"><b>' + esc(judul || "-") + "</b><s>" + esc(sub || "") + "</s></span>" + (cip ? '<span class="sk-cip ' + (cip === "JITUPASNA" ? "laut" : "emas") + '">' + esc(cip) + "</span>" : "") + "</div>";
+          '</s></span><span class="sk-det"><b>' + esc(judul || "-") + "</b><s>" + esc(sub || "") + "</s></span>" + (cip ? '<span class="sk-cip ' + (cip === "JITUPASNA" ? "laut" : "emas") + '">' + esc(cip === "JITUPASNA" ? "E-JITUPASNA" : cip) + "</span>" : "") + "</div>";
       }).join("");
     };
     if (pengamatGudang) pengamatGudang.disconnect();
@@ -20010,7 +20010,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       }).join("") +
         '<button type="button" data-jenis="__lain" class="' + (lain ? "on" : "") + '" aria-pressed="' + lain + '"><i>' + ik("tambah") + "</i>" + (lain ? esc(nilai) : "Lainnya") + "</button>" +
       "</div>" +
-      '<span class="sk-alis" style="margin-top:2px">Sektor JITUPASNA</span>' +
+      '<span class="sk-alis" style="margin-top:2px">Sektor E-JITUPASNA</span>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap">' + (sk ? Array.prototype.filter.call(sk.options, function (o) { return o.value; }).map(function (o) {
         return '<button type="button" class="sk-cip-pilih' + (sektorNilai === o.value ? " on" : "") + '" data-sektor="' + esc(o.value) + '">' + esc(SEKTOR_PENDEK[o.value] || o.value) + "</button>";
       }).join("") : "") + "</div>" +
@@ -22456,7 +22456,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     };
     const label = function (x, y, warna) {
       return '<rect x="' + f1(x) + '" y="' + f1(y - 2.4) + '" width="7" height="2" fill="' + AKSEN + '"/>' +
-        T(x + 10, y, "LAPORAN BULANAN · JITUPASNA", { font: MONO, size: 2.6, w: 500, warna: warna, ls: 0.45 });
+        T(x + 10, y, "LAPORAN BULANAN · E-JITUPASNA", { font: MONO, size: 2.6, w: 500, warna: warna, ls: 0.45 });
     };
     const angkaAngka = [[angka(info.kejadian), "kejadian dikaji"], [angka(info.jiwa), "jiwa terdampak"], [ringkasRp(info.nilai), "taksiran kerusakan"]];
 
@@ -22649,7 +22649,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const gaya = `
 @page{size:A4;margin:14mm 13mm 16mm;
   @top-center{content:""}
-  @bottom-left{content:"Laporan Bulanan JITUPASNA · ${judulBulan} · BPBD Kabupaten Jember";font:7.5pt "DM Mono",monospace;color:#8A948F}
+  @bottom-left{content:"Laporan Bulanan E-JITUPASNA · ${judulBulan} · BPBD Kabupaten Jember";font:7.5pt "DM Mono",monospace;color:#8A948F}
   @bottom-right{content:"Halaman " counter(page) " dari " counter(pages);font:7.5pt "DM Mono",monospace;color:#8A948F}}
 @page sampul{margin:0}
 .sampul{page:sampul;width:210mm;height:297mm;margin:16px auto 0;overflow:hidden;break-after:page;background:#fff;box-shadow:0 10px 30px -18px rgba(0,0,0,.4)}
@@ -22782,14 +22782,14 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 })();`;
 
     const html = '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-      "<title>Laporan Bulanan JITUPASNA - " + esc(judulBulan) + "</title>" +
+      "<title>Laporan Bulanan E-JITUPASNA - " + esc(judulBulan) + "</title>" +
       '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
       "<style>" + gaya + "</style>" + '<script>if(/firefox/i.test(navigator.userAgent)){var g=document.createElement("style");g.textContent="@page{margin:0}@page sampul{margin:0}@media print{.kertas{padding:14mm 13mm 16mm !important;-webkit-box-decoration-break:clone;box-decoration-break:clone}}";document.head.appendChild(g)}<\/script>' + "<\/head><body>" +
       (opsi.sematkan ? "" : '<div class="alat"><b>Laporan ' + esc(judulBulan) + '</b><span id="status">Menyiapkan…</span><button id="cetak" type="button">Simpan PDF</button></div>') +
       '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
         (tlHtml ? (daftar.length ? '<div class="halaman-baru"></div>' : '') + tlHtml : "") +
         (daftar.length ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian kejadian</h2><span>' + daftar.length + " laporan · urut tanggal · status per " + esc(acuan.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })) + "</span></div>" + rincian : "") +
-        '<p class="penutup">Angka taksiran mengikuti rumus pengkajian JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
+        '<p class="penutup">Angka taksiran mengikuti rumus pengkajian E-JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
       "</main>" + (opsi.sematkan ? "" : "<script>" + skrip + "<\/script>") + "<\/body><\/html>";
     return { html: html, jumlah: daftar.length, foto: jumlahFoto, sampul: sampulData.desain };
   }
@@ -23011,7 +23011,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
     const pil = function (x, y, anchor) {
       const lb = 58, x0 = anchor === "end" ? x - lb : anchor === "middle" ? x - lb / 2 : x;
       return '<rect x="' + f1(x0) + '" y="' + f1(y - 4.1) + '" width="' + lb + '" height="6" rx="3" fill="none" stroke="#fff" stroke-opacity=".38" stroke-width=".3"/>' +
-        T(x0 + lb / 2, y, "LAPORAN TAHUNAN · JITUPASNA", { font: MONO, size: 2.3, w: 500, anchor: "middle", ls: 0.35 });
+        T(x0 + lb / 2, y, "LAPORAN TAHUNAN · E-JITUPASNA", { font: MONO, size: 2.3, w: 500, anchor: "middle", ls: 0.35 });
     };
     const judul = function (x, y, size, anchor) {
       return T(x, y, "Kejadian Bencana", { font: DISP, size: size, w: 800, anchor: anchor, ls: -size * 0.035 }) +
@@ -23201,7 +23201,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
     const bab4 =
       '<section class="bagian halaman-baru">' + bab("04", "Daftar kejadian", daftar.length + " laporan, urut tanggal pengkajian") +
         '<table class="buku' + (kolomFoto ? " dg-foto" : "") + '"><thead><tr><th>No</th><th>Penerima &amp; lokasi</th><th>Kejadian</th><th>Serah terima</th><th>Monitoring</th><th>Status</th>' + (kolomFoto ? "<th>Foto</th>" : "") + "</tr></thead><tbody>" + baris + "</tbody></table>" +
-        '<p class="catatan-t">Taksiran mengikuti rumus pengkajian JITUPASNA. Dokumen memuat data pribadi penerima bantuan - gunakan untuk keperluan dinas.</p>' +
+        '<p class="catatan-t">Taksiran mengikuti rumus pengkajian E-JITUPASNA. Dokumen memuat data pribadi penerima bantuan - gunakan untuk keperluan dinas.</p>' +
       "</section>";
 
     const bab5 = !lampiran.length ? "" :
@@ -23222,7 +23222,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
       const gaya = `
 @page{size:A4;margin:15mm 14mm 17mm;
   @top-center{content:""}
-  @bottom-left{content:"Laporan Tahunan JITUPASNA ${th} · BPBD Kabupaten Jember";font:7pt "DM Mono",monospace;color:#7F8C88}
+  @bottom-left{content:"Laporan Tahunan E-JITUPASNA ${th} · BPBD Kabupaten Jember";font:7pt "DM Mono",monospace;color:#7F8C88}
   @bottom-right{content:counter(page) " / " counter(pages);font:7pt "DM Mono",monospace;color:#7F8C88}}
 @page sampul{margin:0}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -23312,7 +23312,7 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .lampiran figcaption em{display:block;font-style:normal;font-weight:400;font-size:6.9pt;color:#6B7975}
 @media screen{body{background:#E4EAE8}.kertas{background:#fff}.bagian{padding:14mm}}`;
       return '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-        "<title>Laporan Tahunan JITUPASNA - " + esc(th) + "</title>" +
+        "<title>Laporan Tahunan E-JITUPASNA - " + esc(th) + "</title>" +
         '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
         "<style>" + gaya + "</style>" + '<script>if(/firefox/i.test(navigator.userAgent)){var g=document.createElement("style");g.textContent="@page{margin:0}@page sampul{margin:0}@media print{.kertas{padding:15mm 14mm 17mm !important;-webkit-box-decoration-break:clone;box-decoration-break:clone}}";document.head.appendChild(g)}<\/script>' + '<\/head><body><main class="kertas">' + isi + "</main><\/body><\/html>";
     }
@@ -23435,7 +23435,7 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       customAlert("Laporan gagal disusun: " + (e && e.message ? e.message : e) + ". Coba muat ulang halaman; kalau tetap gagal, kirim pesan ini ke pengelola.", "warning");
       return;
     }
-    const namaBerkas = tahunan() ? "Laporan Tahunan JITUPASNA - " + pilihan.tahun : "Laporan Bulanan JITUPASNA - " + namaBulan(pilihan.bulan);
+    const namaBerkas = tahunan() ? "Laporan Tahunan E-JITUPASNA - " + pilihan.tahun : "Laporan Bulanan E-JITUPASNA - " + namaBulan(pilihan.bulan);
     const lama = $("rlb-cetak"); if (lama) lama.remove();
     const fr = document.createElement("iframe");
     fr.id = "rlb-cetak";
