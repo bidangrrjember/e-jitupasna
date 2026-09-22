@@ -1286,6 +1286,33 @@ html[data-saku="tab-rebah"] .sk-masuk-teks h1{font-size:44px}
       .stm-scope .kpi-val{font-size:22px;}
     }
     </style>
+<!-- Font & logo splash dimuat di HEAD. Sebelumnya keduanya baru terbaca di
+     tengah/ekor body, sehingga splash sempat tergambar dengan logo berkotak
+     (desain lama) dan font cadangan, lalu berganti - hasilnya berbeda-beda
+     tiap muat ulang tergantung cache. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style id="rk-splash-logo-polos">
+/* Splash: logo BPBD tampil apa adanya - tanpa kotak squircle dan tanpa cincin
+   berputar. Satu-satunya penanda proses adalah bilah memuat di bawah judul. */
+#rk-splash .rk-cincin,html[data-saku] #rk-splash .rk-cincin{width:auto !important;height:auto !important;margin-bottom:26px !important}
+#rk-splash .rk-cincin::before,#rk-splash .rk-cincin::after,
+html[data-saku] #rk-splash .rk-cincin::before,html[data-saku] #rk-splash .rk-cincin::after{content:none !important;display:none !important;animation:none !important}
+#rk-splash .rk-lencana,html[data-saku] #rk-splash .rk-lencana{width:auto !important;height:auto !important;border:0 !important;border-radius:0 !important;
+  background:none !important;box-shadow:none !important}
+#rk-splash .rk-lencana img,html[data-saku] #rk-splash .rk-lencana img{width:108px !important;height:108px !important;object-fit:contain;display:block;
+  filter:drop-shadow(0 12px 24px rgba(0,0,0,.28));animation:rkLogoMasuk .9s cubic-bezier(.2,.8,.25,1) both}
+html[data-saku] #rk-splash .rk-lencana img{width:100px !important;height:100px !important}
+@keyframes rkLogoMasuk{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+@media (max-width:420px){#rk-splash .rk-lencana img{width:92px !important;height:92px !important}}
+@media (prefers-reduced-motion:reduce){#rk-splash .rk-lencana img{animation:none}}
+</style>
+<style id="rk-splash-huruf">
+/* Animasi masuk splash ditahan sampai fontnya siap (maks. 1,5 detik), supaya
+   judul tidak tampil dengan font cadangan lalu melompat ke font aslinya. */
+#rk-splash.rk-huruf-tunggu .rk-naik{animation-play-state:paused}
+</style>
 </head>
 
 <body class="rk bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-display select-none">
@@ -2617,7 +2644,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxL79Ay57EPEzGin2JuY08dmqV5Aao4casp3kpg60E-o_JvatbrLqvicsduDdPEkfcZ/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -10255,8 +10282,6 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
      modul Logistik, modul Offline, dan sisanya tetap memegang simpul yang
      sama persis.
      ══════════════════════════════════════════════════════════════════════ -->
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 
 <style id="rk-gaya">
 :root{
@@ -12740,7 +12765,21 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       '<p class="rk-instansi rk-naik" style="animation-delay:.24s">BPBD <i></i> Kabupaten Jember</p>' +
       '<div class="rk-jalur rk-naik" style="animation-delay:.36s"><b></b></div>' +
       '<div class="rk-tahap rk-naik" id="rk-tahap" style="animation-delay:.44s"></div>';
+    s.className = "rk-huruf-tunggu";
     l.appendChild(s);
+
+    const siap = function () { s.classList.remove("rk-huruf-tunggu"); };
+    try {
+      if (document.fonts && document.fonts.load) {
+        Promise.race([
+          Promise.all([
+            document.fonts.load('800 46px "Bricolage Grotesque"'),
+            document.fonts.load('400 11px "DM Mono"')
+          ]),
+          new Promise(function (ok) { setTimeout(ok, 1500); })
+        ]).then(siap, siap);
+      } else siap();
+    } catch (e) { siap(); }
 
     lacakTahap();
   }
@@ -22384,22 +22423,21 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     };
 
     const tata = r.pilih(["atas", "bawah", "bingkai"]);
-    const disusun = function (x, y, warna) { return T(x, y, "Disusun " + esc(info.disusun), { font: MONO, size: 2.3, warna: warna }); };
     let isi = '<rect width="' + W + '" height="' + H + '" fill="' + KERTAS + '"/>';
     if (tata === "atas") {
       const fh = r.antara(138, 150);
-      isi += bidang({ x: 0, y: 0, w: W, h: fh }) + kopBidang(16, 16) + blokKertas(18, 192, fh + 17) + disusun(18, 289, REDUP);
+      isi += bidang({ x: 0, y: 0, w: W, h: fh }) + kopBidang(16, 16) + blokKertas(18, 192, fh + 17);
     } else if (tata === "bawah") {
       const fy = r.antara(142, 152), uk = ukuranJudul(174, 44), yJ = 58 + uk * 0.8, sel = 7.4, kw = 7 * sel + 12, kh = 8 * sel + 12;
       isi += bidang({ x: 0, y: fy, w: W, h: H - fy }) + kop(18, 18, TINTA) + label(18, 56, REDUP) +
         judulBulan(18, yJ, uk) + tahunBaris(18, yJ + 12, 11) + statistikDatar(18, 192, yJ + 22) +
         '<rect x="' + f1(198 - kw) + '" y="' + f1(285 - kh) + '" width="' + f1(kw) + '" height="' + f1(kh) + '" rx="3" fill="' + KERTAS + '"/>' +
-        kalender(198 - kw + 6, 285 - kh + 8, sel) + disusun(18, 289, "#fff");
+        kalender(198 - kw + 6, 285 - kh + 8, sel);
     } else {
       const ky = r.antara(128, 142);
       isi += bidang({ x: 0, y: 0, w: W, h: H }) + kopBidang(18, 18) +
         '<rect x="12" y="' + f1(ky) + '" width="186" height="' + f1(285 - ky) + '" rx="4" fill="' + KERTAS + '"/>' +
-        blokKertas(22, 188, ky + 14) + disusun(22, 279, REDUP);
+        blokKertas(22, 188, ky + 14);
     }
 
     return {
@@ -22656,7 +22694,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
     const html = '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       "<title>Laporan Bulanan JITUPASNA - " + esc(judulBulan) + "</title>" +
       '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
-      "<style>" + gaya + "</style><\/head><body>" +
+      "<style>" + gaya + "</style>" + '<script>if(/firefox/i.test(navigator.userAgent)){var g=document.createElement("style");g.textContent="@page{margin:0}@page sampul{margin:0}@media print{.kertas{padding:14mm 13mm 16mm !important;-webkit-box-decoration-break:clone;box-decoration-break:clone}}";document.head.appendChild(g)}<\/script>' + "<\/head><body>" +
       (opsi.sematkan ? "" : '<div class="alat"><b>Laporan ' + esc(judulBulan) + '</b><span id="status">Menyiapkan…</span><button id="cetak" type="button">Simpan PDF</button></div>') +
       '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
         (tlHtml ? (daftar.length ? '<div class="halaman-baru"></div>' : '') + tlHtml : "") +
@@ -23186,7 +23224,7 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       return '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
         "<title>Laporan Tahunan JITUPASNA - " + esc(th) + "</title>" +
         '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
-        "<style>" + gaya + '</style><\/head><body><main class="kertas">' + isi + "</main><\/body><\/html>";
+        "<style>" + gaya + "</style>" + '<script>if(/firefox/i.test(navigator.userAgent)){var g=document.createElement("style");g.textContent="@page{margin:0}@page sampul{margin:0}@media print{.kertas{padding:15mm 14mm 17mm !important;-webkit-box-decoration-break:clone;box-decoration-break:clone}}";document.head.appendChild(g)}<\/script>' + '<\/head><body><main class="kertas">' + isi + "</main><\/body><\/html>";
     }
   }
 
@@ -23714,21 +23752,6 @@ html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
   });
 })();
 </script>
-<style id="rk-splash-logo-polos">
-/* Splash: logo BPBD tampil apa adanya - tanpa kotak squircle dan tanpa cincin
-   berputar. Satu-satunya penanda proses adalah bilah memuat di bawah judul. */
-#rk-splash .rk-cincin,html[data-saku] #rk-splash .rk-cincin{width:auto !important;height:auto !important;margin-bottom:26px !important}
-#rk-splash .rk-cincin::before,#rk-splash .rk-cincin::after,
-html[data-saku] #rk-splash .rk-cincin::before,html[data-saku] #rk-splash .rk-cincin::after{content:none !important;display:none !important;animation:none !important}
-#rk-splash .rk-lencana,html[data-saku] #rk-splash .rk-lencana{width:auto !important;height:auto !important;border:0 !important;border-radius:0 !important;
-  background:none !important;box-shadow:none !important}
-#rk-splash .rk-lencana img,html[data-saku] #rk-splash .rk-lencana img{width:108px !important;height:108px !important;object-fit:contain;display:block;
-  filter:drop-shadow(0 12px 24px rgba(0,0,0,.28));animation:rkLogoMasuk .9s cubic-bezier(.2,.8,.25,1) both}
-html[data-saku] #rk-splash .rk-lencana img{width:100px !important;height:100px !important}
-@keyframes rkLogoMasuk{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
-@media (max-width:420px){#rk-splash .rk-lencana img{width:92px !important;height:92px !important}}
-@media (prefers-reduced-motion:reduce){#rk-splash .rk-lencana img{animation:none}}
-</style>
 <style id="rk-transisi-login">
 /* ── Transisi login -> dasbor ── */
 #auth-modal.rk-pergi{pointer-events:none;animation:rkLoginLatarPergi .6s .22s cubic-bezier(.4,0,.2,1) both}
