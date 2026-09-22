@@ -2644,7 +2644,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwN_eTS2CYRS6kD0hdbzeAd04kM3MlIMABLCK9xs1H9kn9WAGAzoOJ4oxDYrPCKILrv/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4755,14 +4755,9 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                     value: value
                 };
 
-                await fetch(DATA_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                });
-
-                showNotification(`Berhasil! ${columnName} tersimpan.`);
+                const kiriman = await window.OFFLINE.kirimPenting(payload, columnName + ' · ' + (item.nama || 'laporan'));
+                showNotification(kiriman.terkirim ? `Berhasil! ${columnName} tersimpan.`
+                    : `Tanpa sinyal: ${columnName} disimpan di perangkat ini dan terkirim otomatis saat sinyal kembali.`);
                 
                 // Update memori lokal web agar tidak perlu refresh penuh
                 if (columnName === 'Tanggal Serah Terima') item.tglSerahTerima = value;
@@ -4770,7 +4765,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
 
             } catch (error) {
                 console.error('Error menyimpan tanggal:', error);
-                showNotification('Gagal menyimpan tanggal ke server!');
+                showNotification('Gagal menyimpan tanggal: ' + (error && error.message ? error.message : 'server tidak menjawab.'));
             }
         }
 
@@ -4868,14 +4863,9 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                     value: newVal
                 };
 
-                await fetch(DATA_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify(payload),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                });
-
-                showNotification(`Berhasil! Data diperbarui.`);
+                const kiriman = await window.OFFLINE.kirimPenting(payload, columnName + ' · ' + (item.nama || 'laporan'));
+                showNotification(kiriman.terkirim ? 'Berhasil! Data diperbarui.'
+                    : 'Tanpa sinyal: perubahan disimpan di perangkat ini dan terkirim otomatis saat sinyal kembali.');
 
                 // Update data di memori web
                 item[objKey] = newVal;
@@ -4890,7 +4880,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
 
             } catch (error) {
                 console.error('Error:', error);
-                showNotification('Gagal menyimpan perubahan ke server!');
+                showNotification('Gagal menyimpan perubahan: ' + (error && error.message ? error.message : 'server tidak menjawab.'));
                 btnSave.disabled = false;
                 btnSave.innerHTML = originalText;
             }
@@ -5270,6 +5260,44 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
             }
         }
 
+/* Nama yang dikenali petugas untuk kolom tujuan unggahan. */
+function rkLabelKolom(kolom) {
+    return ({
+        'Link Disposisi': 'Dokumen disposisi',
+        'Link Dokumen Serah Terima': 'Dokumen serah terima',
+        'Link Dokumen Monitoring': 'Dokumen monitoring',
+        'Link Serah Terima': 'Foto serah terima',
+        'Link Monitoring': 'Foto monitoring',
+        'Link Dokumentasi': 'Foto kejadian',
+        'Link Foto Identitas': 'Foto KTP/KK',
+        'Link Foto Kegiatan': 'Foto kegiatan'
+    })[kolom] || kolom;
+}
+
+/* Foto dikecilkan sebelum diunggah dari panel detail: sisi terpanjang maks.
+   `sisi` px, JPEG mutu `mutu`. Bentuk hasilnya sama dengan readFileAsBase64. */
+function rkKecilkanFoto(file, sisi, mutu) {
+    return new Promise(function (ok, gagal) {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = function () {
+            let w = img.naturalWidth, h = img.naturalHeight;
+            const skala = Math.min(1, sisi / Math.max(w, h));
+            w = Math.round(w * skala); h = Math.round(h * skala);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const x = c.getContext('2d');
+            x.fillStyle = '#fff'; x.fillRect(0, 0, w, h);   // PNG transparan tidak jadi hitam
+            x.drawImage(img, 0, 0, w, h);
+            URL.revokeObjectURL(url);
+            const nama = String(file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg';
+            ok({ fileName: nama, fileType: 'image/jpeg', fileData: c.toDataURL('image/jpeg', mutu).split(',')[1] });
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); gagal(new Error('Foto tidak bisa dibaca')); };
+        img.src = url;
+    });
+}
+
 async function handleSidebarUpload(fileType, reportIndex) {
             
             const UPLOAD_URL = DATA_URL;
@@ -5355,6 +5383,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
             }
             
             let filesUploaded = 0;
+            let berkasAntre = 0;         // berkas yang disimpan di antrean karena tanpa sinyal
             let nilaiKolomBaru = null;   // isi kolom terbaru dari balasan server
             const jumlahBerkas = filesToUpload.length;
             let urlPratinjau = null;
@@ -5399,7 +5428,12 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     } else if (uploadButton) {
                         aturUnggah(filesUploaded, nomor);
                     }
-                    const fileBase64 = await readFileAsBase64(file);
+                    // Foto kamera HP bisa 4-8 MB; dikecilkan dulu (sisi terpanjang 1600 px)
+                    // supaya cepat terkirim di sinyal lemah dan hemat ruang antrean.
+                    // Dokumen (PDF dll.) dan gambar yang gagal dibaca dikirim apa adanya.
+                    const fileBase64 = (/^image\/(jpe?g|png|webp)$/i.test(file.type) && file.size > 400 * 1024)
+                        ? await rkKecilkanFoto(file, 1600, 0.8).catch(function () { return readFileAsBase64(file); })
+                        : await readFileAsBase64(file);
                     
                     const payload = {
                         mode: 'update', 
@@ -5419,20 +5453,25 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     // Balasan server DIBACA (dulu no-cors): kalau server menolak - mis. kolomnya
                     // belum ada karena GAS belum di-deploy - petugas melihat galatnya, bukan
                     // mengira berkasnya tersimpan.
-                    const resUnggah = await fetch(UPLOAD_URL, {
-                        method: 'POST',
-                        redirect: 'follow',
-                        body: JSON.stringify(payload),
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    });
-                    let hasilUnggah = null;
-                    try { hasilUnggah = JSON.parse(await resUnggah.text()); } catch (e) {}
-                    if (!hasilUnggah || hasilUnggah.status !== 'sukses') {
-                        const pesanServer = String((hasilUnggah && hasilUnggah.message) || 'server tidak memberi jawaban yang bisa dibaca.').replace(/^Terjadi Kesalahan Server:\s*/, '');
+                    // Tanpa sinyal: disimpan di antrean perangkat dan terkirim otomatis.
+                    // Ditolak server: galatnya ditampilkan - mis. kolom belum ada karena
+                    // GAS belum di-deploy - supaya petugas tidak mengira berkasnya tersimpan.
+                    let kirimanUnggah;
+                    try {
+                        kirimanUnggah = await window.OFFLINE.kirimPenting(payload, rkLabelKolom(columnName) + ' · ' + (reportData.nama || 'laporan'));
+                    } catch (e) {
+                        const pesanServer = String(e.message || 'server tidak memberi jawaban yang bisa dibaca.').replace(/^Terjadi Kesalahan Server:\s*/, '');
                         throw new Error(/tidak ditemukan/i.test(pesanServer)
                             ? pesanServer + ' Deploy ulang GAS GABUNGAN versi terbaru (kolomnya dibuat otomatis), lalu unggah lagi.'
                             : pesanServer);
                     }
+                    if (!kirimanUnggah.terkirim) {
+                        berkasAntre++;
+                        filesUploaded++;
+                        aturUnggah(filesUploaded, 0);
+                        continue;
+                    }
+                    const hasilUnggah = kirimanUnggah.hasil || {};
                     if (hasilUnggah.nilai !== undefined) nilaiKolomBaru = hasilUnggah.nilai;
                     filesUploaded++;
                     aturUnggah(filesUploaded, 0);
@@ -5444,19 +5483,26 @@ async function handleSidebarUpload(fileType, reportIndex) {
                     const angka = document.getElementById('upload-progress-text');
                     if (angka) angka.innerHTML = '<span class="material-symbols-outlined">check</span>';
                     const label = addPhotoBox.querySelector('.rkd-unggah-label');
-                    if (label) label.textContent = 'Terunggah';
+                    if (label) label.textContent = berkasAntre ? 'Tersimpan' : 'Terunggah';
                     await new Promise(function (ok) { setTimeout(ok, 700); });
                 } else if (uploadButton) {
                     uploadButton.classList.add('selesai');
                     const teks = uploadButton.querySelector('.rkd-tu-teks');
-                    if (teks) teks.textContent = 'Terunggah';
+                    if (teks) teks.textContent = berkasAntre ? 'Tersimpan' : 'Terunggah';
                     const angka = uploadButton.querySelector('.rkd-tu-angka');
                     if (angka) angka.innerHTML = '<span class="material-symbols-outlined">check</span>';
                     await new Promise(function (ok) { setTimeout(ok, 700); });
                 }
                 if (urlPratinjau) URL.revokeObjectURL(urlPratinjau);
 
-                showNotification(jumlahBerkas + (jenisGaleri ? ' foto' : ' berkas') + ' berhasil diunggah.');
+                const namaJenis = jenisGaleri ? ' foto' : ' berkas';
+                if (berkasAntre === jumlahBerkas) {
+                    showNotification('Tanpa sinyal: ' + jumlahBerkas + namaJenis + ' disimpan di perangkat ini dan terkirim otomatis saat sinyal kembali.');
+                } else if (berkasAntre) {
+                    showNotification((jumlahBerkas - berkasAntre) + namaJenis + ' terunggah, ' + berkasAntre + ' menunggu sinyal (terkirim otomatis).');
+                } else {
+                    showNotification(jumlahBerkas + namaJenis + ' berhasil diunggah.');
+                }
                 
                 // Panel detail TETAP TERBUKA supaya bisa langsung mengunggah berkas lain.
                 // Tombol & pemilih berkas kembali siap; berkas baru muncul di panel
@@ -5476,6 +5522,10 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 }
                 fileInput.value = '';
                 if (!jenisGaleri && typeof rkPilihBerkas === 'function') rkPilihBerkas(fileInput);
+
+                // Semua berkas masih di antrean: status & data server belum berubah.
+                // Catatan "menunggu sinyal" di panel sudah memberi tahu petugas.
+                if (berkasAntre === jumlahBerkas) return;
 
                 const tipeTgl = fileType === 'dokumen' ? jenisDokumen : fileType;
                 // Status langsung berganti tanpa menunggu data server: serah terima →
@@ -5966,7 +6016,8 @@ function openImagePreview(originalUrl) {
             if (!adaBantuan) viewBantuanHtml = '<p class="rkd-kosong">Belum ada bantuan stimulan.</p>';
             else viewBantuanHtml = `<div class="rkd-daftar-baris">${viewBantuanHtml}</div>`;
 
-            const editBantuanBtn = isLoggedIn ? `<button onclick="openInlineEdit('edit-bantuan-${data.idx}', 'view-bantuan-${data.idx}')" class="rkd-tombol-garis">${ikon('edit_square')} Edit Bantuan</button>` : '';
+            // Disunting lewat tombol Edit di Informasi Utama; disimpan oleh tombol Simpan di sana.
+            const editBantuanBtn = '';
 
             const bantuanHtml = `
             <section class="rkd-bagian">
@@ -5978,10 +6029,6 @@ function openImagePreview(originalUrl) {
                 <div id="edit-bantuan-${data.idx}" class="hidden rkd-edit-blok">
                     <p class="rkd-catatan">Isi jumlah yang benar-benar dikirim. Kosongkan atau isi 0 untuk membatalkan sebuah material — stok menyesuaikan sendiri.</p>
                     <div class="rkd-daftar-isi">${editBantuanHtml}</div>
-                    <div class="rkd-tombol-baris">
-                        <button onclick="document.getElementById('edit-bantuan-${data.idx}').classList.add('hidden'); document.getElementById('view-bantuan-${data.idx}').classList.remove('hidden');" class="rkd-tombol-hantu">Batal</button>
-                        <button id="btn-save-bantuan-${data.idx}" onclick="saveBantuanData('${data.idx}')" class="rkd-tombol-utama">${ikon('save')} Simpan</button>
-                    </div>
                 </div>
             </section>`;
 
@@ -5994,11 +6041,9 @@ function openImagePreview(originalUrl) {
 
             let rekViewContent = '';
             if (rekArray.length > 0) {
-                rekViewContent = `<ol class="rkd-nomor">${rekArray.map(r => `<li>${r}</li>`).join('')}</ol>` +
-                    (isLoggedIn ? `<button onclick="toggleEditRekomendasi()" class="rkd-tombol-garis">${ikon('edit_note')} Edit Rekomendasi</button>` : '');
+                rekViewContent = `<ol class="rkd-nomor">${rekArray.map(r => `<li>${r}</li>`).join('')}</ol>`;
             } else {
-                rekViewContent = `<p class="rkd-kosong">Belum ada rekomendasi yang diberikan.</p>` +
-                    (isLoggedIn ? `<button onclick="toggleEditRekomendasi()" class="rkd-tombol-garis">${ikon('add_circle')} Tambah Rekomendasi</button>` : '');
+                rekViewContent = `<p class="rkd-kosong">Belum ada rekomendasi yang diberikan.</p>`;
             }
 
             const barisRek = (nilai, nomor) => `
@@ -6022,10 +6067,6 @@ function openImagePreview(originalUrl) {
                             ${editInputsHtml}
                         </div>
                         <button onclick="addRekInput()" class="rkd-taut">${ikon('add')} Tambah Poin</button>
-                        <div class="rkd-tombol-baris">
-                            <button onclick="toggleEditRekomendasi()" class="rkd-tombol-hantu">Batal</button>
-                            <button id="btn-save-rekomendasi" onclick="saveRekomendasi(${data.idx})" class="rkd-tombol-utama">${ikon('save')} Simpan</button>
-                        </div>
                     </div>
                 </section>
             `;
@@ -6089,7 +6130,8 @@ function openImagePreview(originalUrl) {
                 ? `<div class="rkd-orang-daftar">${listPersonil.map(p => `<div class="rkd-orang"><i>${inisial(p)}</i><span>${p}</span></div>`).join('')}</div>`
                 : '<p class="rkd-kosong">Belum ada personil bertugas.</p>';
 
-            const editPersonilBtn = isLoggedIn ? `<button onclick="openInlineEdit('edit-personil-${data.idx}', 'view-personil-${data.idx}')" class="rkd-tombol-garis">${ikon('manage_accounts')} Edit Personil</button>` : '';
+            // Disunting lewat tombol Edit di Informasi Utama; disimpan oleh tombol Simpan di sana.
+            const editPersonilBtn = '';
 
             const personilHtml = `
             <section class="rkd-bagian">
@@ -6117,10 +6159,6 @@ function openImagePreview(originalUrl) {
 
                     <div id="daftar-personil-${data.idx}" class="rkd-pilihan">${htmlDaftarPersonil(data.idx, listPersonil, '')}</div>
 
-                    <div class="rkd-tombol-baris">
-                        <button onclick="document.getElementById('edit-personil-${data.idx}').classList.add('hidden'); document.getElementById('view-personil-${data.idx}').classList.remove('hidden');" class="rkd-tombol-hantu">Batal</button>
-                        <button id="btn-save-input-personil-${data.idx}" onclick="saveInlineEdit('${data.idx}', 'Personil Terlibat', 'personil', 'input-personil-${data.idx}', 'text')" class="rkd-tombol-utama">${ikon('save')} Simpan</button>
-                    </div>
                 </div>
             </section>`;
 
@@ -9341,7 +9379,12 @@ window.OFFLINE = (function () {
       let hasil;
       try { hasil = JSON.parse(teks); }
       catch (e) { throw new Error("Balasan server tidak terbaca"); }
-      if (hasil.status !== "sukses") throw new Error(hasil.message || "Server menolak laporan");
+      if (hasil.status !== "sukses") {
+        const tolak = new Error(hasil.message || "Server menolak laporan");
+        // "masih diproses" bukan penolakan - cukup dicoba lagi nanti
+        tolak.ditolak = hasil.kode !== "PROSES";
+        throw tolak;
+      }
       return hasil;
     } catch (e) {
       if (e.name === "AbortError") {
@@ -9380,6 +9423,39 @@ window.OFFLINE = (function () {
     return { terkirim: false };
   }
 
+  /* Kiriman dari panel detail (unggah foto/dokumen, edit kolom, tanggal).
+     Ada sinyal: dikirim langsung. Tanpa sinyal atau jaringan putus di
+     tengah jalan: disimpan di antrean yang sama dengan laporan baru dan
+     terkirim otomatis. Kalau SERVER menolak (sesi habis, baris tidak ada),
+     galatnya dilempar ke pemanggil - mengantrekannya tidak menolong. */
+  async function kirimPenting(payload, label) {
+    if (!payload.idKiriman) {
+      payload.idKiriman = "K-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    if (navigator.onLine) {
+      try {
+        return { terkirim: true, hasil: await kirimKeServer(payload) };
+      } catch (e) {
+        if (e.ditolak) throw e;
+        console.warn("[lapangan] kiriman panel gagal, masuk antrean:", e.message);
+      }
+    }
+    try {
+      await tambah({ payload: payload, label: label || "", dibuat: Date.now(), percobaan: 0, galat: "" });
+    } catch (e) {
+      throw new Error("Tanpa sinyal, dan perangkat tidak bisa menyimpannya: " + e.message);
+    }
+    perbaruiTampilan();
+    return { terkirim: false };
+  }
+
+  /* Kiriman yang masih menunggu untuk satu laporan (dicocokkan lewat laporanId). */
+  async function antreUntuk(laporanId) {
+    let a = [];
+    try { a = await semua(); } catch (e) { return []; }
+    return a.filter(function (r) { return r.payload && r.payload.laporanId != null && String(r.payload.laporanId) === String(laporanId); });
+  }
+
   async function sinkron(diminta) {
     if (sedangSinkron || !navigator.onLine) return;
 
@@ -9406,6 +9482,7 @@ window.OFFLINE = (function () {
         rec.galat = e.message;
         await perbarui(rec);
         gagal++;
+        if (e.ditolak) continue;   // ditolak server - jangan menahan kiriman lain
         break;   // sinyal sedang buruk - berhenti, coba lagi nanti
       }
       perbaruiTampilan();
@@ -9433,6 +9510,7 @@ window.OFFLINE = (function () {
 
     let n = 0;
     try { n = (await semua()).length; } catch (e) {}
+    try { document.dispatchEvent(new CustomEvent("rk-antrean-berubah", { detail: { jumlah: n } })); } catch (e) {}
     if (jml) jml.textContent = n;
     if (bKirim) bKirim.disabled = !n || !navigator.onLine || sedangSinkron;
 
@@ -9635,6 +9713,8 @@ window.OFFLINE = (function () {
 
   return {
     kirimAtauAntre: kirimAtauAntre,
+    kirimPenting: kirimPenting,
+    antreUntuk: antreUntuk,
     sinkron: sinkron,
     jumlahAntre: function () { return semua().then(function (a) { return a.length; }); },
     /* Membuang seluruh antrean. Laporan di dalamnya BELUM sampai server -
@@ -24117,5 +24197,55 @@ html[data-saku] #rk-kosong div{flex:1 1 220px}
 })();
 </script>
 
+<style id="rk-antre-lokal-gaya">
+.rkd-antre-lokal{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:12px;
+  background:#FFF4E5;color:#7A3E00;border:1px solid #F5C98A;font-size:12.5px;line-height:1.45}
+.rkd-antre-lokal .material-symbols-outlined{font-size:18px;line-height:1.2}
+.rkd-antre-lokal b{display:block;font-weight:700}
+.rkd-antre-lokal ul{margin:4px 0 0;padding-left:16px}
+.rkd-antre-lokal .galat{color:#B42318}
+html.dark .rkd-antre-lokal,html[data-tema="gelap"] .rkd-antre-lokal{background:#3A2A12;color:#FFD9A8;border-color:#6B4A1C}
+html.dark .rkd-antre-lokal .galat,html[data-tema="gelap"] .rkd-antre-lokal .galat{color:#FF9B8F}
+</style>
+<script>
+/* Catatan di puncak panel detail: kiriman untuk laporan ini yang masih
+   tersimpan di perangkat (unggah/edit tanpa sinyal). Hilang sendiri begitu
+   antreannya terkirim. */
+(function () {
+  let terakhir = null;
+  const esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  async function gambar() {
+    const isi = document.getElementById("sidebar-content");
+    if (!isi || !terakhir || !window.OFFLINE || !window.OFFLINE.antreUntuk) return;
+    const lama = isi.querySelector(".rkd-antre-lokal");
+    const daftar = await window.OFFLINE.antreUntuk(terakhir.timestamp);
+    if (!daftar.length) { if (lama) lama.remove(); return; }
+    const kotak = lama || document.createElement("div");
+    kotak.className = "rkd-antre-lokal";
+    kotak.setAttribute("role", "status");
+    kotak.innerHTML = '<span class="material-symbols-outlined">cloud_upload</span><div><b>' + daftar.length +
+      ' kiriman menunggu sinyal</b>Tersimpan di perangkat ini dan terkirim otomatis. Jangan kosongkan antrean offline.<ul>' +
+      daftar.map(function (r) {
+        return "<li>" + esc(String(r.label || r.payload.columnName || "Kiriman").split(" · ")[0]) +
+          (r.galat ? ' <span class="galat">- ' + esc(r.galat) + "</span>" : "") + "</li>";
+      }).join("") + "</ul></div>";
+    if (!lama) isi.insertBefore(kotak, isi.firstChild);
+  }
+  function pasang() {
+    if (typeof window.openSidebarWithData !== "function") return false;
+    const asli = window.openSidebarWithData;
+    window.openSidebarWithData = function (data) {
+      const hasil = asli.apply(this, arguments);
+      terakhir = data || null;
+      setTimeout(gambar, 0);
+      return hasil;
+    };
+    return true;
+  }
+  if (!pasang()) window.addEventListener("load", pasang);
+  document.addEventListener("rk-antrean-berubah", function () { setTimeout(gambar, 0); });
+  window.rkAntreLokal = { gambar: gambar };
+})();
+</script>
 </body>
 </html>
