@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwl673HCTZ88DRdGRF1V9-5_SOxnMZ8--CWD1Rt26nvkd8Dl7osFhXjLQD8kUrE-LQR/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -24264,116 +24264,67 @@ html.dark .rkd-antre-lokal .galat,html[data-tema="gelap"] .rkd-antre-lokal .gala
 })();
 </script>
 <style id="rk-sorot-rel-gaya">
-/* ── Rel kiri: satu sorotan jingga yang bergeser ke halaman aktif ──
-   Tombol aktif tidak lagi berlatar jingga sendiri-sendiri; latarnya satu
-   lempeng (#rk-sorot) yang meluncur. Saat Pengaturan terbuka, sorotan
-   pindah ke roda gigi dan tombol halaman kembali abu-abu. */
-body.rk #rk-rel{position:relative}
-#rk-sorot{position:absolute;left:0;top:0;width:40px;height:40px;border-radius:12px;background:var(--rk-api);
-  box-shadow:0 4px 14px -5px var(--rk-api);pointer-events:none;z-index:0;opacity:0;scale:1;
-  transition:transform .34s cubic-bezier(.4,0,.2,1),opacity .18s ease,scale .18s ease}
-#rk-sorot.tampak{opacity:1}
-#rk-sorot.tanpa-gerak{transition:none}
-/* lompatan jauh (ke/dari Pengaturan): tidak meluncur, tapi pudar lalu muncul */
-#rk-sorot.pudar{opacity:0;scale:.8;transition:opacity .14s ease,scale .14s ease}
-body.rk.rk-sorot-siap #main-nav > button,body.rk.rk-sorot-siap #rk-pengaturan-btn{position:relative;z-index:1}
-body.rk.rk-sorot-siap #main-nav > button.text-primary,
-body.rk.rk-sorot-siap #main-nav > button.text-primary:hover{background:none !important;box-shadow:none !important;color:#fff !important}
-body.rk.rk-sorot-siap #rk-pengaturan-btn.aktif,
-body.rk.rk-sorot-siap #rk-pengaturan-btn.aktif:hover{background:none;box-shadow:none;color:#fff}
-/* Pengaturan terbuka: halaman yang tadinya aktif tidak ikut jingga */
-body.rk.rk-sorot-siap.rk-pengaturan-buka #main-nav > button.text-primary{color:var(--rk-tipis) !important}
-body.rk.rk-sorot-siap.rk-pengaturan-buka #main-nav > button.text-primary:hover{background:var(--rk-sekat) !important;color:var(--rk-tinta) !important}
-body.rk.rk-sorot-siap #main-nav > button .material-symbols-outlined,
-body.rk.rk-sorot-siap #rk-pengaturan-btn{transition:color .25s ease,background .16s}
-/* Tombol yang baru diklik langsung tampak aktif, walau halamannya masih berganti */
-body.rk.rk-sorot-siap #main-nav > button.rk-tuju,body.rk.rk-sorot-siap #main-nav > button.rk-tuju:hover{background:none !important;color:#fff !important}
-body.rk.rk-sorot-siap.rk-sorot-pindah #main-nav > button.text-primary:not(.rk-tuju){color:var(--rk-tipis) !important}
-@media (prefers-reduced-motion:reduce){#rk-sorot{transition:opacity .2s ease}}
+/* ── Rel kiri: tombol aktif berganti di tempat ──
+   Kotak jingga milik tiap tombol (::before). Saat pindah halaman, kotak di
+   tombol lama mengecil & memudar, kotak di tombol baru membesar & muncul -
+   serempak, tanpa ada yang meluncur jauh. Berlaku juga untuk Pengaturan:
+   saat ia terbuka, hanya roda gigi yang jingga. */
+body.rk.rk-nyala-siap #main-nav > button,
+body.rk.rk-nyala-siap #rk-pengaturan-btn{position:relative;isolation:isolate;background:none !important;box-shadow:none !important;
+  color:var(--rk-tipis) !important;transition:color .22s ease}
+body.rk.rk-nyala-siap #main-nav > button::before,
+body.rk.rk-nyala-siap #rk-pengaturan-btn::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
+  background:var(--rk-api);box-shadow:0 4px 14px -5px var(--rk-api);opacity:0;transform:scale(.72);
+  transition:opacity .16s ease,transform .16s ease}
+body.rk.rk-nyala-siap #main-nav > button:not(.rk-nyala):hover,
+body.rk.rk-nyala-siap #rk-pengaturan-btn:not(.rk-nyala):hover{background:var(--rk-sekat) !important;color:var(--rk-tinta) !important}
+body.rk.rk-nyala-siap #main-nav > button.rk-nyala,
+body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala{color:#fff !important}
+body.rk.rk-nyala-siap #main-nav > button.rk-nyala::before,
+body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:none;
+  transition:opacity .24s cubic-bezier(.2,.7,.2,1) .04s,transform .24s cubic-bezier(.2,.7,.2,1) .04s}
+@media (prefers-reduced-motion:reduce){
+  body.rk.rk-nyala-siap #main-nav > button::before,body.rk.rk-nyala-siap #rk-pengaturan-btn::before{transform:none !important;transition:opacity .15s ease !important}
+}
 </style>
 <script>
 (function () {
   function pasang() {
-    const rel = document.getElementById("rk-rel");
     const nav = document.getElementById("main-nav");
     const roda = document.getElementById("rk-pengaturan-btn");
-    if (!rel || !nav || !roda) return false;
-    if (document.getElementById("rk-sorot")) return true;
+    if (!nav || !roda) return false;
+    if (document.body.classList.contains("rk-nyala-siap")) return true;
 
-    const sorot = document.createElement("div");
-    sorot.id = "rk-sorot";
-    sorot.className = "tanpa-gerak";
-    sorot.setAttribute("aria-hidden", "true");
-    rel.insertBefore(sorot, rel.firstChild);
-    document.body.classList.add("rk-sorot-siap");
-
-    let jadwal = 0;
     /* Pergantian halaman memudarkan halaman lama dulu (~300 ms) sebelum kelas
-       aktif berpindah. Supaya sorotan tidak terasa telat, ia langsung meluncur
-       ke tombol yang diklik; kalau pergantiannya batal (mis. perlu login),
-       batas waktu mengembalikannya ke halaman yang benar-benar aktif. */
-    let tertuju = null, jamTertuju = 0, tujuanLalu = null, jamLompat = 0;
-    function lepasTertuju() {
-      if (tertuju) tertuju.classList.remove("rk-tuju");
-      tertuju = null; clearTimeout(jamTertuju);
-      document.body.classList.remove("rk-sorot-pindah");
-    }
+       aktif berpindah. Tombol yang diklik langsung menyala; kalau pergantiannya
+       batal (mis. perlu login), batas waktu mengembalikan nyalanya. */
+    let tertuju = null, jamTertuju = 0, jadwal = 0;
+    function lepasTertuju() { tertuju = null; clearTimeout(jamTertuju); }
     nav.addEventListener("click", function (e) {
       const b = e.target.closest("button");
       if (!b || b.parentElement !== nav) return;
       lepasTertuju();
       tertuju = b;
-      b.classList.add("rk-tuju");
-      document.body.classList.add("rk-sorot-pindah");
       jamTertuju = setTimeout(function () { lepasTertuju(); jadwalkan(); }, 1500);
-      jadwalkan();
+      nyalakan();
     }, true);
 
-    function tempatkan() {
+    function nyalakan() {
       jadwal = 0;
       const aktifNav = nav.querySelector(":scope > button.text-primary");
       if (tertuju && aktifNav === tertuju && !roda.classList.contains("aktif")) lepasTertuju();
-      const setelan = !tertuju && roda.classList.contains("aktif");
-      document.body.classList.toggle("rk-pengaturan-buka", setelan);
-      const tujuan = tertuju || (setelan ? roda : aktifNav);
-      if (!tujuan || !tujuan.offsetParent) { sorot.classList.remove("tampak"); return; }
-      const r = rel.getBoundingClientRect(), t = tujuan.getBoundingClientRect();
-      const x = t.left - r.left - rel.clientLeft, y = t.top - r.top - rel.clientTop + rel.scrollTop;
-      const pindahKelompok = tujuanLalu && (tujuanLalu === roda) !== (tujuan === roda);
-      tujuanLalu = tujuan;
-      clearTimeout(jamLompat);
-      const pasangDi = function () {
-        sorot.style.width = t.width + "px";
-        sorot.style.height = t.height + "px";
-        sorot.style.transform = "translate(" + x + "px," + y + "px)";
-        sorot.classList.add("tampak");
-      };
-      if (!pindahKelompok || !sorot.classList.contains("tampak")) { sorot.classList.remove("pudar"); pasangDi(); return; }
-      // antara menu halaman dan roda gigi jaraknya jauh: pudar di tempat, muncul di tujuan
-      sorot.classList.add("pudar");
-      jamLompat = setTimeout(function () {
-        sorot.classList.add("tanpa-gerak");
-        pasangDi();
-        void sorot.offsetWidth;
-        sorot.classList.remove("tanpa-gerak");
-        requestAnimationFrame(function () { sorot.classList.remove("pudar"); });
-      }, 140);
+      const tujuan = tertuju || (roda.classList.contains("aktif") ? roda : aktifNav);
+      [roda].concat(Array.prototype.slice.call(nav.children)).forEach(function (b) {
+        if (b.tagName === "BUTTON") b.classList.toggle("rk-nyala", b === tujuan);
+      });
     }
-    function jadwalkan() { if (!jadwal) jadwal = requestAnimationFrame(tempatkan); }
+    function jadwalkan() { if (!jadwal) jadwal = requestAnimationFrame(nyalakan); }
 
-    tempatkan();
-    // penempatan pertama tanpa meluncur, sesudahnya selalu meluncur
-    requestAnimationFrame(function () { requestAnimationFrame(function () { sorot.classList.remove("tanpa-gerak"); }); });
-
+    nyalakan();
+    document.body.classList.add("rk-nyala-siap");
     const amati = new MutationObserver(jadwalkan);
-    amati.observe(nav, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    Array.prototype.forEach.call(nav.children, function (b) { amati.observe(b, { attributes: true, attributeFilter: ["class"] }); });
     amati.observe(roda, { attributes: true, attributeFilter: ["class"] });
-    window.addEventListener("resize", function () {
-      sorot.classList.add("tanpa-gerak"); tempatkan();
-      requestAnimationFrame(function () { sorot.classList.remove("tanpa-gerak"); });
-    });
-    // rel ikut dianimasikan saat dasbor masuk - tempatkan ulang sesudahnya
-    rel.addEventListener("animationend", jadwalkan);
     return true;
   }
   if (!pasang()) {
