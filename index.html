@@ -94,6 +94,12 @@
     if (tok && metode === "GET" && !/[?&]token=/.test(input)) {
       input += (input.indexOf("?") >= 0 ? "&" : "?") + "token=" + encodeURIComponent(tok);
     }
+    /* Tiap GET diberi penanda unik (_rk), termasuk percobaan ulang: GET ke alamat
+       yang persis sama kadang dijawab Google dengan tautan echo lama yang sudah
+       kedaluwarsa (404). Apps Script mengabaikan parameter ini. */
+    if (metode === "GET") {
+      input += (input.indexOf("?") >= 0 ? "&" : "?") + "_rk=" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    }
     if (tok && metode === "POST" && init && typeof init.body === "string" && /^\s*\{/.test(init.body)) {
       var kosong = /^\s*\{\s*\}\s*$/.test(init.body);
       init = Object.assign({}, init, { body: init.body.replace(/^\s*\{/, '{"token":' + JSON.stringify(tok) + (kosong ? "" : ",")) });
@@ -2644,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwl673HCTZ88DRdGRF1V9-5_SOxnMZ8--CWD1Rt26nvkd8Dl7osFhXjLQD8kUrE-LQR/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -10308,6 +10314,7 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
         if (hasil && hasil.folder) {
           if (hasil.folder.status === 'dipindah') pesan.push('Folder Drive dipindah ke ' + hasil.folder.ke);
           else if (hasil.folder.status === 'diganti-nama') pesan.push('Nama folder Drive ikut dibetulkan');
+          if (hasil.folder.berkas) pesan.push(hasil.folder.berkas + ' nama berkas di Drive ikut dibetulkan');
           else if (hasil.folder.status === 'gagal') pesan.push('⚠️ Folder Drive belum ikut dipindah: ' + (hasil.folder.message || ''));
         }
 
