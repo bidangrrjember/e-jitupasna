@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyp2GPo2Fmzg4gZmsNWhYfYnJRivw6T2DxIkvXik91i4_6-Rnx2lUgKf-ShMI8Vp-j6/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5438,6 +5438,9 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 if (!jenisGaleri && typeof rkPilihBerkas === 'function') rkPilihBerkas(fileInput);
 
                 const tipeTgl = fileType === 'dokumen' ? jenisDokumen : fileType;
+                // Status langsung berganti tanpa menunggu data server: serah terima →
+                // menunggu monitoring, monitoring → tuntas (dokumen maupun foto).
+                if (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') rkTandaiTahapTerunggah(reportData, tipeTgl);
                 const kotakTgl = (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') ? document.getElementById('input-tgl-' + tipeTgl) : null;
                 if (kotakTgl && !kotakTgl.value) {
                     // tanggalnya belum ada: kotak tanggal ditunjuk
@@ -5479,6 +5482,45 @@ async function handleSidebarUpload(fileType, reportIndex) {
 	   laporan yang sama di posisi gulir yang sama. Tidak menggambar ulang bila:
 	   panel sudah ditutup/pindah laporan, sedang mode Edit, atau petugas sedang
 	   mengetik di salah satu kotak (menunggu sampai selesai). */
+	/* Menggambar ulang panel detail untuk satu laporan tanpa melompat ke atas. */
+	function rkGambarUlangPanel(baru) {
+	    const sb = document.getElementById('sidebar');
+	    if (!sb || !baru) return;
+	    const cariGulir = function () {
+	        const daftar = [sb].concat(Array.prototype.slice.call(sb.querySelectorAll('*')));
+	        for (let i = 0; i < daftar.length; i++) {
+	            const oy = getComputedStyle(daftar[i]).overflowY;
+	            if ((oy === 'auto' || oy === 'scroll') && daftar[i].scrollHeight > daftar[i].clientHeight + 4) return daftar[i];
+	        }
+	        return null;
+	    };
+	    // tanggal yang baru saja diisi tapi belum sampai di data server jangan sampai hilang
+	    [['serahTerima', 'tglSerahTerima'], ['monitoring', 'tglMonitoring']].forEach(function (p) {
+	        const k = document.getElementById('input-tgl-' + p[0]);
+	        if (k && k.value && !baru[p[1]]) baru[p[1]] = k.value;
+	    });
+	    const g = cariGulir(), pos = g ? g.scrollTop : 0;
+	    openSidebarWithData(baru);
+	    const g2 = cariGulir(); if (g2) g2.scrollTop = pos;
+	    requestAnimationFrame(function () { const g3 = cariGulir(); if (g3) g3.scrollTop = pos; });
+	}
+
+	/* Unggahan serah terima / monitoring baru selesai: tahapnya ditandai sudah berjalan
+	   di data peramban (penanda sementara, diganti tautan asli saat data server datang),
+	   lalu peta, penghitung status, daftar tunggakan, dan panel detail diperbarui. */
+	function rkTandaiTahapTerunggah(laporan, tahap) {
+	    const kunci = tahap === 'serahTerima' ? 'linkSerahTerima' : 'linkMonitoring';
+	    const ts = String(laporan.timestamp);
+	    const ada = function (v) { return !!v && v !== '-' && String(v).trim() !== ''; };
+	    [window.rkDataAsli, typeof allData !== 'undefined' ? allData : null].forEach(function (arr) {
+	        if (Array.isArray(arr)) arr.forEach(function (x) { if (String(x.timestamp) === ts && !ada(x[kunci])) x[kunci] = 'baru-diunggah'; });
+	    });
+	    if (!ada(laporan[kunci])) laporan[kunci] = 'baru-diunggah';
+	    try { applyFiltersAndProcess(false); } catch (e) {}
+	    const sb = document.getElementById('sidebar');
+	    if (sb && !sb.classList.contains('translate-x-full') && !sb.classList.contains('rkd-menyunting')) rkGambarUlangPanel(laporan);
+	}
+
 	function rkSegarkanPanelSetelahUnggah(laporanLama) {
 	    const sb = document.getElementById('sidebar');
 	    if (!sb || !laporanLama) return;
@@ -5499,16 +5541,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
 	        }
 	        return null;
 	    };
-	    const gambarUlang = function (baru) {
-	        // tanggal yang baru saja diisi tapi belum sampai di data server jangan sampai hilang
-	        [['serahTerima', 'tglSerahTerima'], ['monitoring', 'tglMonitoring']].forEach(function (p) {
-	            const k = document.getElementById('input-tgl-' + p[0]);
-	            if (k && k.value && !baru[p[1]]) baru[p[1]] = k.value;
-	        });
-	        const g = cariGulir(), pos = g ? g.scrollTop : 0;
-	        openSidebarWithData(baru);
-	        requestAnimationFrame(function () { const g2 = cariGulir(); if (g2) g2.scrollTop = pos; });
-	    };
+	    const gambarUlang = rkGambarUlangPanel;
 	    let coba = 0;
 	    (function tunggu() {
 	        if (!masihSama()) return;
