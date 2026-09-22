@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwjhBmQXxZ_CSeRYHnfo4Y0dgOwzEFXS24ub5BCe1f8u5sIlAxyxZA3tNv2t2RHr1RG/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5328,6 +5328,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
             }
             
             let filesUploaded = 0;
+            let nilaiKolomBaru = null;   // isi kolom terbaru dari balasan server
             const jumlahBerkas = filesToUpload.length;
             let urlPratinjau = null;
             // selesai = berkas yang sudah terkirim; sedang = nomor berkas yang sedang dikirim (0 = tidak ada)
@@ -5388,12 +5389,24 @@ async function handleSidebarUpload(fileType, reportIndex) {
                         tanggalLaporan: reportData.tanggalWaktu ? reportData.tanggalWaktu.split(' ').slice(0, 3).join(' ') : ""
                     };
 
-                    await fetch(UPLOAD_URL, {
+                    // Balasan server DIBACA (dulu no-cors): kalau server menolak - mis. kolomnya
+                    // belum ada karena GAS belum di-deploy - petugas melihat galatnya, bukan
+                    // mengira berkasnya tersimpan.
+                    const resUnggah = await fetch(UPLOAD_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
+                        redirect: 'follow',
                         body: JSON.stringify(payload),
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     });
+                    let hasilUnggah = null;
+                    try { hasilUnggah = JSON.parse(await resUnggah.text()); } catch (e) {}
+                    if (!hasilUnggah || hasilUnggah.status !== 'sukses') {
+                        const pesanServer = String((hasilUnggah && hasilUnggah.message) || 'server tidak memberi jawaban yang bisa dibaca.').replace(/^Terjadi Kesalahan Server:\s*/, '');
+                        throw new Error(/tidak ditemukan/i.test(pesanServer)
+                            ? pesanServer + ' Deploy ulang GAS GABUNGAN versi terbaru (kolomnya dibuat otomatis), lalu unggah lagi.'
+                            : pesanServer);
+                    }
+                    if (hasilUnggah.nilai !== undefined) nilaiKolomBaru = hasilUnggah.nilai;
                     filesUploaded++;
                     aturUnggah(filesUploaded, 0);
                 }
@@ -5440,14 +5453,15 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 const tipeTgl = fileType === 'dokumen' ? jenisDokumen : fileType;
                 // Status langsung berganti tanpa menunggu data server: serah terima →
                 // menunggu monitoring, monitoring → tuntas (dokumen maupun foto).
-                if (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') rkTandaiTahapTerunggah(reportData, tipeTgl);
+                if (nilaiKolomBaru !== null) rkTerapkanKolomBaru(reportData, columnName, nilaiKolomBaru);
+                else if (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') rkTandaiTahapTerunggah(reportData, tipeTgl);
                 const kotakTgl = (tipeTgl === 'serahTerima' || tipeTgl === 'monitoring') ? document.getElementById('input-tgl-' + tipeTgl) : null;
                 if (kotakTgl && !kotakTgl.value) {
                     // tanggalnya belum ada: kotak tanggal ditunjuk
                     const wadahTgl = kotakTgl.closest('.rkd-tanggal');
                     if (wadahTgl) wadahTgl.classList.add('rkd-tanggal-kosong', 'rkd-tanggal-sorot');
-                    kotakTgl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                    setTimeout(function () { try { kotakTgl.focus(); } catch (e) {} }, 400);
+                    rkGulirPanelKe(kotakTgl);
+                    setTimeout(function () { try { kotakTgl.focus({ preventScroll: true }); } catch (e) {} }, 400);
                     showNotification('Berkas terunggah. Sekarang isi ' + (tipeTgl === 'serahTerima' ? 'Tgl. Serah Terima' : 'Tgl. Monitoring') + ' - dipakai laporan bulanan.');
                 }
                 rkSegarkanPanelSetelahUnggah(reportData);
@@ -5482,6 +5496,45 @@ async function handleSidebarUpload(fileType, reportIndex) {
 	   laporan yang sama di posisi gulir yang sama. Tidak menggambar ulang bila:
 	   panel sudah ditutup/pindah laporan, sedang mode Edit, atau petugas sedang
 	   mengetik di salah satu kotak (menunggu sampai selesai). */
+	/* Menggulir ISI panel detail (#sidebar-content) sampai elemen ada di tengah.
+	   Jangan scrollIntoView: itu ikut menggeser bingkai #sidebar sendiri sehingga
+	   kepala panel terlempar keluar layar. */
+	function rkGulirPanelKe(el) {
+	    const isi = document.getElementById('sidebar-content');
+	    if (!isi || !el) return;
+	    const beda = el.getBoundingClientRect().top - isi.getBoundingClientRect().top - (isi.clientHeight / 2) + (el.offsetHeight / 2);
+	    isi.scrollTo({ top: Math.max(0, isi.scrollTop + beda), behavior: 'smooth' });
+	}
+
+	/* Balasan unggah membawa isi kolom terbaru: terapkan ke data di peramban,
+	   lalu perbarui status, peta, daftar, dan panel - tanpa menunggu data server. */
+	function rkTerapkanKolomBaru(laporan, kolom, nilai) {
+	    const PETA = {
+	        'Link Disposisi': ['linkDisposisi'], 'Link Dokumen Serah Terima': ['linkDokSerahTerima'], 'Link Dokumen Monitoring': ['linkDokMonitoring'],
+	        'Link Serah Terima': ['fotoSerahTerima'], 'Link Monitoring': ['fotoMonitoring'],
+	        'Link Dokumentasi': ['linkDokumentasi', 'photos'], 'Link Foto Identitas': ['linkFotoIdentitas', 'fotoIdentitas'], 'Link Foto Kegiatan': ['linkFotoKegiatan', 'fotoKegiatan']
+	    };
+	    const kunci = PETA[kolom];
+	    if (!kunci) return;
+	    const ada = function (v) { return !!v && v !== '-' && String(v).trim() !== ''; };
+	    const pasang = function (x) {
+	        x[kunci[0]] = nilai;
+	        if (kunci[1]) x[kunci[1]] = String(nilai).split(',').map(function (u) { return u.trim(); }).filter(Boolean);
+	        // penanda status: tahap berjalan bila ada foto ATAU dokumennya
+	        x.linkSerahTerima = ada(x.fotoSerahTerima) ? x.fotoSerahTerima : (ada(x.linkDokSerahTerima) ? x.linkDokSerahTerima : (x.linkSerahTerima === 'baru-diunggah' ? x.linkSerahTerima : ''));
+	        x.linkMonitoring = ada(x.fotoMonitoring) ? x.fotoMonitoring : (ada(x.linkDokMonitoring) ? x.linkDokMonitoring : (x.linkMonitoring === 'baru-diunggah' ? x.linkMonitoring : ''));
+	    };
+	    const ts = String(laporan.timestamp);
+	    const sudah = [];
+	    [window.rkDataAsli, typeof allData !== 'undefined' ? allData : null].forEach(function (arr) {
+	        if (Array.isArray(arr)) arr.forEach(function (x) { if (String(x.timestamp) === ts && sudah.indexOf(x) === -1) { pasang(x); sudah.push(x); } });
+	    });
+	    if (sudah.indexOf(laporan) === -1) pasang(laporan);
+	    try { applyFiltersAndProcess(false); } catch (e) {}
+	    const sb = document.getElementById('sidebar');
+	    if (sb && !sb.classList.contains('translate-x-full') && !sb.classList.contains('rkd-menyunting')) rkGambarUlangPanel(laporan);
+	}
+
 	/* Menggambar ulang panel detail untuk satu laporan tanpa melompat ke atas. */
 	function rkGambarUlangPanel(baru) {
 	    const sb = document.getElementById('sidebar');
@@ -23989,6 +24042,12 @@ html[data-saku] #rk-kosong div{flex:1 1 220px}
     return { st: st, hari: hari, sejak: dariSerah ? "serah terima" : "asesmen", telat: !!st && hari > BATAS, tglKosong: tglKosong };
   };
   window.rkTunggakan.BATAS = BATAS;
+
+  // Bingkai panel detail (#sidebar) tidak pernah boleh ikut tergulir - yang
+  // bergulir hanya isinya (#sidebar-content). scrollIntoView/focus pada elemen
+  // di dalamnya bisa menggeser bingkai ini sehingga kepala panel hilang.
+  const bingkai = document.getElementById("sidebar");
+  if (bingkai) bingkai.addEventListener("scroll", function () { if (bingkai.scrollTop || bingkai.scrollLeft) { bingkai.scrollTop = 0; bingkai.scrollLeft = 0; } });
 })();
 </script>
 
