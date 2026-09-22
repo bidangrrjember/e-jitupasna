@@ -16569,7 +16569,7 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
           sakelar("kurangiGerak", "Kurangi gerakan")) +
         baris("Ukuran teks", "Memperbesar isi lembar dan panel - untuk dibaca di lapangan atau di layar proyektor. Peta tidak ikut diperbesar.",
           seg("ukuranTeks", [["normal", "Normal"], ["besar", "Besar"]])) +
-        baris("Mode TV", "Tampilan layar besar untuk monitor di ruang Pusdalops: peta, angka utama, tunggakan, dan aktivitas terkini - diperbarui otomatis, nama korban disamarkan. Bisa juga dibuka langsung dengan menambahkan ?tv di akhir alamat web.",
+        baris("Mode TV", "Tampilan layar besar untuk ruang Pusdalops atau layar publik: titik panas kejadian, laporan terbaru dengan foto kerusakan, dan angka umum - diperbarui otomatis, tanpa nama korban maupun status bantuan. Bisa juga dibuka langsung dengan menambahkan ?tv di akhir alamat web.",
           '<button type="button" class="rkd-tombol-garis" id="rkp-tv"><span class="material-symbols-outlined">tv</span> Buka Mode TV</button>', "tumpuk")) +
 
       bagian("rkp-peta", "02", "Peta", "Peta", "Perilaku peta utama di perangkat ini.",
@@ -24337,150 +24337,127 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 </script>
 <style id="rk-tv-gaya">
 /* ══════════════════════════════════════════════════════════════════════
-   MODE TV - layar besar ruang Pusdalops
-   Panggung tetap 1920x1080 yang diskalakan ke layar, jadi tata letaknya
-   sama di TV HD maupun 4K. Selalu gelap. Nama korban selalu disamarkan,
-   karena layarnya dilihat banyak orang.
+   MODE TV - layar besar ruang Pusdalops (desain "O", versi publik)
+   Panggung tetap 1920x1080 yang diskalakan ke layar. Selalu gelap.
+   Layarnya dilihat publik: TIDAK ada nama korban, status bantuan, atau
+   tunggakan. Isinya: titik panas kejadian, laporan terbaru (foto kerusakan
+   + zoom satelit), dan angka-angka umum.
    ══════════════════════════════════════════════════════════════════════ */
-#rk-tv{position:fixed;inset:0;z-index:200000;background:#0B1214;display:none;overflow:hidden;cursor:none}
+#rk-tv{position:fixed;inset:0;z-index:200000;background:#05090A;display:none;overflow:hidden;cursor:none}
 #rk-tv.buka{display:block}
 #rk-tv.gerak{cursor:default}
-#rk-tv .tv-panggung{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;
-  --dasar:#0B1214;--panel:#121C1F;--garis:#22313A;--tinta:#EEF3F1;--tipis:#7F8F94;
-  --api:#F2711C;--merah:#EF4444;--kuning:#F5B82E;--hijau:#22C55E;
-  color:var(--tinta);font-family:"Plus Jakarta Sans",system-ui,sans-serif;
-  display:grid;grid-template-columns:minmax(0,1fr) 640px;grid-template-rows:88px minmax(0,1fr) 64px;gap:18px;padding:22px 26px}
 #rk-tv *{box-sizing:border-box}
-#rk-tv .tv-kepala{grid-column:1/-1;display:flex;align-items:center;gap:22px;min-width:0}
-#rk-tv .tv-logo{width:58px;height:58px;border-radius:50%;background:#fff;display:grid;place-items:center;padding:4px;flex:0 0 auto}
+#rk-tv .tv-panggung{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;overflow:hidden;
+  background:#0B1214;color:#EEF3F1;font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+#rk-tv #rk-tv-peta{position:absolute;left:0;right:0;top:0;height:780px;background:#05090A}
+#rk-tv #rk-tv-peta .leaflet-tile-pane{filter:brightness(.42) saturate(.6) contrast(1.1)}
+#rk-tv .leaflet-control-container{display:none}
+#rk-tv .tv-pudar{position:absolute;left:0;right:0;top:640px;height:140px;z-index:400;background:linear-gradient(0deg,#0B1214,rgba(11,18,20,0));pointer-events:none}
+#rk-tv .tv-garis{position:absolute;z-index:550;left:0;top:0;width:1920px;height:780px;pointer-events:none}
+#rk-tv .tv-kep{position:absolute;z-index:500;left:48px;top:36px;display:flex;align-items:center;gap:16px;padding:14px 22px 14px 14px;border-radius:18px;background:rgba(11,18,20,.8);backdrop-filter:blur(10px)}
+#rk-tv .tv-logo{width:52px;height:52px;border-radius:50%;background:#fff;padding:4px;display:grid;place-items:center}
 #rk-tv .tv-logo img{width:100%;height:100%;object-fit:contain}
-#rk-tv .tv-judul small{display:block;font:500 13px "DM Mono",monospace;letter-spacing:.18em;color:var(--api);text-transform:uppercase}
-#rk-tv .tv-judul b{display:block;font:800 34px/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
-#rk-tv .tv-kanan{margin-left:auto;display:flex;align-items:center;gap:30px}
-#rk-tv .tv-cuaca{display:flex;align-items:center;gap:14px;padding-right:30px;border-right:1px solid var(--garis)}
-#rk-tv .tv-cuaca[hidden]{display:none}
-#rk-tv .tv-cuaca .material-symbols-outlined{font-size:44px;color:#F5B82E}
-#rk-tv .tv-cuaca b{font:700 30px "Bricolage Grotesque",sans-serif}
-#rk-tv .tv-cuaca span{display:block;font-size:14px;color:var(--tipis);text-transform:capitalize}
-#rk-tv .tv-jam{text-align:right}
-#rk-tv .tv-jam b{display:block;font:500 46px/1 "DM Mono",monospace;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-#rk-tv .tv-jam span{display:block;margin-top:4px;font-size:15px;color:var(--tipis)}
+#rk-tv .tv-kep small{font:500 12px "DM Mono",monospace;letter-spacing:.2em;color:#F2711C}
+#rk-tv .tv-kep b{display:block;font:800 28px "Bricolage Grotesque",sans-serif}
+#rk-tv .tv-jam{position:absolute;z-index:500;right:48px;top:36px;text-align:right;padding:14px 22px;border-radius:18px;background:rgba(11,18,20,.8)}
+#rk-tv .tv-jam b{display:block;font:500 52px/1 "DM Mono",monospace;font-variant-numeric:tabular-nums}
+#rk-tv .tv-jam span{display:block;font-size:15px;color:#9FB0B4;margin-top:4px}
 
-#rk-tv .tv-peta{position:relative;border-radius:22px;overflow:hidden;border:1px solid var(--garis);background:#0e1719;min-height:0}
-#rk-tv #rk-tv-peta{position:absolute;inset:0;background:#0e1719}
-#rk-tv .tv-kaca{position:absolute;z-index:500;border-radius:16px;background:rgba(11,18,20,.84);backdrop-filter:blur(10px);border:1px solid var(--garis)}
-#rk-tv .tv-peta-kep{left:22px;top:20px;padding:14px 18px}
-#rk-tv .tv-peta-kep small{font:500 12px "DM Mono",monospace;letter-spacing:.16em;color:var(--tipis);text-transform:uppercase}
-#rk-tv .tv-peta-kep b{display:block;font:700 22px "Bricolage Grotesque",sans-serif;margin-top:2px}
-#rk-tv .tv-legenda{left:22px;bottom:20px;display:flex;gap:18px;padding:12px 18px;font-size:15px;color:#C9D4D1}
-#rk-tv .tv-legenda span{display:flex;align-items:center;gap:8px}
-#rk-tv .tv-legenda i{width:12px;height:12px;border-radius:50%}
-#rk-tv .tv-baru{right:22px;top:20px;width:380px;padding:16px 18px;background:rgba(58,30,12,.86);border-color:rgba(242,113,28,.5)}
+#rk-tv .tv-baru{position:absolute;z-index:600;right:48px;top:168px;width:660px;border-radius:20px;overflow:hidden;background:#0B1214;border:2px solid #F2711C;box-shadow:0 20px 50px -20px rgba(0,0,0,.8)}
 #rk-tv .tv-baru[hidden]{display:none}
-#rk-tv .tv-baru small{font:500 12px "DM Mono",monospace;letter-spacing:.16em;color:#FDBA74;text-transform:uppercase}
-#rk-tv .tv-baru b{display:block;margin-top:6px;font:700 21px "Bricolage Grotesque",sans-serif}
-#rk-tv .tv-baru p{margin:4px 0 0;font-size:15px;color:#E7D5C8}
+#rk-tv .tv-dua{display:grid;grid-template-columns:1.55fr 1fr;height:300px}
+#rk-tv .tv-baru.tanpa-foto .tv-dua{grid-template-columns:1fr}
+#rk-tv .tv-baru.tanpa-foto .tv-foto{display:none}
+#rk-tv .tv-foto{position:relative;overflow:hidden;background:#111}
+#rk-tv .tv-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease}
+#rk-tv .tv-foto img.aktif{opacity:1}
+#rk-tv .tv-foto em{position:absolute;z-index:2;left:12px;bottom:12px;font:500 12px "DM Mono",monospace;letter-spacing:.12em;font-style:normal;color:#fff;background:rgba(0,0,0,.6);padding:5px 9px;border-radius:8px}
+#rk-tv .tv-titik{position:absolute;z-index:2;right:12px;bottom:15px;display:flex;gap:5px}
+#rk-tv .tv-titik i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45)}
+#rk-tv .tv-titik i.aktif{background:#fff}
+#rk-tv #rk-tv-zoom{height:300px;border-left:2px solid #0B1214;background:#111}
+#rk-tv .tv-baru.tanpa-foto #rk-tv-zoom{border-left:0}
+#rk-tv .tv-ket{padding:14px 18px}
+#rk-tv .tv-ket small{font:500 12px "DM Mono",monospace;letter-spacing:.16em;color:#FDBA74;text-transform:uppercase}
+#rk-tv .tv-ket b{display:block;font:700 22px "Bricolage Grotesque",sans-serif;margin-top:4px}
+#rk-tv .tv-ket p{margin:4px 0 0;font-size:15px;color:#9FB0B4}
 
-#rk-tv .tv-kolom{display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:18px;min-height:0}
-#rk-tv .tv-kpi{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-#rk-tv .tv-k{padding:18px 20px;border-radius:18px;background:var(--panel);border:1px solid var(--garis);min-width:0}
-#rk-tv .tv-k small{font:500 12px "DM Mono",monospace;letter-spacing:.14em;color:var(--tipis);text-transform:uppercase}
-#rk-tv .tv-k b{display:block;margin-top:8px;font:800 52px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
-#rk-tv .tv-k b.sedang{font-size:40px;margin-top:14px}
-#rk-tv .tv-k p{margin:8px 0 0;font-size:14px;color:var(--tipis)}
-#rk-tv .tv-k.api{background:linear-gradient(160deg,rgba(242,113,28,.22),rgba(242,113,28,.06));border-color:rgba(242,113,28,.45)}
-#rk-tv .tv-k.api b{color:#FFB27A}
+#rk-tv .tv-legenda{position:absolute;z-index:500;left:48px;top:730px;display:flex;align-items:center;gap:8px;font-size:15px;color:#C9D4D1}
+#rk-tv .tv-gradasi{width:180px;height:10px;border-radius:99px;margin:0 10px;background:linear-gradient(90deg,#1d4ed8,#22c55e,#facc15,#f97316,#ef4444)}
+#rk-tv .tv-kalimat{margin-left:22px;padding-left:22px;border-left:1px solid #33454A;font-size:17px;color:#C9D4D1}
+#rk-tv .tv-kalimat b{color:#fff}
+
+#rk-tv .tv-bawah{position:absolute;left:48px;right:48px;top:790px;bottom:36px;display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:18px}
+#rk-tv .tv-k{padding:22px 24px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+#rk-tv .tv-k small{font:500 12px "DM Mono",monospace;letter-spacing:.14em;color:#9FB0B4;text-transform:uppercase}
+#rk-tv .tv-k b{font:800 64px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
+#rk-tv .tv-k b.sedang{font-size:48px}
+#rk-tv .tv-k p{margin:0;font-size:15px;color:#9FB0B4}
 #rk-tv .naik{color:#FCA5A5}#rk-tv .turun{color:#86EFAC}
-
-#rk-tv .tv-alur{padding:18px 20px;border-radius:18px;background:var(--panel);border:1px solid var(--garis)}
-#rk-tv .tv-alur-kep{display:flex;justify-content:space-between;align-items:baseline}
-#rk-tv .tv-alur-kep b{font:700 18px "Bricolage Grotesque",sans-serif}
-#rk-tv .tv-alur-kep span{font:500 13px "DM Mono",monospace;color:var(--tipis)}
-#rk-tv .tv-bilah{display:flex;height:16px;border-radius:99px;overflow:hidden;margin:14px 0 12px;gap:3px;background:var(--garis)}
-#rk-tv .tv-bilah i{display:block;height:100%;transition:flex-grow .8s ease}
-#rk-tv .tv-alur-ket{display:flex;justify-content:space-between;font-size:14px;color:#C9D4D1}
-#rk-tv .tv-alur-ket span{display:flex;align-items:center;gap:7px}
-#rk-tv .tv-alur-ket i{width:10px;height:10px;border-radius:3px}
-
-#rk-tv .tv-tunggak{display:flex;flex-direction:column;overflow:hidden;padding:18px 20px 12px;border-radius:18px;background:var(--panel);border:1px solid var(--garis);min-height:0}
-#rk-tv .tv-tunggak-kep{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-#rk-tv .tv-tunggak-kep b{font:700 18px "Bricolage Grotesque",sans-serif}
-#rk-tv .tv-tunggak-kep b em{font-style:normal;color:var(--merah)}
-#rk-tv .tv-hal{display:flex;gap:6px;align-items:center;font:500 12px "DM Mono",monospace;color:var(--tipis)}
-#rk-tv .tv-hal i{width:22px;height:4px;border-radius:9px;background:var(--garis);transition:background .3s}
-#rk-tv .tv-hal i.aktif{background:var(--api)}
-#rk-tv .tv-jalur{display:block;width:120px;height:4px;border-radius:9px;background:var(--garis);overflow:hidden}
-#rk-tv .tv-jalur b{display:block;height:100%;border-radius:9px;background:var(--api);transition:width .4s ease}
-#rk-tv .tv-daftar{transition:opacity .35s ease}
-#rk-tv .tv-daftar.pudar{opacity:0}
-#rk-tv .tv-baris{display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--garis)}
-#rk-tv .tv-hari{height:50px;border-radius:12px;display:grid;place-items:center;text-align:center;font:800 22px/1 "Bricolage Grotesque",sans-serif}
-#rk-tv .tv-hari small{display:block;font:500 10px "DM Mono",monospace;letter-spacing:.1em;margin-top:3px;opacity:.8}
-#rk-tv .tv-hari.m{background:rgba(239,68,68,.16);color:#FCA5A5}
-#rk-tv .tv-hari.k{background:rgba(245,184,46,.14);color:#FCD34D}
-#rk-tv .tv-baris b{display:block;font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rk-tv .tv-baris span{display:block;font-size:14px;color:var(--tipis);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rk-tv .tv-cip{padding:6px 11px;border-radius:99px;font-size:13px;font-weight:600;white-space:nowrap}
-#rk-tv .tv-cip.salur{background:rgba(239,68,68,.14);color:#FCA5A5}
-#rk-tv .tv-cip.monitor{background:rgba(245,184,46,.14);color:#FCD34D}
-#rk-tv .tv-kosong{padding:40px 0;text-align:center;color:var(--tipis);font-size:16px;border-top:1px solid var(--garis)}
-
-#rk-tv .tv-pita{grid-column:1/-1;display:flex;align-items:center;border-radius:16px;background:var(--panel);border:1px solid var(--garis);overflow:hidden;min-width:0}
-#rk-tv .tv-pita-label{flex:0 0 auto;align-self:stretch;display:flex;align-items:center;padding:0 22px;background:var(--api);color:#fff;
-  font:700 15px "DM Mono",monospace;letter-spacing:.12em;position:relative;z-index:1}
-#rk-tv .tv-pita-jalan{flex:1 1 auto;overflow:hidden;min-width:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
-#rk-tv .tv-pita-isi{display:inline-flex;gap:46px;padding-left:26px;white-space:nowrap;font-size:17px;color:#D5DEDB;animation:rkTvPita linear infinite}
-#rk-tv .tv-pita-isi b{color:#fff}
-#rk-tv .tv-pita-isi em{font-style:normal;font:500 14px "DM Mono",monospace;color:var(--api);margin-right:10px}
-@keyframes rkTvPita{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+#rk-tv .tv-jenis .tv-j-nama{display:block;font:800 40px/1.02 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;color:#FFB27A;white-space:normal}
+#rk-tv .tv-jenis .tv-j-jml{display:block;font-size:15px;color:#9FB0B4;margin-top:6px}
+#rk-tv .tv-komposisi{display:flex;gap:3px;height:12px;border-radius:99px;overflow:hidden;background:#1E2B2F}
+#rk-tv .tv-komposisi i{display:block;height:100%}
+#rk-tv .tv-j-lain{display:flex;gap:12px;flex-wrap:wrap;min-height:18px}
+#rk-tv .tv-j-lain span{display:flex;align-items:center;gap:5px;font-size:13px;color:#C9D4D1}
+#rk-tv .tv-j-lain i{width:9px;height:9px;border-radius:3px}
+#rk-tv .tv-grafik{padding:18px 22px 14px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;min-width:0}
+#rk-tv .tv-grafik h3{margin:0;font:700 18px "Bricolage Grotesque",sans-serif;display:flex;justify-content:space-between;align-items:baseline}
+#rk-tv .tv-grafik h3 span{font:500 12px "DM Mono",monospace;color:#9FB0B4}
+#rk-tv .tv-batang{flex:1;display:flex;align-items:flex-end;gap:8px;margin-top:10px;min-height:0}
+#rk-tv .tv-batang div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;min-width:0}
+#rk-tv .tv-batang i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:#2B3B40;min-height:3px;transition:height .8s ease}
+#rk-tv .tv-batang b{font:700 14px "Bricolage Grotesque",sans-serif;color:#C9D4D1}
+#rk-tv .tv-batang span{font:500 11px "DM Mono",monospace;color:#9FB0B4}
+#rk-tv .tv-batang .ini i{background:#F2711C}
+#rk-tv .tv-batang .ini b{color:#FFB27A}
 
 #rk-tv .tv-tutup{position:absolute;right:18px;top:18px;z-index:10;display:flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:99px;
-  background:rgba(255,255,255,.1);color:#fff;font:600 14px "Plus Jakarta Sans",sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s}
+  background:rgba(255,255,255,.12);color:#fff;font:600 14px "Plus Jakarta Sans",sans-serif;cursor:pointer;opacity:0;pointer-events:none;transition:opacity .25s}
 #rk-tv.gerak .tv-tutup{opacity:1;pointer-events:auto}
-#rk-tv .tv-tutup:hover{background:rgba(255,255,255,.18)}
-#rk-tv .tv-tutup:focus-visible{outline:2px solid var(--api,#F2711C);outline-offset:2px;opacity:1}
-#rk-tv .leaflet-control-container{display:none}
-@media (prefers-reduced-motion:reduce){#rk-tv .tv-pita-isi{animation:none}}
+#rk-tv .tv-tutup:hover{background:rgba(255,255,255,.2)}
+#rk-tv .tv-tutup:focus-visible{outline:2px solid #F2711C;outline-offset:2px;opacity:1}
+@media (prefers-reduced-motion:reduce){#rk-tv .tv-foto img,#rk-tv .tv-batang i{transition:none}}
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
    MODE TV
    Dibuka dari Pengaturan (Tampilan → Mode TV) atau langsung lewat alamat
-   ...?tv  - cocok untuk dipasang di browser TV. Tanpa login pun jalan
-   (masuk sebagai tamu). Keluar: tombol Tutup (muncul saat tetikus
-   bergerak) atau Esc.
+   ...?tv  - untuk dipasang di browser TV. Tanpa login pun jalan (masuk
+   sebagai tamu). Keluar: tombol Tutup (muncul saat tetikus bergerak) atau Esc.
    ══════════════════════════════════════════════════════════════════════ */
 (function () {
   const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const PER_HAL = 4, JEDA_HAL = 10000;
-  const WARNA = { salur: "#EF4444", monitor: "#F5B82E", tuntas: "#22C55E" };
-  let akar = null, peta = null, lapis = null, buka = false;
-  let jamDetik = 0, jamHal = 0, jamSegar = 0, jamGerak = 0, halaman = 0, kunciLayar = null, sidikPita = "";
+  const WARNA_JENIS = ["#F2711C", "#38BDF8", "#EF4444", "#A78BFA", "#94A3B8", "#22C55E", "#F5B82E"];
+  const JEDA_FOTO = 6000;
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  let akar = null, peta = null, lapisPanas = null, lapisTitik = null, lapisBaru = null, batas = null, zoom = null, zoomTitik = null;
+  let buka = false, kunciBaru = "", fotoKe = 0;
+  let jamDetik = 0, jamSegar = 0, jamFoto = 0, jamGerak = 0, kunciLayar = null;
 
   const $ = function (s) { return akar.querySelector(s); };
   const esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
   const data = function () { try { return Array.isArray(allData) ? allData : []; } catch (e) { return []; } };
   const tgl = function (it) { return it && it.dateObj instanceof Date && !isNaN(it.dateObj) ? it.dateObj : null; };
-  function nama(it) {
-    const n = String(it.nama || "-");
-    if (it.__samar || it._samar || !window.rkSamar) return n;
-    try { return window.rkSamar.nama(n); } catch (e) { return n; }
-  }
-  function status(it) {
-    try { const t = window.rkTunggakan && window.rkTunggakan(it); return t && t.st ? t : { st: "tuntas", hari: 0, telat: false }; }
-    catch (e) { return { st: "tuntas", hari: 0, telat: false }; }
-  }
+  const isi = function (k, v) { const el = $('[data-tv="' + k + '"]'); if (el) el.textContent = v; };
+  const bersih = function (v) { v = String(v == null ? "" : v).trim(); return v && v !== "-" ? v : ""; };
   function rupiahSingkat(n) {
     n = +n || 0;
     if (n >= 1e9) return "Rp " + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
     if (n >= 1e6) return "Rp " + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
     return "Rp " + n.toLocaleString("id-ID");
   }
-  const tglPendek = function (d) { return d.getDate() + " " + BULAN[d.getMonth()].slice(0, 3); };
   const jamMenit = function (d) { return String(d.getHours()).padStart(2, "0") + "." + String(d.getMinutes()).padStart(2, "0"); };
-  const lokasi = function (it) { return [it.desakelurahan, it.kec].filter(function (x) { return x && x !== "-"; }).join(", "); };
+  function batasKecamatan() { try { return typeof BATAS_KECAMATAN !== "undefined" ? BATAS_KECAMATAN : null; } catch (e) { return null; } }
+  function fotoDari(it) {
+    return (Array.isArray(it.photos) ? it.photos : []).map(function (u) {
+      const m = String(u || "").match(/[-\w]{25,}/);
+      return m ? "https://lh3.googleusercontent.com/d/" + m[0] + "=w1000" : "";
+    }).filter(Boolean).slice(0, 6);
+  }
 
-  /* Periode: bulan berjalan; kalau bulan ini belum ada laporan, bulan terakhir yang ada. */
+  /* Bulan: bulan berjalan; kalau belum ada laporan, bulan terakhir yang ada.
+     Tahun (untuk titik panas & jenis bencana) ikut bulan itu. */
   function periode(semua) {
     const kini = new Date();
     let th = kini.getFullYear(), bl = kini.getMonth();
@@ -24491,9 +24468,10 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     }
     const lalu = new Date(th, bl - 1, 1);
     return {
-      th: th, bl: bl, label: BULAN[bl] + " " + th, berjalan: th === kini.getFullYear() && bl === kini.getMonth(),
+      th: th, bl: bl,
       isi: semua.filter(function (it) { return di(it, th, bl); }),
-      lalu: semua.filter(function (it) { return di(it, lalu.getFullYear(), lalu.getMonth()); }), namaLalu: BULAN[lalu.getMonth()]
+      lalu: semua.filter(function (it) { return di(it, lalu.getFullYear(), lalu.getMonth()); }), namaLalu: BULAN[lalu.getMonth()],
+      tahun: semua.filter(function (it) { const d = tgl(it); return d && d.getFullYear() === th; })
     };
   }
 
@@ -24506,39 +24484,26 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     akar.innerHTML =
       '<button type="button" class="tv-tutup" data-tv="tutup"><span class="material-symbols-outlined">close</span>Tutup Mode TV</button>' +
       '<div class="tv-panggung">' +
-        '<header class="tv-kepala">' +
-          '<div class="tv-logo">' + (logo ? '<img src="' + esc(logo.src) + '" alt="">' : "") + "</div>" +
-          '<div class="tv-judul"><small>Pusdalops · BPBD Kabupaten Jember</small><b>Pemantauan Kejadian Bencana</b></div>' +
-          '<div class="tv-kanan">' +
-            '<div class="tv-cuaca" hidden><span class="material-symbols-outlined">partly_cloudy_day</span><div><b data-tv="suhu"></b><span data-tv="desk"></span></div></div>' +
-            '<div class="tv-jam"><b data-tv="jam"></b><span data-tv="tanggal"></span></div>' +
-          "</div>" +
-        "</header>" +
-        '<section class="tv-peta"><div id="rk-tv-peta"></div>' +
-          '<div class="tv-kaca tv-peta-kep"><small data-tv="periode"></small><b data-tv="ringkas"></b></div>' +
-          '<div class="tv-kaca tv-baru" hidden><small data-tv="baru-waktu"></small><b data-tv="baru-judul"></b><p data-tv="baru-ket"></p></div>' +
-          '<div class="tv-kaca tv-legenda"><span><i style="background:#EF4444"></i>Menunggu penyaluran</span><span><i style="background:#F5B82E"></i>Menunggu monitoring</span><span><i style="background:#22C55E"></i>Tuntas</span></div>' +
-        "</section>" +
-        '<aside class="tv-kolom">' +
-          '<div class="tv-kpi">' +
-            '<div class="tv-k"><small data-tv="k1-label">Kejadian</small><b data-tv="k1"></b><p data-tv="k1-ket"></p></div>' +
-            '<div class="tv-k"><small>Jiwa terdampak</small><b data-tv="k2"></b><p data-tv="k2-ket"></p></div>' +
-            '<div class="tv-k api"><small>Menunggu penyaluran</small><b data-tv="k3"></b><p data-tv="k3-ket"></p></div>' +
-            '<div class="tv-k"><small>Taksiran kerusakan</small><b class="sedang" data-tv="k4"></b><p data-tv="k4-ket"></p></div>' +
-          "</div>" +
-          '<div class="tv-alur"><div class="tv-alur-kep"><b>Alur penanganan</b><span data-tv="alur-ket"></span></div>' +
-            '<div class="tv-bilah"><i data-tv="b-salur" style="background:#EF4444"></i><i data-tv="b-monitor" style="background:#F5B82E"></i><i data-tv="b-tuntas" style="background:#22C55E"></i></div>' +
-            '<div class="tv-alur-ket"><span><i style="background:#EF4444"></i>Penyaluran <b data-tv="n-salur"></b></span><span><i style="background:#F5B82E"></i>Monitoring <b data-tv="n-monitor"></b></span><span><i style="background:#22C55E"></i>Tuntas <b data-tv="n-tuntas"></b></span></div>' +
-          "</div>" +
-          '<div class="tv-tunggak"><div class="tv-tunggak-kep"><b>Tunggakan <em>&gt; 30 hari</em></b><div class="tv-hal" data-tv="hal"></div></div><div class="tv-daftar" data-tv="daftar"></div></div>' +
-        "</aside>" +
-        '<footer class="tv-pita"><div class="tv-pita-label">● TERKINI</div><div class="tv-pita-jalan"><div class="tv-pita-isi" data-tv="pita"></div></div></footer>' +
+        '<div id="rk-tv-peta"></div><div class="tv-pudar"></div><svg class="tv-garis" data-tv="garis"></svg>' +
+        '<div class="tv-kep"><div class="tv-logo">' + (logo ? '<img src="' + esc(logo.src) + '" alt="">' : "") + "</div>" +
+          "<div><small>PUSDALOPS · BPBD KABUPATEN JEMBER</small><b>Titik Panas Kejadian Bencana</b></div></div>" +
+        '<div class="tv-jam"><b data-tv="jam"></b><span data-tv="tanggal"></span></div>' +
+        '<div class="tv-baru" hidden><div class="tv-dua"><div class="tv-foto" data-tv="foto"></div><div id="rk-tv-zoom"></div></div>' +
+          '<div class="tv-ket"><small data-tv="baru-waktu"></small><b data-tv="baru-judul"></b><p data-tv="baru-ket"></p></div></div>' +
+        '<div class="tv-legenda"><span>jarang</span><span class="tv-gradasi"></span><span>sering</span><span class="tv-kalimat" data-tv="kalimat"></span></div>' +
+        '<div class="tv-bawah">' +
+          '<div class="tv-k"><small data-tv="k1-label"></small><b data-tv="k1"></b><p data-tv="k1-ket"></p></div>' +
+          '<div class="tv-k"><small>Jiwa terdampak</small><b data-tv="k2"></b><p data-tv="k2-ket"></p></div>' +
+          '<div class="tv-k tv-jenis"><small data-tv="k3-label"></small><div><span class="tv-j-nama" data-tv="k3"></span><span class="tv-j-jml" data-tv="k3-ket"></span></div>' +
+            '<div class="tv-komposisi" data-tv="komposisi"></div><div class="tv-j-lain" data-tv="jenis-lain"></div></div>' +
+          '<div class="tv-k"><small>Taksiran kerusakan</small><b class="sedang" data-tv="k4"></b><p data-tv="k4-ket"></p></div>' +
+          '<div class="tv-grafik"><h3>Kejadian per bulan <span>12 bulan terakhir</span></h3><div class="tv-batang" data-tv="batang"></div></div>' +
+        "</div>" +
       "</div>";
     document.body.appendChild(akar);
     akar.addEventListener("click", function (e) { if (e.target.closest('[data-tv="tutup"]')) tutup(); });
     akar.addEventListener("mousemove", tandaGerak);
   }
-  const isi = function (k, v) { const el = $('[data-tv="' + k + '"]'); if (el) el.textContent = v; };
 
   function skala() {
     if (!akar) return;
@@ -24551,164 +24516,158 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     jamGerak = setTimeout(function () { akar.classList.remove("gerak"); }, 3000);
   }
 
+  const DIAM = { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+    boxZoom: false, keyboard: false, touchZoom: false, zoomSnap: 0.1 };
   function siapkanPeta() {
     if (peta || typeof L === "undefined") return;
-    peta = L.map("rk-tv-peta", { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
-      doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(peta);
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(peta);
-    peta.fitBounds([[-8.55, 113.25], [-7.93, 114.05]]);
-    lapis = L.layerGroup().addTo(peta);
+    peta = L.map("rk-tv-peta", DIAM);
+    L.tileLayer(ESRI, { maxZoom: 18 }).addTo(peta);
+    const bk = batasKecamatan();
+    if (bk) batas = L.geoJSON(bk, { interactive: false, style: { color: "rgba(255,255,255,.28)", weight: 1, fill: false } }).addTo(peta);
+    pasBatas();
+    lapisTitik = L.layerGroup().addTo(peta);
+    lapisBaru = L.layerGroup().addTo(peta);
+  }
+  function pasBatas() {
+    if (!peta) return;
+    const b = batas ? batas.getBounds() : L.latLngBounds([[-8.55, 113.25], [-7.93, 114.05]]);
+    peta.fitBounds(b, { paddingTopLeft: [40, 40], paddingBottomRight: [520, 40] });
   }
 
   function gambar() {
     if (!buka) return;
     const semua = data();
     const p = periode(semua);
-    const st = semua.map(function (it) { return { it: it, t: status(it) }; });
+    const namaBulan = BULAN[p.bl] + " " + p.th;
 
-    // kepala peta & KPI
-    const kec = {};
-    p.isi.forEach(function (it) { if (it.kec && it.kec !== "-") kec[it.kec] = 1; });
-    isi("periode", p.label + (p.berjalan ? "" : " · bulan terakhir berlaporan"));
-    isi("ringkas", p.isi.length + " kejadian di " + Object.keys(kec).length + " kecamatan");
-    isi("k1-label", p.berjalan ? "Kejadian bulan ini" : "Kejadian " + p.label);
+    // ── angka ──
+    isi("k1-label", "Kejadian " + BULAN[p.bl].slice(0, 3) + " " + p.th);
     isi("k1", p.isi.length);
     const beda = p.isi.length - p.lalu.length;
-    $('[data-tv="k1-ket"]').innerHTML = (beda > 0 ? '<span class="naik">▲ ' + beda + "</span> dari " : beda < 0 ? '<span class="turun">▼ ' + (-beda) + "</span> dari " : "sama dengan ") + esc(p.namaLalu) + " (" + p.lalu.length + ")";
+    $('[data-tv="k1-ket"]').innerHTML = (beda > 0 ? '<span class="naik">▲ ' + beda + "</span> dari " : beda < 0 ? '<span class="turun">▼ ' + (-beda) + "</span> dari " : "sama dengan ") + esc(p.namaLalu);
     const jiwa = p.isi.reduce(function (s, it) { return s + (parseFloat(it.jumlahKeluarga) || 0); }, 0);
     isi("k2", jiwa.toLocaleString("id-ID"));
-    isi("k2-ket", p.isi.length ? "rata-rata " + (jiwa / p.isi.length).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " per kejadian" : "belum ada kejadian");
-    const salur = st.filter(function (x) { return x.t.st === "salur"; });
-    const telatSalur = salur.filter(function (x) { return x.t.telat; }).length;
-    isi("k3", salur.length);
-    isi("k3-ket", salur.length ? telatSalur + " di antaranya lewat 30 hari" : "tidak ada yang menunggu");
+    isi("k2-ket", p.isi.length ? "rata-rata " + (jiwa / p.isi.length).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " per kejadian" : namaBulan);
     const rusak = p.isi.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerusakan) || 0); }, 0);
     const rugi = p.isi.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerugian) || 0); }, 0);
     isi("k4", rupiahSingkat(rusak));
     isi("k4-ket", "kerugian " + rupiahSingkat(rugi));
 
-    // alur
-    const n = { salur: 0, monitor: 0, tuntas: 0 };
-    st.forEach(function (x) { n[x.t.st]++; });
-    ["salur", "monitor", "tuntas"].forEach(function (k) {
-      isi("n-" + k, n[k]);
-      $('[data-tv="b-' + k + '"]').style.flex = String(n[k] || 0.0001);
-    });
-    isi("alur-ket", semua.length + " laporan · tuntas " + (semua.length ? Math.round(n.tuntas / semua.length * 100) : 0) + "%");
+    // ── jenis bencana setahun ──
+    const jenis = {};
+    p.tahun.forEach(function (it) { const j = bersih(it.bencana) || "Lainnya"; jenis[j] = (jenis[j] || 0) + 1; });
+    const urut = Object.keys(jenis).map(function (k) { return [k, jenis[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+    isi("k3-label", "Bencana terbanyak · " + p.th);
+    isi("k3", urut.length ? urut[0][0] : "-");
+    isi("k3-ket", urut.length ? urut[0][1] + " dari " + p.tahun.length + " kejadian" : "belum ada kejadian");
+    $('[data-tv="komposisi"]').innerHTML = urut.map(function (x, i) { return '<i style="flex:' + x[1] + ";background:" + WARNA_JENIS[Math.min(i, WARNA_JENIS.length - 1)] + '"></i>'; }).join("");
+    $('[data-tv="jenis-lain"]').innerHTML = urut.slice(1, 3).map(function (x, i) {
+      return '<span><i style="background:' + WARNA_JENIS[i + 1] + '"></i>' + esc(x[0]) + " " + x[1] + "</span>";
+    }).join("");
 
-    // peta: kejadian periode ini + semua yang masih menunggu
+    // ── grafik 12 bulan, berakhir di bulan periode ──
+    const bulan12 = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(p.th, p.bl - i, 1);
+      bulan12.push({ l: BULAN[d.getMonth()].slice(0, 3), n: semua.filter(function (it) { const t = tgl(it); return t && t.getFullYear() === d.getFullYear() && t.getMonth() === d.getMonth(); }).length });
+    }
+    const maks = Math.max(1, Math.max.apply(null, bulan12.map(function (b) { return b.n; })));
+    $('[data-tv="batang"]').innerHTML = bulan12.map(function (b, i) {
+      return "<div" + (i === 11 ? ' class="ini"' : "") + "><b>" + b.n + '</b><i style="height:' + Math.max(2, b.n / maks * 78) + '%"></i><span>' + b.l + "</span></div>";
+    }).join("");
+
+    // ── kalimat & titik panas (setahun) ──
+    const kec = {};
+    p.tahun.forEach(function (it) { const k = bersih(it.kec); if (k) kec[k] = (kec[k] || 0) + 1; });
+    const kecUrut = Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; });
+    $('[data-tv="kalimat"]').innerHTML = kecUrut.length
+      ? "Paling banyak di <b>" + esc(kecUrut[0]) + "</b>" + (kecUrut[1] ? " dan <b>" + esc(kecUrut[1]) + "</b>" : "") + " · " + p.tahun.length + " laporan " + p.th
+      : "Belum ada laporan " + p.th;
     siapkanPeta();
-    if (lapis) {
-      lapis.clearLayers();
-      const tampil = st.filter(function (x) { return x.t.st !== "tuntas" || p.isi.indexOf(x.it) !== -1; });
-      tampil.forEach(function (x) {
-        const la = parseFloat(x.it.lat), ln = parseFloat(x.it.lng);
-        if (!isFinite(la) || !isFinite(ln)) return;
-        L.circleMarker([la, ln], { radius: 8, color: "#0B1214", weight: 2, fillColor: WARNA[x.t.st], fillOpacity: .95, interactive: false }).addTo(lapis);
-      });
+    if (peta) {
+      const titik = p.tahun.map(function (it) { return [parseFloat(it.lat), parseFloat(it.lng)]; }).filter(function (t) { return isFinite(t[0]) && isFinite(t[1]); });
+      if (L.heatLayer) {
+        const panas = titik.map(function (t) { return [t[0], t[1], 1]; });
+        if (!lapisPanas) lapisPanas = L.heatLayer(panas, { radius: 44, blur: 36, maxZoom: 10, max: 3.2, minOpacity: .25,
+          gradient: { .2: "#1d4ed8", .4: "#22c55e", .6: "#facc15", .8: "#f97316", 1: "#ef4444" } }).addTo(peta);
+        else lapisPanas.setLatLngs(panas);
+      } else {
+        // cadangan bila plugin titik panas gagal dimuat: titik oranye transparan
+        lapisTitik.clearLayers();
+        titik.forEach(function (t) { L.circleMarker(t, { radius: 14, stroke: false, fillColor: "#F2711C", fillOpacity: .35, interactive: false }).addTo(lapisTitik); });
+      }
     }
 
-    // laporan terbaru
-    const terbaru = semua.filter(tgl).slice().sort(function (a, b) { return tgl(b) - tgl(a); })[0];
-    const kartu = $(".tv-baru");
-    if (terbaru) {
-      const d = tgl(terbaru), hariIni = d.toDateString() === new Date().toDateString();
-      const t = status(terbaru);
-      isi("baru-waktu", "● Laporan terbaru · " + (hariIni ? jamMenit(d) : tglPendek(d) + " " + d.getFullYear()));
-      isi("baru-judul", (terbaru.bencana || "Kejadian") + " — " + (terbaru.desakelurahan || terbaru.kec || "-"));
-      isi("baru-ket", [terbaru.kerusakan && terbaru.kerusakan !== "-" ? terbaru.kerusakan : "", (parseFloat(terbaru.jumlahKeluarga) || 0) + " jiwa",
-        { salur: "menunggu penyaluran", monitor: "menunggu monitoring", tuntas: "tuntas" }[t.st]].filter(Boolean).join(" · "));
-      kartu.hidden = false;
-      const la = parseFloat(terbaru.lat), ln = parseFloat(terbaru.lng);
-      if (lapis && isFinite(la) && isFinite(ln)) {
-        L.circleMarker([la, ln], { radius: 22, color: "#F2711C", weight: 2, fillColor: "#F2711C", fillOpacity: .12, interactive: false }).addTo(lapis);
-        L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#F2711C", fillOpacity: 1, interactive: false }).addTo(lapis);
-      }
-    } else kartu.hidden = true;
-
-    gambarTunggakan(st);
-    gambarPita(semua);
+    gambarTerbaru(semua);
     gambarCuaca();
   }
 
-  let daftarTunggak = [];
-  function gambarTunggakan(st) {
-    daftarTunggak = st.filter(function (x) { return x.t.st !== "tuntas" && x.t.telat; })
-      .sort(function (a, b) { return b.t.hari - a.t.hari; });
-    const jml = Math.max(1, Math.ceil(daftarTunggak.length / PER_HAL));
-    if (halaman >= jml) halaman = 0;
-    tulisHalaman();
-  }
-  function tulisHalaman() {
-    const jml = Math.max(1, Math.ceil(daftarTunggak.length / PER_HAL));
-    const hal = $('[data-tv="hal"]');
-    hal.innerHTML = daftarTunggak.length > PER_HAL
-      ? (halaman + 1) + "/" + jml + ' <span class="tv-jalur"><b style="width:' + ((halaman + 1) / jml * 100) + '%"></b></span>'
-      : daftarTunggak.length ? daftarTunggak.length + " laporan" : "";
-    const potong = daftarTunggak.slice(halaman * PER_HAL, halaman * PER_HAL + PER_HAL);
-    $('[data-tv="daftar"]').innerHTML = potong.length ? potong.map(function (x) {
-      const it = x.it, s = x.t.st;
-      return '<div class="tv-baris"><div class="tv-hari ' + (s === "salur" ? "m" : "k") + '">' + x.t.hari + "<small>HARI</small></div>" +
-        "<div><b>" + esc(nama(it)) + "</b><span>" + esc([lokasi(it), it.bencana].filter(Boolean).join(" · ")) + "</span></div>" +
-        '<span class="tv-cip ' + s + '">' + (s === "salur" ? "Penyaluran" : "Monitoring") + "</span></div>";
-    }).join("") : '<div class="tv-kosong">Tidak ada tunggakan lebih dari 30 hari.</div>';
-  }
-  function gantiHalaman() {
-    const jml = Math.ceil(daftarTunggak.length / PER_HAL);
-    if (jml <= 1) return;
-    const d = $('[data-tv="daftar"]');
-    d.classList.add("pudar");
-    setTimeout(function () { halaman = (halaman + 1) % jml; tulisHalaman(); d.classList.remove("pudar"); }, 350);
-  }
+  function gambarTerbaru(semua) {
+    const it = semua.filter(tgl).slice().sort(function (a, b) { return tgl(b) - tgl(a); })[0];
+    const kartu = $(".tv-baru");
+    if (!it) { kartu.hidden = true; $('[data-tv="garis"]').innerHTML = ""; return; }
+    const d = tgl(it), hariIni = d.toDateString() === new Date().toDateString();
+    isi("baru-waktu", "● Laporan terbaru · " + (hariIni ? "hari ini " + jamMenit(d) : d.getDate() + " " + BULAN[d.getMonth()].slice(0, 3) + " " + d.getFullYear()));
+    isi("baru-judul", (bersih(it.bencana) || "Kejadian") + " — " + (bersih(it.desakelurahan) || bersih(it.kec) || "-"));
+    const jiwa = parseFloat(it.jumlahKeluarga) || 0;
+    isi("baru-ket", [bersih(it.kerusakan), bersih(it.kec) ? "Kec. " + bersih(it.kec) : "", jiwa ? jiwa + " jiwa terdampak" : ""].filter(Boolean).join(" · "));
+    kartu.hidden = false;
 
-  function gambarPita(semua) {
-    const kini = Date.now(), ev = [];
-    const tglDari = function (v) { const m = String(v || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
-    semua.forEach(function (it) {
-      const d = tgl(it), tempat = it.desakelurahan || it.kec || "-";
-      if (d) ev.push({ w: d, teks: "<b>" + esc(tempat) + "</b> — " + esc(String(it.bencana || "kejadian").toLowerCase()) + ", laporan masuk" });
-      const s = tglDari(it.tglSerahTerima);
-      if (s) ev.push({ w: s, teks: "<b>" + esc(tempat) + "</b> — serah terima bantuan tercatat" });
-      const m = tglDari(it.tglMonitoring);
-      if (m) ev.push({ w: m, teks: "<b>" + esc(tempat) + "</b> — monitoring selesai" });
-    });
-    const urut = ev.filter(function (e) { return e.w <= kini; }).sort(function (a, b) { return b.w - a.w; }).slice(0, 10);
-    try {
-      if (window.STM && STM.getInventory) STM.getInventory().filter(function (b) { return (b.Aktif === true || String(b.Aktif).toUpperCase() === "TRUE") && Number(b.Stok_Akhir) <= 5; })
-        .slice(0, 3).forEach(function (b) { urut.push({ w: new Date(), stok: true, teks: "<b>Stok</b> — " + esc(b.Nama_Barang) + " tersisa " + Number(b.Stok_Akhir) + " " + esc(b.Satuan || "") }); });
-    } catch (e) {}
-    const html = urut.map(function (e) {
-      const d = e.w, hariIni = d.toDateString() === new Date().toDateString();
-      return "<span><em>" + (e.stok ? "STOK" : hariIni && (d.getHours() || d.getMinutes()) ? jamMenit(d) : tglPendek(d)) + "</em>" + e.teks + "</span>";
-    }).join("");
-    if (html === sidikPita) return;       // jangan memulai ulang gulungan bila isinya sama
-    sidikPita = html;
-    const pita = $('[data-tv="pita"]');
-    pita.innerHTML = html ? html + html : "<span>Belum ada aktivitas.</span>";
-    requestAnimationFrame(function () { pita.style.animationDuration = Math.max(30, pita.scrollWidth / 2 / 70) + "s"; });
+    const kunci = String(it.timestamp || "") + "|" + (it.photos || []).length;
+    const la = parseFloat(it.lat), ln = parseFloat(it.lng), adaTitik = isFinite(la) && isFinite(ln);
+    if (kunci !== kunciBaru) {
+      kunciBaru = kunci;
+      // foto kerusakan, bergantian
+      const foto = fotoDari(it);
+      kartu.classList.toggle("tanpa-foto", !foto.length);
+      fotoKe = 0;
+      $('[data-tv="foto"]').innerHTML = foto.map(function (u, i) { return '<img src="' + esc(u) + '" alt="" referrerpolicy="no-referrer"' + (i ? "" : ' class="aktif"') + ">"; }).join("") +
+        (foto.length ? "<em>FOTO KERUSAKAN " + (foto.length > 1 ? '<span data-tv="foto-ke">1</span>/' + foto.length : "") + "</em>" : "") +
+        (foto.length > 1 ? '<span class="tv-titik">' + foto.map(function (_, i) { return "<i" + (i ? "" : ' class="aktif"') + "></i>"; }).join("") + "</span>" : "");
+      // zoom satelit
+      if (typeof L !== "undefined" && adaTitik) {
+        if (!zoom) { zoom = L.map("rk-tv-zoom", DIAM); L.tileLayer(ESRI, { maxZoom: 18 }).addTo(zoom); zoomTitik = L.layerGroup().addTo(zoom); }
+        setTimeout(function () { zoom.invalidateSize(); zoom.setView([la, ln], 16); }, 60);
+        zoomTitik.clearLayers();
+        L.circleMarker([la, ln], { radius: 30, color: "#F2711C", weight: 3, fillColor: "#F2711C", fillOpacity: .15, interactive: false }).addTo(zoomTitik);
+        L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#EF4444", fillOpacity: 1, interactive: false }).addTo(zoomTitik);
+      }
+      if (lapisBaru) {
+        lapisBaru.clearLayers();
+        if (adaTitik) {
+          L.circleMarker([la, ln], { radius: 22, color: "#F2711C", weight: 2, fillColor: "#F2711C", fillOpacity: .15, interactive: false }).addTo(lapisBaru);
+          L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#F2711C", fillOpacity: 1, interactive: false }).addTo(lapisBaru);
+        }
+      }
+    }
+    // garis putus-putus dari titik ke kartu
+    const garis = $('[data-tv="garis"]');
+    if (peta && adaTitik) {
+      const pt = peta.latLngToContainerPoint([la, ln]);
+      garis.innerHTML = '<line x1="' + pt.x + '" y1="' + pt.y + '" x2="' + (1920 - 48 - 660) + '" y2="320" stroke="#F2711C" stroke-width="2" stroke-dasharray="6 6"/>';
+    } else garis.innerHTML = "";
+  }
+  function gantiFoto() {
+    const img = akar.querySelectorAll(".tv-foto img");
+    if (img.length < 2) return;
+    fotoKe = (fotoKe + 1) % img.length;
+    img.forEach(function (el, i) { el.classList.toggle("aktif", i === fotoKe); });
+    akar.querySelectorAll(".tv-titik i").forEach(function (el, i) { el.classList.toggle("aktif", i === fotoKe); });
+    isi("foto-ke", fotoKe + 1);
   }
 
   function gambarCuaca() {
     const s = document.getElementById("weather-temp"), d = document.getElementById("weather-desc");
     const suhu = s ? s.textContent.trim() : "";
-    const kotak = $(".tv-cuaca");
-    if (!suhu || suhu === "--") { kotak.hidden = true; return; }
-    isi("suhu", /°/.test(suhu) ? suhu : suhu + "°C");
-    isi("desk", ((d && d.textContent.trim()) || "") + " · Jember");
-    kotak.hidden = false;
+    const tanggal = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    isi("tanggal", tanggal + (suhu && suhu !== "--" ? " · " + (/°/.test(suhu) ? suhu : suhu + "°C") + (d && d.textContent.trim() ? " " + d.textContent.trim().toLowerCase() : "") : ""));
   }
-  function detak() {
-    const d = new Date();
-    isi("jam", jamMenit(d));
-    isi("tanggal", d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
-  }
+  function detak() { isi("jam", jamMenit(new Date())); }
 
   async function jagaLayar() {
     try { if ("wakeLock" in navigator && !kunciLayar && document.visibilityState === "visible") { kunciLayar = await navigator.wakeLock.request("screen"); kunciLayar.addEventListener("release", function () { kunciLayar = null; }); } }
     catch (e) { kunciLayar = null; }
   }
-  function saatTerlihat() { if (buka && document.visibilityState === "visible") jagaLayar(); }
 
   function bukaTv(opsi) {
     if (!akar) bangun();
@@ -24721,20 +24680,24 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     }
     detak();
     gambar();
-    if (peta) setTimeout(function () { peta.invalidateSize(); peta.fitBounds([[-8.55, 113.25], [-7.93, 114.05]]); }, 60);
+    setTimeout(function () {
+      if (peta) { peta.invalidateSize(); pasBatas(); }
+      if (zoom) zoom.invalidateSize();
+      kunciBaru = ""; gambar();
+    }, 120);
     clearInterval(jamDetik); jamDetik = setInterval(detak, 5000);
-    clearInterval(jamHal); jamHal = setInterval(gantiHalaman, JEDA_HAL);
     clearInterval(jamSegar); jamSegar = setInterval(gambar, 20000);
+    clearInterval(jamFoto); jamFoto = setInterval(gantiFoto, JEDA_FOTO);
     jagaLayar();
     tandaGerak();
-    try { const t = $('[data-tv="tutup"]'); t.focus({ preventScroll: true }); } catch (e) {}
+    try { $('[data-tv="tutup"]').focus({ preventScroll: true }); } catch (e) {}
   }
   function tutup() {
     if (!buka) return;
     buka = false;
     akar.classList.remove("buka", "gerak");
     document.documentElement.classList.remove("rk-tv-aktif");
-    clearInterval(jamDetik); clearInterval(jamHal); clearInterval(jamSegar);
+    clearInterval(jamDetik); clearInterval(jamSegar); clearInterval(jamFoto);
     if (kunciLayar) { try { kunciLayar.release(); } catch (e) {} kunciLayar = null; }
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     // alamat ?tv dibersihkan supaya muat ulang berikutnya kembali ke dasbor
@@ -24743,7 +24706,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 
   window.addEventListener("resize", function () { if (buka) skala(); });
   document.addEventListener("keydown", function (e) { if (buka && e.key === "Escape") tutup(); });
-  document.addEventListener("visibilitychange", saatTerlihat);
+  document.addEventListener("visibilitychange", function () { if (buka && document.visibilityState === "visible") jagaLayar(); });
   // tombol di Pengaturan
   document.addEventListener("click", function (e) {
     if (!e.target.closest("#rkp-tv")) return;
