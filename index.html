@@ -2617,7 +2617,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwlBlquuw8zUIF09Z7YAq24qnx8nwLIM50nUyHIk2T_yPF73M08pkYnpLyHLPZRCeA2/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -14169,17 +14169,22 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
        hasilnya: halaman googleusercontent.com/echo membalas 404, padahal
        permintaan berikutnya biasanya langsung berhasil dalam 2-3 detik.
        Permintaan BACA (GET) dicoba ulang sekali sebelum dianggap gagal.
-       Permintaan tulis (POST) tidak pernah diulang - bisa tersimpan dua kali. */
+       Permintaan tulis tidak pernah diulang - bisa tersimpan dua kali. */
     const metodeKirim = (pilihan && pilihan.method) ? String(pilihan.method).toUpperCase() : "GET";
+    /* POST yang hanya MEMBACA (stok, log, riwayat logistik: action get_*) aman
+       diulang - tidak ada yang tersimpan dua kali. */
+    let aksiKirim = "";
+    try { if (pilihan && typeof pilihan.body === "string") aksiKirim = String(JSON.parse(pilihan.body).action || ""); } catch (e) {}
+    const bolehUlang = metodeKirim === "GET" || (metodeKirim === "POST" && (/^get_/.test(aksiKirim) || aksiKirim === "cekSesi"));
     const jeda = function (ms) { return new Promise(function (ok) { setTimeout(ok, ms); }); };
     function kirim(sudahUlang) {
       return aslinya.apply(diri, argumen).then(function (res) {
-        if (!res.ok && !sudahUlang && metodeKirim === "GET" && (res.status === 404 || res.status >= 500)) {
+        if (!res.ok && !sudahUlang && bolehUlang && (res.status === 404 || res.status >= 500)) {
           return jeda(1500).then(function () { return kirim(true); });
         }
         return res;
       }, function (e) {
-        if (!sudahUlang && metodeKirim === "GET" && !(e && e.name === "AbortError")) {
+        if (!sudahUlang && bolehUlang && !(e && e.name === "AbortError")) {
           return jeda(1500).then(function () { return kirim(true); });
         }
         throw e;
