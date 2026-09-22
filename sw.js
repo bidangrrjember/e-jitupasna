@@ -1,5 +1,5 @@
 /* =========================================================================
-   SERVICE WORKER - DASHBOARD JITUPASNA BPBD JEMBER
+   SERVICE WORKER - DASHBOARD E-JITUPASNA BPBD JEMBER
    =========================================================================
    Tugasnya: membuat aplikasi tetap bisa DIBUKA saat tidak ada sinyal.
 
@@ -15,7 +15,7 @@
    lapangan tidak terus memakai versi lama yang tersimpan.
    ========================================================================= */
 
-const VERSI = "v38";
+const VERSI = "v39";
 const CACHE_APP = "jitupasna-app-" + VERSI;
 const CACHE_UBIN = "jitupasna-ubin";     // sengaja tanpa versi: ubin peta mahal
                                           // diunduh, jangan ikut terhapus tiap rilis
