@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxE0tFAavhASVznaT4SvEXOQ3_TfbfetyXySv_Ax251ZX-XJYq1aYRPiXbJYrwSPJI6/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -25014,41 +25014,118 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 <style id="rk-insiden-gaya">
 /* ══════════════════════════════════════════════════════════════════════
    KEJADIAN BESAR (INSIDEN)
-   Satu bencana yang menimpa banyak KK sekaligus - misalnya angin kencang
-   yang merusak 12 rumah di satu kecamatan dalam dua hari - di database
-   tercatat sebagai 12 laporan terpisah. Lembar ini menyatukannya kembali
-   supaya terlihat sebagai SATU kejadian, tanpa mengubah apa pun di
-   spreadsheet: pengelompokan dihitung di dasbor.
+   Satu bencana yang menimpa banyak KK sekaligus tercatat sebagai banyak
+   laporan terpisah. Lembar ini menyatukannya kembali - dihitung di dasbor,
+   tidak ada yang ditulis ke spreadsheet.
    ══════════════════════════════════════════════════════════════════════ */
-#insiden-view{position:fixed;inset:0;z-index:1200;display:flex;flex-direction:column;overflow-y:auto;
-  background:var(--rk-dasar,#0F1719);color:var(--rk-tinta,#EAF0EE);transition:opacity .25s ease}
+#insiden-view{position:fixed;inset:0;z-index:1200;overflow-y:auto;background:var(--rk-dasar,#0F1719);color:var(--rk-tinta,#EAF0EE)}
 #insiden-view.hidden{display:none}
-#insiden-view .rki-bungkus{width:min(1100px,100%);margin:0 auto;padding:36px 28px 64px}
-#insiden-view .rki-kep{display:flex;align-items:flex-start;gap:18px;margin-bottom:26px}
-#insiden-view .rki-kep h1{font:800 34px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin:0}
-#insiden-view .rki-kep p{margin:8px 0 0;font-size:14px;color:var(--rk-tipis,#8A9A9E);max-width:70ch;line-height:1.6}
-#insiden-view .rki-tutup{margin-left:auto;height:38px;padding:0 15px;border:1px solid var(--rk-sekat,#243036);border-radius:11px;
-  background:transparent;color:inherit;font:600 13px "Plus Jakarta Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
-#insiden-view .rki-tutup:hover{background:var(--rk-sekat,#243036)}
-#insiden-view .rki-kartu{border:1px solid var(--rk-sekat,#243036);border-radius:18px;background:var(--rk-kartu,#16201F);padding:20px 22px;margin-bottom:16px}
-#insiden-view .rki-atas{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
-#insiden-view .rki-atas h2{font:700 21px "Bricolage Grotesque",sans-serif;margin:0}
-#insiden-view .rki-atas s{text-decoration:none;font:500 12.5px "DM Mono",monospace;color:var(--rk-tipis,#8A9A9E)}
-#insiden-view .rki-angka{display:flex;flex-wrap:wrap;gap:22px;margin:14px 0 12px}
-#insiden-view .rki-angka div small{display:block;font:500 11px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
-#insiden-view .rki-angka div b{font:800 26px/1.15 "Bricolage Grotesque",sans-serif}
-#insiden-view .rki-cip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12.5px;font-weight:600}
-#insiden-view .rki-cip.salur{background:rgba(239,68,68,.14);color:#FCA5A5}
-#insiden-view .rki-cip.monitor{background:rgba(245,184,46,.14);color:#FCD34D}
-#insiden-view .rki-cip.tuntas{background:rgba(34,197,94,.14);color:#86EFAC}
-#insiden-view .rki-daftar{margin-top:6px;border-top:1px solid var(--rk-sekat,#243036)}
-#insiden-view .rki-baris{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:14px;padding:10px 0;
-  border-bottom:1px solid var(--rk-sekat,#243036);width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;text-align:left;cursor:pointer;font:inherit}
-#insiden-view .rki-baris:hover{background:var(--rk-sekat,#243036)}
-#insiden-view .rki-baris i{font-style:normal;font:500 12.5px "DM Mono",monospace;color:var(--rk-tipis,#8A9A9E)}
-#insiden-view .rki-baris b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#insiden-view .rki-baris span{font-size:13px;color:var(--rk-tipis,#8A9A9E)}
-#insiden-view .rki-kosong{padding:40px 0;text-align:center;color:var(--rk-tipis,#8A9A9E);font-size:15px}
+#insiden-view *{box-sizing:border-box}
+#insiden-view button{font-family:inherit}
+
+#insiden-view .rki-kep{padding:24px 38px 14px}
+#insiden-view .rki-kep .baris{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+#insiden-view .rki-kep h1{font:800 29px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin:0}
+#insiden-view .rki-kep p{font-size:13px;color:var(--rk-tipis,#8A9A9E);margin:5px 0 0;max-width:74ch;line-height:1.5}
+#insiden-view .rki-kep p b{color:#C9D4D1;font-weight:600}
+#insiden-view .rki-kanan{margin-left:auto;display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+#insiden-view .rki-ang small{display:block;font:500 10.5px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
+#insiden-view .rki-ang b{font:800 26px/1.1 "Bricolage Grotesque",sans-serif}
+#insiden-view .rki-tbl{height:38px;padding:0 14px;border:1px solid var(--rk-sekat,#243036);border-radius:11px;background:none;color:inherit;
+  font:600 13px "Plus Jakarta Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+#insiden-view .rki-tbl:hover{background:var(--rk-sekat,#243036)}
+#insiden-view .rki-tbl .material-symbols-outlined{font-size:17px}
+
+#insiden-view .rki-saring{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 38px 16px;border-bottom:1px solid var(--rk-sekat,#1B2527)}
+#insiden-view .rki-cari{display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--rk-kartu,#16201F);border:1px solid var(--rk-sekat,#243036);min-width:250px}
+#insiden-view .rki-cari input{border:0;background:none;color:inherit;font:inherit;font-size:13px;padding:9px 0;width:100%;outline:none}
+#insiden-view .rki-grup{display:flex;background:var(--rk-kartu,#16201F);border:1px solid var(--rk-sekat,#243036);border-radius:10px;overflow:hidden;flex:0 0 auto}
+#insiden-view .rki-grup button{border:0;background:none;color:var(--rk-tipis,#8A9A9E);font:600 12.5px "Plus Jakarta Sans",sans-serif;padding:8px 13px;cursor:pointer}
+#insiden-view .rki-grup button.on{background:var(--rk-api,#F2711C);color:#fff}
+#insiden-view .rki-urut{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:10px;background:var(--rk-kartu,#16201F);
+  border:1px solid var(--rk-sekat,#243036);color:#C9D4D1;font:600 12.5px "Plus Jakarta Sans",sans-serif;cursor:pointer}
+#insiden-view .rki-hasil{margin-left:auto;font-size:12.5px;color:var(--rk-tipis,#8A9A9E)}
+
+#insiden-view .rki-kisi{display:grid;grid-template-columns:repeat(auto-fill,minmax(500px,1fr));gap:18px;padding:18px 38px 44px;align-items:start}
+#insiden-view .rki-kartu{border:1px solid var(--rk-sekat,#243036);border-radius:18px;background:var(--rk-kartu,#16201F);overflow:hidden}
+#insiden-view .rki-kartu.buka{border-color:var(--rk-api,#F2711C);grid-column:1/-1}
+#insiden-view .rki-atas{display:grid;grid-template-columns:240px minmax(0,1fr)}
+#insiden-view .rki-kartu.buka .rki-atas{grid-template-columns:320px minmax(0,1fr)}
+#insiden-view .rki-peta{position:relative;min-height:240px;background:#101819}
+#insiden-view .rki-peta .rki-mini{position:absolute;inset:0}
+#insiden-view .rki-peta .rki-tag{position:absolute;z-index:500;left:10px;top:10px;padding:5px 9px;border-radius:8px;background:rgba(15,23,25,.85);
+  font:500 10.5px "DM Mono",monospace;letter-spacing:.12em;color:#FDBA74;text-transform:uppercase}
+#insiden-view .rki-tubuh{padding:18px 20px}
+#insiden-view .rki-judul{display:flex;align-items:flex-start;gap:10px}
+#insiden-view .rki-judul h2{font:700 19px/1.2 "Bricolage Grotesque",sans-serif;margin:0}
+#insiden-view .rki-lencana{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#insiden-view .rki-lencana span{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px}
+#insiden-view .l-baru{background:rgba(242,113,28,.16);color:#FDBA74}
+#insiden-view .l-besar{background:rgba(56,189,248,.14);color:#BAE6FD}
+#insiden-view .rki-tgl{font-size:12.5px;color:var(--rk-tipis,#8A9A9E);margin-top:5px}
+#insiden-view .rki-angka{display:flex;gap:20px;margin:14px 0 10px;flex-wrap:wrap}
+#insiden-view .rki-angka div small{display:block;font:500 10px "DM Mono",monospace;letter-spacing:.12em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
+#insiden-view .rki-angka div b{font:800 22px "Bricolage Grotesque",sans-serif}
+#insiden-view .rki-bar{display:flex;height:8px;gap:2px;border-radius:99px;overflow:hidden;background:var(--rk-sekat,#243036)}
+#insiden-view .rki-bar i{display:block}
+#insiden-view .rki-ket{font-size:12px;color:var(--rk-tipis,#8A9A9E);margin-top:7px}
+#insiden-view .rki-desa{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+#insiden-view .rki-desa span{font-size:12px;padding:4px 9px;border-radius:8px;background:#121B1C;border:1px solid #1F2B2D;color:#C9D4D1}
+#insiden-view .rki-aksi{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+#insiden-view .rki-aksi button{height:34px;padding:0 12px;border:1px solid var(--rk-sekat,#243036);border-radius:10px;background:none;color:#C9D4D1;
+  font:600 12.5px "Plus Jakarta Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+#insiden-view .rki-aksi button.utama{border-color:var(--rk-api,#F2711C);color:#FDBA74}
+#insiden-view .rki-aksi button:hover{background:#1A2527}
+#insiden-view .rki-aksi .material-symbols-outlined{font-size:16px}
+
+#insiden-view .rki-laporan{border-top:1px solid var(--rk-sekat,#243036);background:#121B1C;overflow-x:auto}
+#insiden-view .rki-laporan table{width:100%;border-collapse:collapse;font-size:13.5px}
+#insiden-view .rki-laporan th{text-align:left;font:500 10.5px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);
+  text-transform:uppercase;padding:12px 14px 10px;border-bottom:1px solid var(--rk-sekat,#243036)}
+#insiden-view .rki-laporan td{padding:11px 14px;border-bottom:1px solid #1B2527}
+#insiden-view .rki-laporan tr:last-child td{border-bottom:0}
+#insiden-view .rki-laporan tbody tr{cursor:pointer}
+#insiden-view .rki-laporan tbody tr:hover td{background:var(--rk-kartu,#16201F)}
+#insiden-view .rki-laporan td b{font-size:14px}
+#insiden-view .rki-cip{display:inline-flex;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
+#insiden-view .rki-cip.salur{background:rgba(239,68,68,.15);color:#FCA5A5}
+#insiden-view .rki-cip.monitor{background:rgba(245,184,46,.15);color:#FCD34D}
+#insiden-view .rki-cip.tuntas{background:rgba(34,197,94,.15);color:#86EFAC}
+#insiden-view .rki-buka-tanda{color:var(--rk-tipis,#8A9A9E);font-size:12.5px;white-space:nowrap}
+#insiden-view .rki-kosong{margin:40px 38px;padding:40px 0;text-align:center;color:var(--rk-tipis,#8A9A9E);font-size:15px;
+  border:1px dashed var(--rk-sekat,#243036);border-radius:16px}
+
+#insiden-view .rki-pop{position:absolute;right:38px;top:96px;z-index:30;width:330px;border-radius:16px;border:1px solid var(--rk-api,#F2711C);
+  background:#141E20;box-shadow:0 24px 60px -24px rgba(0,0,0,.85);padding:18px 20px}
+#insiden-view .rki-pop[hidden]{display:none}
+#insiden-view .rki-pop h3{font:700 16px "Bricolage Grotesque",sans-serif;margin:0}
+#insiden-view .rki-pop p{font-size:12.5px;color:var(--rk-tipis,#8A9A9E);margin:6px 0 0;line-height:1.5}
+#insiden-view .rki-set{margin-top:16px}
+#insiden-view .rki-set label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+#insiden-view .rki-set label b{font:700 13px "DM Mono",monospace;color:#FDBA74}
+#insiden-view .rki-set input[type=range]{width:100%;accent-color:var(--rk-api,#F2711C)}
+#insiden-view .rki-pop .kaki{display:flex;gap:8px;margin-top:18px}
+#insiden-view .rki-pop .kaki button{flex:1;height:34px;border-radius:10px;border:1px solid var(--rk-sekat,#243036);background:none;color:#C9D4D1;
+  font:600 12.5px "Plus Jakarta Sans",sans-serif;cursor:pointer}
+#insiden-view .rki-pop .kaki button.utama{background:var(--rk-api,#F2711C);border-color:var(--rk-api,#F2711C);color:#fff}
+
+@media (max-width:820px){
+  #insiden-view .rki-kisi{grid-template-columns:1fr;gap:14px;padding:14px 16px 40px}
+  #insiden-view .rki-kep{padding:18px 16px 10px}
+  #insiden-view .rki-kep h1{font-size:23px}
+  #insiden-view .rki-kep p{font-size:12px}
+  #insiden-view .rki-kanan{width:100%;margin-left:0;margin-top:14px;display:grid;grid-template-columns:repeat(6,1fr);gap:12px 16px}
+  #insiden-view .rki-ang{grid-column:span 3}
+  #insiden-view .rki-tbl{grid-column:span 2;justify-content:center;height:36px;padding:0 10px;font-size:12.5px}
+  #insiden-view .rki-ang b{font-size:20px}
+  #insiden-view .rki-saring{padding:10px 16px 12px;gap:8px;overflow-x:auto;flex-wrap:nowrap}
+  #insiden-view .rki-cari{min-width:190px}
+  #insiden-view .rki-hasil{display:none}
+  #insiden-view .rki-atas,#insiden-view .rki-kartu.buka .rki-atas{grid-template-columns:1fr}
+  #insiden-view .rki-kartu.buka{grid-column:auto}
+  #insiden-view .rki-peta{min-height:180px}
+  #insiden-view .rki-pop{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;border-radius:20px 20px 0 0}
+}
 .rkd-insiden{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:12px;cursor:pointer;
   background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.35);color:#BAE6FD;font:inherit;font-size:12.5px;line-height:1.45;text-align:left;width:100%}
 .rkd-insiden:hover{background:rgba(56,189,248,.16)}
@@ -25062,24 +25139,32 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
    petugas, bukan kotak ajaib:
 
      · jenis bencana sama,
-     · kecamatan sama,
-     · jarak antar laporan berurutan <= 3 hari (rantai, bukan rentang tetap),
-     · minimal 3 laporan.
+     · wilayah sama (kecamatan, atau desa kalau disetel lebih ketat),
+     · jarak antar laporan berurutan <= N hari (rantai, bukan rentang tetap),
+     · minimal N laporan.
 
-   Tidak ada yang ditulis ke spreadsheet. Kalau aturannya kelak dirasa
-   kurang pas, yang diubah cuma angka di bawah ini.
+   Ketiga angka itu bisa diubah lewat tombol "Aturan" dan disimpan di
+   perangkat masing-masing. Tidak ada yang ditulis ke spreadsheet.
    ══════════════════════════════════════════════════════════════════════ */
 (function () {
-  const JEDA_HARI = 3, MIN_LAPORAN = 3;
+  const KUNCI = "rk-insiden-aturan";
+  const BAKU = { hari: 3, min: 3, cakupan: "kec" };
   const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-  let lembar = null, terakhirBuka = 0;
+  const LABEL = { salur: "Penyaluran", monitor: "Monitoring", tuntas: "Tuntas" };
+  const WARNA = { salur: "#EF4444", monitor: "#F5B82E", tuntas: "#22C55E" };
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 
-  const data = function () { try { return Array.isArray(allData) ? allData : []; } catch (e) { return []; } };
+  let lembar = null, peta = {}, terbuka = {}, pengamat = null;
+  let saring = { cari: "", tahun: "semua", jenis: "semua", status: "semua", urut: "terbaru" };
+
+  const $ = function (s) { return lembar.querySelector(s); };
   const esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  const data = function () { try { return Array.isArray(allData) ? allData : []; } catch (e) { return []; } };
   const bersih = function (v) { v = String(v == null ? "" : v).trim(); return v && v !== "-" ? v : ""; };
   const tgl = function (it) { return it && it.dateObj instanceof Date && !isNaN(it.dateObj) ? it.dateObj : null; };
   const tglPendek = function (d) { return d.getDate() + " " + BULAN[d.getMonth()]; };
   const tglPanjang = function (d) { return d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear(); };
+  const ikon = function (n) { return '<span class="material-symbols-outlined" aria-hidden="true">' + n + "</span>"; };
   function rupiah(n) {
     n = +n || 0;
     if (n >= 1e9) return "Rp " + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
@@ -25090,29 +25175,41 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     try { const t = window.rkTunggakan && window.rkTunggakan(it); return t && t.st ? t.st : "tuntas"; }
     catch (e) { return "tuntas"; }
   }
+  function batasKecamatan() { try { return typeof BATAS_KECAMATAN !== "undefined" ? BATAS_KECAMATAN : null; } catch (e) { return null; } }
 
-  /* Rantai waktu: laporan diurutkan, lalu dipotong tiap kali jaraknya
-     dengan laporan sebelumnya lebih dari JEDA_HARI. */
+  /* ── aturan ── */
+  function aturan() {
+    let a = Object.assign({}, BAKU);
+    try { Object.assign(a, JSON.parse(localStorage.getItem(KUNCI) || "{}") || {}); } catch (e) {}
+    a.hari = Math.min(14, Math.max(1, +a.hari || BAKU.hari));
+    a.min = Math.min(10, Math.max(2, +a.min || BAKU.min));
+    if (a.cakupan !== "desa") a.cakupan = "kec";
+    return a;
+  }
+  function simpanAturan(a) { try { localStorage.setItem(KUNCI, JSON.stringify(a)); } catch (e) {} }
+
+  /* ── perhitungan ── */
   function hitung() {
-    const per = {};
+    const a = aturan(), per = {};
     data().forEach(function (it) {
-      const d = tgl(it), jenis = bersih(it.bencana), kec = bersih(it.kec);
+      const d = tgl(it), jenis = bersih(it.bencana), kec = bersih(it.kec), desa = bersih(it.desakelurahan);
       if (!d || !jenis || !kec) return;
-      const k = jenis.toLowerCase() + "|" + kec.toLowerCase();
-      (per[k] = per[k] || []).push({ it: it, d: d, jenis: jenis, kec: kec });
+      const wilayah = a.cakupan === "desa" ? (kec + "/" + desa).toLowerCase() : kec.toLowerCase();
+      const k = jenis.toLowerCase() + "|" + wilayah;
+      (per[k] = per[k] || []).push({ it: it, d: d, jenis: jenis, kec: kec, desa: desa });
     });
     const hasil = [];
     Object.keys(per).forEach(function (k) {
-      const daftar = per[k].sort(function (a, b) { return a.d - b.d; });
+      const daftar = per[k].sort(function (x, y) { return x.d - y.d; });
       let kel = [daftar[0]];
       for (let i = 1; i <= daftar.length; i++) {
-        const lanjut = i < daftar.length && (daftar[i].d - kel[kel.length - 1].d) <= JEDA_HARI * 864e5;
+        const lanjut = i < daftar.length && (daftar[i].d - kel[kel.length - 1].d) <= a.hari * 864e5;
         if (lanjut) { kel.push(daftar[i]); continue; }
-        if (kel.length >= MIN_LAPORAN) hasil.push(rangkum(kel));
+        if (kel.length >= a.min) hasil.push(rangkum(kel));
         kel = i < daftar.length ? [daftar[i]] : [];
       }
     });
-    return hasil.sort(function (a, b) { return b.akhir - a.akhir; });
+    return hasil.sort(function (x, y) { return y.akhir - x.akhir; });
   }
   function rangkum(kel) {
     const n = { salur: 0, monitor: 0, tuntas: 0 };
@@ -25124,20 +25221,44 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
       nilai += parseFloat(x.it.nilaiKerusakan) || 0;
       const ds = bersih(x.it.desakelurahan); if (ds) desa[ds] = (desa[ds] || 0) + 1;
     });
+    const titik = kel.map(function (x) {
+      const la = parseFloat(x.it.lat), ln = parseFloat(x.it.lng);
+      return isFinite(la) && isFinite(ln) ? { ll: [la, ln], st: status(x.it) } : null;
+    }).filter(Boolean);
     return {
-      id: kel[0].jenis.toLowerCase().replace(/\s+/g, "-") + "-" + kel[0].kec.toLowerCase().replace(/\s+/g, "-") + "-" + kel[0].d.getTime(),
+      id: (kel[0].jenis + "-" + kel[0].kec + "-" + kel[0].d.getTime()).toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       jenis: kel[0].jenis, kec: kel[0].kec, mulai: kel[0].d, akhir: kel[kel.length - 1].d,
-      daftar: kel.map(function (x) { return x.it; }), jiwa: jiwa, nilai: nilai, status: n,
-      desa: Object.keys(desa).sort(function (a, b) { return desa[b] - desa[a]; })
+      daftar: kel.map(function (x) { return x.it; }), jiwa: jiwa, nilai: nilai, status: n, titik: titik,
+      desa: Object.keys(desa).sort(function (x, y) { return desa[y] - desa[x]; })
     };
   }
-  /* Insiden yang memuat satu laporan tertentu - dipakai panel detail. */
   function untuk(it) {
     if (!it) return null;
     const kunci = String(it.timestamp || "");
     return hitung().find(function (ins) {
       return ins.daftar.some(function (x) { return String(x.timestamp || "") === kunci; });
     }) || null;
+  }
+
+  /* ── saringan ── */
+  function tersaring(semua) {
+    const q = saring.cari.trim().toLowerCase();
+    let hasil = semua.filter(function (ins) {
+      if (saring.tahun !== "semua" && String(ins.akhir.getFullYear()) !== saring.tahun) return false;
+      if (saring.jenis !== "semua" && ins.jenis.toLowerCase() !== saring.jenis) return false;
+      if (saring.status === "belum" && !(ins.status.salur || ins.status.monitor)) return false;
+      if (saring.status === "tuntas" && (ins.status.salur || ins.status.monitor)) return false;
+      if (!q) return true;
+      const teks = [ins.jenis, ins.kec, ins.desa.join(" "), ins.daftar.map(function (x) { return x.nama; }).join(" ")].join(" ").toLowerCase();
+      return teks.indexOf(q) !== -1;
+    });
+    const urut = {
+      terbaru: function (a, b) { return b.akhir - a.akhir; },
+      laporan: function (a, b) { return b.daftar.length - a.daftar.length; },
+      jiwa: function (a, b) { return b.jiwa - a.jiwa; },
+      nilai: function (a, b) { return b.nilai - a.nilai; }
+    };
+    return hasil.sort(urut[saring.urut] || urut.terbaru);
   }
 
   /* ── lembar ── */
@@ -25148,73 +25269,383 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     lembar.className = "hidden";
     lembar.setAttribute("role", "dialog");
     lembar.setAttribute("aria-label", "Kejadian besar");
-    lembar.innerHTML = '<div class="rki-bungkus">' +
-      '<header class="rki-kep"><div><h1>Kejadian Besar</h1>' +
-        "<p>Laporan yang jenis bencananya sama, kecamatannya sama, dan berdekatan waktu (maksimal " + JEDA_HARI +
-        " hari antar laporan) dikumpulkan jadi satu kejadian. Hanya kumpulan berisi minimal " + MIN_LAPORAN +
-        " laporan yang ditampilkan. Pengelompokan ini dihitung di dasbor; data di spreadsheet tidak diubah.</p></div>" +
-        '<button type="button" class="rki-tutup" data-ins="tutup"><span class="material-symbols-outlined">close</span>Tutup</button>' +
-      "</header><div data-ins=\"isi\"></div></div>";
+    lembar.innerHTML =
+      '<header class="rki-kep"><div class="baris">' +
+        '<div><h1>Kejadian Besar</h1><p data-ins="aturan-teks"></p></div>' +
+        '<div class="rki-kanan">' +
+          '<div class="rki-ang"><small>Kejadian</small><b data-ins="t-kejadian">0</b></div>' +
+          '<div class="rki-ang"><small>Laporan</small><b data-ins="t-laporan">0</b></div>' +
+          '<div class="rki-ang"><small>Jiwa</small><b data-ins="t-jiwa">0</b></div>' +
+          '<div class="rki-ang"><small>Kerusakan</small><b data-ins="t-nilai" style="font-size:21px">-</b></div>' +
+          '<button type="button" class="rki-tbl" data-ins="aturan">' + ikon("tune") + "Aturan</button>" +
+          '<button type="button" class="rki-tbl" data-ins="ekspor">' + ikon("download") + "Ekspor CSV</button>" +
+          '<button type="button" class="rki-tbl" data-ins="tutup">' + ikon("close") + "Tutup</button>" +
+        "</div></div></header>" +
+      '<div class="rki-saring">' +
+        '<div class="rki-cari">' + ikon("search") + '<input type="search" data-ins="cari" placeholder="Cari kecamatan, desa, atau nama KK…" aria-label="Cari kejadian"></div>' +
+        '<div class="rki-grup" data-ins="g-tahun"></div>' +
+        '<div class="rki-grup" data-ins="g-jenis"></div>' +
+        '<div class="rki-grup" data-ins="g-status">' +
+          '<button type="button" data-nilai="semua" class="on">Semua status</button>' +
+          '<button type="button" data-nilai="belum">Belum tuntas</button>' +
+          '<button type="button" data-nilai="tuntas">Tuntas</button></div>' +
+        '<button type="button" class="rki-urut" data-ins="urut">Urutkan: Terbaru</button>' +
+        '<span class="rki-hasil" data-ins="hasil"></span>' +
+      "</div>" +
+      '<section class="rki-kisi" data-ins="kisi"></section>' +
+      '<aside class="rki-pop" data-ins="pop" hidden>' +
+        "<h3>Aturan pengelompokan</h3><p>Ubah kalau hasilnya terasa terlalu longgar atau terlalu ketat. Berlaku di perangkat ini saja.</p>" +
+        '<div class="rki-set"><label>Jarak antar laporan <b data-ins="l-hari"></b></label><input type="range" min="1" max="14" step="1" data-ins="r-hari"></div>' +
+        '<div class="rki-set"><label>Minimal laporan per kejadian <b data-ins="l-min"></b></label><input type="range" min="2" max="10" step="1" data-ins="r-min"></div>' +
+        '<div class="rki-set"><label>Cakupan wilayah <b data-ins="l-cakupan"></b></label>' +
+          '<div class="rki-grup" data-ins="g-cakupan" style="width:100%">' +
+            '<button type="button" data-nilai="kec" style="flex:1">Satu kecamatan</button>' +
+            '<button type="button" data-nilai="desa" style="flex:1">Satu desa</button></div></div>' +
+        '<div class="kaki"><button type="button" data-ins="baku">Kembalikan bawaan</button><button type="button" class="utama" data-ins="terapkan">Terapkan</button></div>' +
+      "</aside>";
     document.body.appendChild(lembar);
-    lembar.addEventListener("click", function (e) {
-      if (e.target.closest('[data-ins="tutup"]')) { tutup(); return; }
-      const baris = e.target.closest("[data-ts]");
-      if (!baris) return;
-      const it = data().find(function (x) { return String(x.timestamp || "") === baris.getAttribute("data-ts"); });
-      if (it && typeof window.openSidebarWithData === "function") { tutup(); window.openSidebarWithData(it); }
-    });
+    pasangKendali();
     return lembar;
   }
+
+  function pasangKendali() {
+    lembar.addEventListener("click", function (e) {
+      const t = function (n) { return e.target.closest('[data-ins="' + n + '"]'); };
+      if (t("tutup")) { tutup(); return; }
+      if (t("aturan")) { bukaAturan(); return; }
+      if (t("ekspor")) { ekspor(); return; }
+      if (t("urut")) { gantiUrut(); return; }
+      if (t("terapkan")) { $('[data-ins="pop"]').hidden = true; gambar(); return; }
+      if (t("baku")) { simpanAturan(Object.assign({}, BAKU)); isiAturan(); gambar(); return; }
+
+      const grup = e.target.closest(".rki-grup button");
+      if (grup) { pilihGrup(grup); return; }
+
+      const kartu = e.target.closest("[data-id]");
+      const id = kartu ? kartu.getAttribute("data-id") : "";
+      if (t("lihat")) { terbuka[id] = !terbuka[id]; gambar(); return; }
+      if (t("cetak")) { cetak(id); return; }
+      if (t("salin")) { salin(id); return; }
+      if (t("kepeta")) { kePeta(id); return; }
+
+      const baris = e.target.closest("[data-ts]");
+      if (baris) {
+        const it = data().find(function (x) { return String(x.timestamp || "") === baris.getAttribute("data-ts"); });
+        if (it && typeof window.openSidebarWithData === "function") { tutup(); window.openSidebarWithData(it); }
+      }
+    });
+    $('[data-ins="cari"]').addEventListener("input", function (e) { saring.cari = e.target.value; gambar(); });
+    ["r-hari", "r-min"].forEach(function (k) {
+      $('[data-ins="' + k + '"]').addEventListener("input", function (e) {
+        const a = aturan();
+        a[k === "r-hari" ? "hari" : "min"] = +e.target.value;
+        simpanAturan(a); isiAturan(); gambar();
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && lembar && !lembar.classList.contains("hidden")) {
+        if (!$('[data-ins="pop"]').hidden) { $('[data-ins="pop"]').hidden = true; return; }
+        tutup();
+      }
+    });
+  }
+  function pilihGrup(tbl) {
+    const grup = tbl.parentElement, nama = grup.getAttribute("data-ins"), nilai = tbl.getAttribute("data-nilai");
+    grup.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b === tbl); });
+    if (nama === "g-tahun") saring.tahun = nilai;
+    else if (nama === "g-jenis") saring.jenis = nilai;
+    else if (nama === "g-status") saring.status = nilai;
+    else if (nama === "g-cakupan") { const a = aturan(); a.cakupan = nilai; simpanAturan(a); isiAturan(); }
+    gambar();
+  }
+  const URUTAN = [["terbaru", "Terbaru"], ["laporan", "Laporan terbanyak"], ["jiwa", "Jiwa terbanyak"], ["nilai", "Kerusakan terbesar"]];
+  function gantiUrut() {
+    const i = URUTAN.findIndex(function (u) { return u[0] === saring.urut; });
+    saring.urut = URUTAN[(i + 1) % URUTAN.length][0];
+    gambar();
+  }
+  function bukaAturan() {
+    const pop = $('[data-ins="pop"]');
+    pop.hidden = !pop.hidden;
+    if (!pop.hidden) isiAturan();
+  }
+  function isiAturan() {
+    const a = aturan();
+    $('[data-ins="l-hari"]').textContent = a.hari + " hari";
+    $('[data-ins="l-min"]').textContent = a.min + " laporan";
+    $('[data-ins="l-cakupan"]').textContent = a.cakupan === "desa" ? "Satu desa" : "Satu kecamatan";
+    $('[data-ins="r-hari"]').value = a.hari;
+    $('[data-ins="r-min"]').value = a.min;
+    $('[data-ins="g-cakupan"]').querySelectorAll("button").forEach(function (b) {
+      b.classList.toggle("on", b.getAttribute("data-nilai") === a.cakupan);
+    });
+    $('[data-ins="aturan-teks"]').innerHTML = "Laporan dengan <b>jenis bencana sama</b>, <b>" +
+      (a.cakupan === "desa" ? "desa sama" : "kecamatan sama") + "</b>, dan berselang <b>maksimal " + a.hari +
+      " hari</b> dikumpulkan jadi satu kejadian (minimal " + a.min + " laporan). Dihitung di dasbor; data di spreadsheet tidak diubah.";
+  }
+
+  /* ── gambar ── */
   function gambar() {
-    const isi = lembar.querySelector('[data-ins="isi"]');
-    const daftar = hitung();
-    if (!daftar.length) {
-      isi.innerHTML = '<div class="rki-kosong">Belum ada kejadian yang memenuhi syarat.<br>Minimal ' + MIN_LAPORAN +
-        " laporan dengan jenis bencana dan kecamatan yang sama, berselang paling lama " + JEDA_HARI + " hari.</div>";
+    if (!lembar || lembar.classList.contains("hidden")) return;
+    const semua = hitung(), tampil = tersaring(semua);
+
+    // ringkasan atas mengikuti hasil saringan
+    const tot = tampil.reduce(function (s, x) {
+      s.lap += x.daftar.length; s.jiwa += x.jiwa; s.nilai += x.nilai; return s;
+    }, { lap: 0, jiwa: 0, nilai: 0 });
+    $('[data-ins="t-kejadian"]').textContent = tampil.length;
+    $('[data-ins="t-laporan"]').textContent = tot.lap;
+    $('[data-ins="t-jiwa"]').textContent = tot.jiwa.toLocaleString("id-ID");
+    $('[data-ins="t-nilai"]').textContent = rupiah(tot.nilai);
+    $('[data-ins="hasil"]').textContent = "Menampilkan " + tampil.length + " dari " + semua.length + " kejadian";
+    $('[data-ins="urut"]').textContent = "Urutkan: " + (URUTAN.find(function (u) { return u[0] === saring.urut; }) || URUTAN[0])[1];
+
+    // pilihan tahun & jenis dari data yang ada
+    isiGrup("g-tahun", [["semua", "Semua tahun"]].concat(
+      [...new Set(semua.map(function (x) { return String(x.akhir.getFullYear()); }))].sort().reverse().map(function (t) { return [t, t]; })), saring.tahun);
+    isiGrup("g-jenis", [["semua", "Semua jenis"]].concat(
+      [...new Set(semua.map(function (x) { return x.jenis; }))].sort().map(function (j) { return [j.toLowerCase(), j]; })), saring.jenis);
+
+    const kisi = $('[data-ins="kisi"]');
+    buangPeta();
+    if (!tampil.length) {
+      kisi.innerHTML = "";
+      kisi.insertAdjacentHTML("beforeend", '<div class="rki-kosong" style="grid-column:1/-1">' +
+        (semua.length ? "Tidak ada kejadian yang cocok dengan saringan." :
+          "Belum ada kejadian yang memenuhi aturan. Coba longgarkan lewat tombol Aturan.") + "</div>");
       return;
     }
-    isi.innerHTML = daftar.map(function (ins) {
-      const rentang = ins.mulai.toDateString() === ins.akhir.toDateString()
-        ? tglPanjang(ins.mulai)
-        : tglPendek(ins.mulai) + " – " + tglPanjang(ins.akhir);
-      const cip = [
-        ins.status.salur ? '<span class="rki-cip salur">' + ins.status.salur + " menunggu penyaluran</span>" : "",
-        ins.status.monitor ? '<span class="rki-cip monitor">' + ins.status.monitor + " menunggu monitoring</span>" : "",
-        ins.status.tuntas ? '<span class="rki-cip tuntas">' + ins.status.tuntas + " tuntas</span>" : ""
-      ].filter(Boolean).join(" ");
-      const baris = ins.daftar.slice().sort(function (a, b) { return tgl(a) - tgl(b); }).map(function (it) {
-        const d = tgl(it);
-        return '<button type="button" class="rki-baris" data-ts="' + esc(it.timestamp) + '">' +
-          "<i>" + (d ? tglPendek(d) : "-") + "</i>" +
-          "<span><b>" + esc(it.nama || "-") + "</b><br><span>" + esc([bersih(it.desakelurahan), bersih(it.kerusakan)].filter(Boolean).join(" · ")) + "</span></span>" +
-          '<span class="rki-cip ' + status(it) + '">' + ({ salur: "Penyaluran", monitor: "Monitoring", tuntas: "Tuntas" })[status(it)] + "</span></button>";
-      }).join("");
-      return '<article class="rki-kartu" id="ins-' + esc(ins.id) + '">' +
-        '<div class="rki-atas"><h2>' + esc(ins.jenis) + " — Kec. " + esc(ins.kec) + "</h2><s>" + esc(rentang) + "</s></div>" +
-        '<div class="rki-angka">' +
-          "<div><small>Laporan</small><b>" + ins.daftar.length + "</b></div>" +
-          "<div><small>Jiwa terdampak</small><b>" + ins.jiwa.toLocaleString("id-ID") + "</b></div>" +
-          "<div><small>Taksiran kerusakan</small><b>" + rupiah(ins.nilai) + "</b></div>" +
-          "<div><small>Desa</small><b>" + ins.desa.length + "</b></div>" +
-        "</div>" +
-        "<div>" + cip + "</div>" +
-        '<div class="rki-daftar">' + baris + "</div></article>";
-    }).join("");
+    const terbaru = semua.length ? semua[0].id : "";
+    const terbesar = semua.slice().sort(function (a, b) { return b.daftar.length - a.daftar.length; })[0];
+    kisi.innerHTML = tampil.map(function (ins) { return kartu(ins, terbaru, terbesar); }).join("");
+    pasangPetaMini(tampil);
   }
+  function isiGrup(nama, pilihan, aktif) {
+    const el = $('[data-ins="' + nama + '"]');
+    const html = pilihan.map(function (p) {
+      return '<button type="button" data-nilai="' + esc(p[0]) + '"' + (p[0] === aktif ? ' class="on"' : "") + ">" + esc(p[1]) + "</button>";
+    }).join("");
+    if (el.innerHTML !== html) el.innerHTML = html;
+  }
+  function kartu(ins, idTerbaru, terbesar) {
+    const buka = !!terbuka[ins.id];
+    const bar = ["salur", "monitor", "tuntas"].filter(function (k) { return ins.status[k]; })
+      .map(function (k) { return '<i style="flex:' + ins.status[k] + ";background:" + WARNA[k] + '"></i>'; }).join("");
+    const ket = ["salur", "monitor", "tuntas"].filter(function (k) { return ins.status[k]; })
+      .map(function (k) { return ins.status[k] + " " + LABEL[k].toLowerCase(); }).join(" · ");
+    const lencana = (ins.id === idTerbaru ? '<span class="l-baru">Terbaru</span>' : "") +
+      (terbesar && ins.id === terbesar.id && ins.daftar.length > 3 ? '<span class="l-besar">Terbesar</span>' : "");
+    const rentang = ins.mulai.toDateString() === ins.akhir.toDateString()
+      ? tglPanjang(ins.mulai) : tglPendek(ins.mulai) + " – " + tglPanjang(ins.akhir);
+    const tabel = !buka ? "" : '<div class="rki-laporan"><table><thead><tr><th>Tanggal</th><th>Nama KK</th><th>Desa</th>' +
+      "<th>Tingkat kerusakan</th><th>Status</th><th></th></tr></thead><tbody>" +
+      ins.daftar.slice().sort(function (a, b) { return tgl(a) - tgl(b); }).map(function (it) {
+        const d = tgl(it), st = status(it);
+        return '<tr data-ts="' + esc(it.timestamp) + '"><td>' + (d ? tglPanjang(d) : "-") + "</td>" +
+          "<td><b>" + esc(it.nama || "-") + "</b></td><td>" + esc(bersih(it.desakelurahan) || "-") + "</td>" +
+          "<td>" + esc(bersih(it.kerusakan) || "-") + "</td>" +
+          '<td><span class="rki-cip ' + st + '">' + LABEL[st] + "</span></td>" +
+          '<td style="text-align:right"><span class="rki-buka-tanda">Buka panel →</span></td></tr>';
+      }).join("") + "</tbody></table></div>";
+    return '<article class="rki-kartu' + (buka ? " buka" : "") + '" id="ins-' + esc(ins.id) + '" data-id="' + esc(ins.id) + '">' +
+      '<div class="rki-atas"><div class="rki-peta"><div class="rki-mini" data-mini="' + esc(ins.id) + '"></div>' +
+        '<div class="rki-tag">' + esc(ins.kec) + "</div></div>" +
+      '<div class="rki-tubuh"><div class="rki-judul"><h2>' + esc(ins.jenis) + " — Kec. " + esc(ins.kec) + "</h2>" +
+        '<div class="rki-lencana">' + lencana + "</div></div>" +
+        '<div class="rki-tgl">' + esc(rentang) + " · " + ins.desa.length + " desa terdampak</div>" +
+        '<div class="rki-angka"><div><small>Laporan</small><b>' + ins.daftar.length + "</b></div>" +
+          "<div><small>Jiwa</small><b>" + ins.jiwa.toLocaleString("id-ID") + "</b></div>" +
+          '<div><small>Kerusakan</small><b style="font-size:17px">' + rupiah(ins.nilai) + "</b></div>" +
+          '<div><small>Rata-rata/KK</small><b style="font-size:17px">' + rupiah(ins.nilai / ins.daftar.length) + "</b></div></div>" +
+        '<div class="rki-bar">' + bar + '</div><div class="rki-ket">' + ket + "</div>" +
+        '<div class="rki-desa">' + ins.desa.slice(0, 8).map(function (d) { return "<span>" + esc(d) + "</span>"; }).join("") + "</div>" +
+        '<div class="rki-aksi">' +
+          '<button type="button" class="utama" data-ins="lihat">' + ikon(buka ? "expand_less" : "expand_more") +
+            (buka ? "Sembunyikan laporan" : "Lihat " + ins.daftar.length + " laporan") + "</button>" +
+          '<button type="button" data-ins="cetak">' + ikon("picture_as_pdf") + "Ringkasan PDF</button>" +
+          '<button type="button" data-ins="salin">' + ikon("content_copy") + "Salin ringkasan</button>" +
+          '<button type="button" data-ins="kepeta">' + ikon("travel_explore") + "Lihat di peta</button>" +
+        "</div></div></div>" + tabel + "</article>";
+  }
+
+  /* Peta mini dibuat hanya saat kartunya terlihat - 30 peta sekaligus
+     membuat lembar ini berat dibuka di HP. */
+  /* Leaflet tetap memegang container dan pendengar resize walau HTML-nya
+     diganti; tanpa remove() peta mini lama melempar galat tiap kali kartu
+     digambar ulang (tiap ketikan di kotak cari). */
+  function buangPeta() {
+    Object.keys(peta).forEach(function (k) { try { peta[k].remove(); } catch (e) {} });
+    peta = {};
+    if (pengamat) { try { pengamat.disconnect(); } catch (e) {} pengamat = null; }
+  }
+  function pasangPetaMini(daftar) {
+    const bk = batasKecamatan();
+    const buat = function (el) {
+      const id = el.getAttribute("data-mini");
+      if (!id || peta[id] || typeof L === "undefined") return;
+      if (!document.body.contains(el)) return;
+      const ins = daftar.find(function (x) { return x.id === id; });
+      if (!ins) return;
+      const p = L.map(el, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false,
+        doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, zoomSnap: 0.1 });
+      peta[id] = p;
+      p.setView([-8.17, 113.70], 11, { animate: false });
+      L.tileLayer(ESRI, { maxZoom: 18 }).addTo(p);
+      let bts = null;
+      if (bk) {
+        const w = L.geoJSON(bk, { interactive: false, filter: function (f) { return f.properties.kecamatan === ins.kec; },
+          style: { color: "#F2711C", weight: 2, fillColor: "#F2711C", fillOpacity: .12 } }).addTo(p);
+        try { bts = w.getBounds(); } catch (e) { bts = null; }
+      }
+      ins.titik.forEach(function (t) {
+        L.circleMarker(t.ll, { radius: 7, color: "#0F1719", weight: 2, fillColor: WARNA[t.st], fillOpacity: 1, interactive: false }).addTo(p);
+      });
+      try {
+        if (bts && bts.isValid()) p.fitBounds(bts, { padding: [12, 12], animate: false });
+        else if (ins.titik.length) p.fitBounds(L.latLngBounds(ins.titik.map(function (t) { return t.ll; })).pad(0.6), { animate: false });
+      } catch (e) {}
+      setTimeout(function () {
+        if (!document.body.contains(el)) return;
+        try { p.invalidateSize(); } catch (e) {}
+      }, 80);
+    };
+    const aman = function (el) { try { buat(el); } catch (e) {} };
+    if (typeof IntersectionObserver === "function") {
+      const ini = new IntersectionObserver(function (baris) {
+        if (pengamat !== ini) return;                 // pengamat sudah basi
+        baris.forEach(function (b) { if (b.isIntersecting) { aman(b.target); ini.unobserve(b.target); } });
+      }, { root: lembar, rootMargin: "300px" });
+      pengamat = ini;
+      lembar.querySelectorAll("[data-mini]").forEach(function (el) { pengamat.observe(el); });
+    } else lembar.querySelectorAll("[data-mini]").forEach(aman);
+  }
+
+  /* ── aksi ── */
+  function cari(id) { return hitung().find(function (x) { return x.id === id; }); }
+  function ringkasTeks(ins) {
+    const rentang = ins.mulai.toDateString() === ins.akhir.toDateString()
+      ? tglPanjang(ins.mulai) : tglPendek(ins.mulai) + " – " + tglPanjang(ins.akhir);
+    const baris = ins.daftar.slice().sort(function (a, b) { return tgl(a) - tgl(b); }).map(function (it, i) {
+      return (i + 1) + ". " + (it.nama || "-") + " · " + (bersih(it.desakelurahan) || "-") + " · " +
+        (bersih(it.kerusakan) || "-") + " · " + LABEL[status(it)];
+    });
+    return [
+      ins.jenis + " — Kec. " + ins.kec, rentang,
+      ins.daftar.length + " laporan · " + ins.jiwa + " jiwa terdampak · taksiran kerusakan " + rupiah(ins.nilai),
+      "Desa terdampak: " + (ins.desa.join(", ") || "-"), "", "Daftar laporan:"
+    ].concat(baris).join("\n");
+  }
+  function salin(id) {
+    const ins = cari(id); if (!ins) return;
+    const teks = ringkasTeks(ins);
+    const beres = function (ok) {
+      if (typeof showNotification === "function") {
+        showNotification(ok ? "Ringkasan kejadian tersalin." : "Tidak bisa menyalin. Pakai Ringkasan PDF sebagai gantinya.");
+      }
+    };
+    try { navigator.clipboard.writeText(teks).then(function () { beres(true); }, function () { beres(false); }); }
+    catch (e) { beres(false); }
+  }
+  function cetak(id) {
+    const ins = cari(id); if (!ins) return;
+    const rentang = ins.mulai.toDateString() === ins.akhir.toDateString()
+      ? tglPanjang(ins.mulai) : tglPendek(ins.mulai) + " – " + tglPanjang(ins.akhir);
+    const baris = ins.daftar.slice().sort(function (a, b) { return tgl(a) - tgl(b); }).map(function (it) {
+      const d = tgl(it), st = status(it);
+      return "<tr><td>" + (d ? tglPanjang(d) : "-") + "</td><td>" + esc(it.nama || "-") + "</td><td>" +
+        esc(bersih(it.desakelurahan) || "-") + "</td><td>" + esc(bersih(it.kerusakan) || "-") + "</td><td>" +
+        esc(bersih(it.jumlahKeluarga) || "0") + "</td><td>" + LABEL[st] + "</td></tr>";
+    }).join("");
+    const html = '<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Kejadian ' +
+      esc(ins.jenis) + " - Kec. " + esc(ins.kec) + " - " + esc(rentang) + "</title><style>" +
+      "@page{size:A4;margin:16mm 14mm}*{box-sizing:border-box}body{margin:0;font:11pt/1.5 'Plus Jakarta Sans',system-ui,sans-serif;color:#111}" +
+      "h1{font-size:19pt;margin:0 0 2mm}h2{font-size:11pt;font-weight:600;color:#555;margin:0 0 6mm}" +
+      ".ang{display:flex;gap:10mm;margin:0 0 6mm;padding:4mm 0;border-top:1px solid #ccc;border-bottom:1px solid #ccc}" +
+      ".ang div small{display:block;font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:#666}" +
+      ".ang div b{font-size:15pt}table{width:100%;border-collapse:collapse;font-size:10pt}" +
+      "th{text-align:left;font-size:8pt;letter-spacing:.06em;text-transform:uppercase;color:#666;border-bottom:1px solid #999;padding:0 0 2mm}" +
+      "td{padding:2.4mm 0;border-bottom:1px solid #e3e3e3}tfoot td{border:0;padding-top:6mm;font-size:9pt;color:#666}" +
+      "</style></head><body><h1>" + esc(ins.jenis) + " — Kec. " + esc(ins.kec) + "</h1>" +
+      "<h2>" + esc(rentang) + " · " + ins.desa.length + " desa terdampak · BPBD Kabupaten Jember</h2>" +
+      '<div class="ang"><div><small>Laporan</small><b>' + ins.daftar.length + "</b></div>" +
+      "<div><small>Jiwa terdampak</small><b>" + ins.jiwa + "</b></div>" +
+      "<div><small>Taksiran kerusakan</small><b>" + rupiah(ins.nilai) + "</b></div>" +
+      "<div><small>Status</small><b>" + ["salur", "monitor", "tuntas"].filter(function (k) { return ins.status[k]; })
+        .map(function (k) { return ins.status[k] + " " + LABEL[k].toLowerCase(); }).join(" · ") + "</b></div></div>" +
+      "<table><thead><tr><th>Tanggal</th><th>Nama KK</th><th>Desa</th><th>Kerusakan</th><th>Jiwa</th><th>Status</th></tr></thead>" +
+      "<tbody>" + baris + "</tbody><tfoot><tr><td colspan='6'>Desa terdampak: " + esc(ins.desa.join(", ") || "-") +
+      ". Dicetak dari dasbor E-JITUPASNA pada " + tglPanjang(new Date()) + ".</td></tr></tfoot></table></body></html>";
+    const bingkai = document.getElementById("rki-cetak");
+    if (bingkai) bingkai.remove();
+    const fr = document.createElement("iframe");
+    fr.id = "rki-cetak";
+    fr.setAttribute("aria-hidden", "true"); fr.tabIndex = -1;
+    fr.style.cssText = "position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none";
+    document.body.appendChild(fr);
+    const doc = fr.contentDocument;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(function () {
+      try { fr.contentWindow.focus(); fr.contentWindow.print(); }
+      catch (e) { if (typeof customAlert === "function") customAlert("Jendela cetak tidak bisa dibuka di browser ini.", "warning"); }
+    }, 350);
+  }
+  function kePeta(id) {
+    const ins = cari(id); if (!ins) return;
+    tutup();
+    setTimeout(function () {
+      try {
+        if (typeof map === "undefined" || !map) return;
+        const ll = ins.titik.map(function (t) { return t.ll; });
+        if (ll.length > 1) map.flyToBounds(L.latLngBounds(ll).pad(0.35), { duration: 1.1 });
+        else if (ll.length) map.flyTo(ll[0], 15, { duration: 1.1 });
+        if (typeof showNotification === "function") {
+          showNotification("Peta diarahkan ke " + ins.jenis + " — Kec. " + ins.kec + " (" + ins.daftar.length + " laporan). Saringan tidak diubah.");
+        }
+      } catch (e) { console.error("[insiden] ke peta:", e); }
+    }, 260);
+  }
+  function ekspor() {
+    const daftar = tersaring(hitung());
+    if (!daftar.length) { if (typeof showNotification === "function") showNotification("Tidak ada kejadian untuk diekspor."); return; }
+    const kolom = ["Jenis bencana", "Kecamatan", "Mulai", "Selesai", "Jumlah laporan", "Jiwa terdampak",
+      "Taksiran kerusakan", "Desa terdampak", "Menunggu penyaluran", "Menunggu monitoring", "Tuntas", "Nama KK"];
+    const sel = function (v) { return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
+    const baris = daftar.map(function (x) {
+      return [x.jenis, x.kec, tglPanjang(x.mulai), tglPanjang(x.akhir), x.daftar.length, x.jiwa,
+        Math.round(x.nilai), x.desa.join(", "), x.status.salur, x.status.monitor, x.status.tuntas,
+        x.daftar.map(function (it) { return it.nama || "-"; }).join(", ")].map(sel).join(";");
+    });
+    /* Titik koma + BOM supaya Excel berbahasa Indonesia membukanya rapi. */
+    const isi = "﻿" + [kolom.map(sel).join(";")].concat(baris).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([isi], { type: "text/csv;charset=utf-8" }));
+    a.download = "Kejadian Besar E-JITUPASNA " + tglPanjang(new Date()) + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    if (typeof showNotification === "function") showNotification(daftar.length + " kejadian diekspor ke CSV.");
+  }
+
+  /* ── buka & tutup ── */
   function buka(idSorot) {
     bangun();
-    gambar();
     lembar.classList.remove("hidden");
-    terakhirBuka = Date.now();
+    isiAturan();
+    gambar();
     if (idSorot) {
-      const el = lembar.querySelector("#ins-" + (window.CSS && CSS.escape ? CSS.escape(idSorot) : idSorot));
-      if (el) setTimeout(function () { el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 60);
+      terbuka[idSorot] = true;
+      gambar();
+      const el = lembar.querySelector('[id="ins-' + idSorot + '"]');
+      if (el) setTimeout(function () { el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 80);
     }
   }
-  function tutup() { if (lembar) lembar.classList.add("hidden"); }
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && lembar && !lembar.classList.contains("hidden")) tutup();
-  });
+  function tutup() {
+    if (!lembar) return;
+    lembar.classList.add("hidden");
+    const pop = $('[data-ins="pop"]'); if (pop) pop.hidden = true;
+    /* Peta mini tidak dibiarkan hidup di balik layar. */
+    buangPeta();
+    const kisi = $('[data-ins="kisi"]'); if (kisi) kisi.innerHTML = "";
+  }
 
   /* ── pintu masuk: tombol di lembar Reports ── */
   function pasangTombol() {
@@ -25226,7 +25657,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     b.style.background = "transparent";
     b.style.border = "1px solid var(--rk-sekat,#243036)";
     b.style.color = "inherit";
-    b.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">workspaces</span>Kejadian besar';
+    b.innerHTML = ikon("workspaces") + "Kejadian besar";
     b.addEventListener("click", function () { buka(); });
     kep.appendChild(b);
     return true;
@@ -25264,7 +25695,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
   }
   if (!pasangPanel()) window.addEventListener("load", pasangPanel);
 
-  window.rkInsiden = { hitung: hitung, untuk: untuk, buka: buka, tutup: tutup };
+  window.rkInsiden = { hitung: hitung, untuk: untuk, buka: buka, tutup: tutup, aturan: aturan, ekspor: ekspor };
 })();
 </script>
 </body>
