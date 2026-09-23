@@ -16243,6 +16243,8 @@ html.dark .rkp-pilih,html.dark .rkp-angka{color-scheme:dark}
   background:var(--rk-muka);border:1px solid var(--rk-sekat)}
 .rkp-catatan.peringatan{border-color:color-mix(in srgb,var(--rk-emas) 45%,var(--rk-sekat));background:color-mix(in srgb,var(--rk-emas) 9%,var(--rk-muka))}
 .rkp-catatan b{color:var(--rk-tinta)}
+#rkp-tv-alamat:empty{display:none}
+#rkp-tv-alamat{word-break:break-all}
 
 @media (max-width:880px){
   .rkp-baris{grid-template-columns:minmax(0,1fr)}
@@ -16599,8 +16601,8 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
           sakelar("kurangiGerak", "Kurangi gerakan")) +
         baris("Ukuran teks", "Memperbesar isi lembar dan panel - untuk dibaca di lapangan atau di layar proyektor. Peta tidak ikut diperbesar.",
           seg("ukuranTeks", [["normal", "Normal"], ["besar", "Besar"]])) +
-        baris("Mode TV", "Tampilan layar besar untuk ruang Pusdalops atau layar publik: titik panas kejadian, laporan terbaru dengan foto kerusakan, dan angka umum - diperbarui otomatis, tanpa nama korban maupun status bantuan. Bisa juga dibuka langsung dengan menambahkan ?tv di akhir alamat web.",
-          '<button type="button" class="rkd-tombol-garis" id="rkp-tv"><span class="material-symbols-outlined">tv</span> Buka Mode TV</button>', "tumpuk")) +
+        baris("Mode TV", "Tampilan layar besar untuk ruang Pusdalops atau layar publik: titik panas kejadian, laporan terbaru dengan foto kerusakan, dan angka umum - diperbarui otomatis, tanpa nama korban maupun status bantuan. Untuk dipasang di TV, salin alamat khususnya lalu tempel di browser TV - Mode TV langsung terbuka tanpa perlu login.",
+          '<div class="rkd-tombol-baris rapat"><button type="button" class="rkd-tombol-garis" id="rkp-tv"><span class="material-symbols-outlined">tv</span> Buka Mode TV</button><button type="button" class="rkd-tombol-garis" id="rkp-tv-salin"><span class="material-symbols-outlined">link</span> Salin alamat TV</button></div><div id="rkp-tv-alamat" class="rkp-catatan"></div>', "tumpuk")) +
 
       bagian("rkp-peta", "02", "Peta", "Peta", "Perilaku peta utama di perangkat ini.",
         baris("Peta dasar", "Dipasang tiap kali web dibuka. Selain Bawaan, peta dasar tidak lagi ikut berganti saat tema diganti.",
@@ -24738,8 +24740,23 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
   document.addEventListener("keydown", function (e) { if (buka && e.key === "Escape") tutup(); });
   document.addEventListener("visibilitychange", function () { if (buka && document.visibilityState === "visible") jagaLayar(); });
   // tombol di Pengaturan
+  /* Alamat khusus TV: halaman ini + penanda tv. Disalin ke papan klip supaya
+     tidak perlu mengetik apa pun di TV - cukup tempel di bilah alamatnya. */
+  function alamatTv() {
+    try { const u = new URL(location.href); u.hash = ""; u.search = "?tv"; return u.toString(); }
+    catch (e) { return location.origin + location.pathname + "?tv"; }
+  }
+  document.addEventListener("click", async function (e) {
+    if (!e.target.closest("#rkp-tv-salin")) return;
+    const alamat = alamatTv();
+    const kotak = document.getElementById("rkp-tv-alamat");
+    let tersalin = false;
+    try { await navigator.clipboard.writeText(alamat); tersalin = true; } catch (err) { tersalin = false; }
+    if (kotak) kotak.textContent = (tersalin ? "Tersalin: " : "Salin sendiri alamat ini: ") + alamat;
+    if (typeof showNotification === "function") showNotification(tersalin ? "Alamat TV tersalin. Tempel di browser TV." : "Alamat TV ditampilkan di bawah tombol - salin manual.");
+  });
   document.addEventListener("click", function (e) {
-    if (!e.target.closest("#rkp-tv")) return;
+    if (!e.target.closest("#rkp-tv") || e.target.closest("#rkp-tv-salin")) return;
     const t = document.getElementById("rk-pengaturan-btn");
     if (t && t.classList.contains("aktif")) t.click();      // tutup lembar Pengaturan dulu
     bukaTv({ layarPenuh: true });
