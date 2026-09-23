@@ -16312,7 +16312,7 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
     tema: "auto", kurangiGerak: false, ukuranTeks: "normal",
     petaDasar: "bawaan", batasKecamatan: true, panelDiam: true, jedaDiam: "30", redup: 58,
     iramaTarik: "otomatis", rentangBawaan: "all",
-    suara: true, volume: 80, terbangOtomatis: true,
+    suara: true, volume: 80, terbangOtomatis: true, notifPerangkat: false,
     hematData: false,
     kunciOtomatis: "0"
   };
@@ -16421,6 +16421,32 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
         break;
       }
       case "rentangBawaan": if (dariPengguna) terapkanRentang(); break;
+      case "notifPerangkat": {
+        const kotak = document.getElementById("rkp-notif-info");
+        const tulis = function (t) { if (kotak) kotak.textContent = t || ""; };
+        if (!("Notification" in window)) {
+          if (setelan.notifPerangkat) { setelan.notifPerangkat = false; simpan(); tulis("Browser ini tidak mendukung notifikasi perangkat."); }
+          break;
+        }
+        if (!setelan.notifPerangkat) { tulis(""); break; }
+        if (Notification.permission === "granted") { tulis("Aktif. Notifikasi muncul selama dasbor terbuka, termasuk di tab latar."); break; }
+        if (Notification.permission === "denied") {
+          setelan.notifPerangkat = false; simpan();
+          tulis("Izin notifikasi diblokir untuk situs ini. Buka setelan situs di browser, izinkan Notifikasi, lalu nyalakan lagi.");
+          break;
+        }
+        if (dariPengguna) {
+          Notification.requestPermission().then(function (izin) {
+            if (izin === "granted") { tulis("Aktif. Notifikasi muncul selama dasbor terbuka, termasuk di tab latar."); return; }
+            setelan.notifPerangkat = false; simpan();
+            try { terapkan("notifPerangkat"); } catch (e) {}
+            const sak = document.querySelector('[data-kunci="notifPerangkat"]');
+            if (sak) sak.checked = false;
+            tulis("Izin notifikasi belum diberikan, jadi pilihannya dimatikan lagi.");
+          });
+        }
+        break;
+      }
       case "suara": case "volume": {
         const a = $("notification-sound");
         if (a) { a.muted = !setelan.suara; a.volume = Math.max(0, Math.min(1, Number(setelan.volume) / 100)); }
@@ -16653,7 +16679,11 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
           '<div class="rkp-geser"><input type="range" min="0" max="100" step="5" data-kunci="volume" aria-label="Volume"><output id="rkp-volume-nilai"></output></div>' +
           '<button type="button" class="rkd-tombol-garis" id="rkp-tes-suara" style="margin-top:0"><span class="material-symbols-outlined">volume_up</span> Tes suara</button>', "", "rkp-baris-volume") +
         baris("Peta terbang ke laporan baru", "Matikan kalau sering terganggu saat sedang membaca titik lain di peta.",
-          sakelar("terbangOtomatis", "Peta terbang ke laporan baru"))) +
+          sakelar("terbangOtomatis", "Peta terbang ke laporan baru")) +
+        baris("Notifikasi perangkat", "Pemberitahuan muncul di layar HP atau komputer saat ada laporan baru - juga ketika dasbor sedang di tab lain. Perlu izin dari browser, dan dasbor harus tetap terbuka (boleh di latar). Nama korban tidak ikut ditampilkan.",
+          sakelar("notifPerangkat", "Notifikasi perangkat") +
+          '<button type="button" class="rkd-tombol-garis" id="rkp-tes-notif"><span class="material-symbols-outlined">notifications_active</span> Coba notifikasi</button>' +
+          '<div id="rkp-notif-info" class="rkp-catatan"></div>', "tumpuk")) +
 
       bagian("rkp-lapangan", "05", "Lapangan", "Mode Lapangan", "Laporan yang tersimpan saat tanpa sinyal, dan penghematan kuota.",
         baris("Antrean laporan offline", '<span id="rkp-antre-info">Menghitung…</span>',
@@ -17038,6 +17068,14 @@ html.rk-hemat .rkw-radar::before{content:"Radar dimatikan — Hemat Data aktif";
       if (window.rkIrama && window.rkIrama.paksa) window.rkIrama.paksa();
       else if (typeof fetchData === "function") fetchData();
       beriTahu("Menarik data terbaru…");
+    });
+    $("rkp-tes-notif").addEventListener("click", function () {
+      if (!window.rkNotifBaru) { beriTahu("Modul notifikasi belum siap."); return; }
+      window.rkNotifBaru.coba().then(function (hasil) {
+        const kotak = $("rkp-notif-info");
+        if (kotak) kotak.textContent = hasil.pesan;
+        if (!hasil.ok) beriTahu(hasil.pesan);
+      });
     });
     $("rkp-tes-suara").addEventListener("click", function () {
       const a = $("notification-sound");
@@ -24838,5 +24876,396 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 })();
 </script>
 
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   NOTIFIKASI LAPORAN BARU
+   ══════════════════════════════════════════════════════════════════════
+   Pemberitahuan perangkat saat laporan baru masuk - berguna untuk petugas
+   piket yang dasbornya terbuka di tab lain. Yang perlu diingat:
+
+   · Ini BUKAN push server. Kalau dasbor ditutup sama sekali, tidak ada
+     pemberitahuan. Selama masih terbuka (boleh di latar, boleh terpasang
+     sebagai aplikasi), pemberitahuan tetap jalan.
+   · Nama korban TIDAK disebut: pemberitahuan bisa terbaca di layar kunci.
+   · Saat pertama kali data dimuat, laporan yang sudah ada TIDAK diberitahukan.
+     Patokannya disimpan di perangkat, jadi muat ulang tidak membanjiri layar.
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  const KUNCI = "rk-notif-dilihat";
+  const JEDA = 3000;           /* seberapa sering isi dasbor diperiksa */
+  const MAKS_SATUAN = 3;       /* lebih dari ini diringkas jadi satu pemberitahuan */
+  let dikenal = null, siapDari = 0;
+
+  const data = function () { try { return Array.isArray(allData) ? allData : []; } catch (e) { return []; } };
+  const kunciLaporan = function (it) { return String(it.timestamp || (it.dateObj && it.dateObj.getTime()) || ""); };
+  const bersih = function (v) { v = String(v == null ? "" : v).trim(); return v && v !== "-" ? v : ""; };
+  function nyala() {
+    try { return !!(window.rkPengaturan && window.rkPengaturan.semua().notifPerangkat); } catch (e) { return false; }
+  }
+  function bacaDilihat() { try { return JSON.parse(localStorage.getItem(KUNCI) || "[]") || []; } catch (e) { return []; } }
+  function simpanDilihat(daftar) { try { localStorage.setItem(KUNCI, JSON.stringify(daftar.slice(-400))); } catch (e) {} }
+
+  async function tampilkan(judul, isi, tag, ts) {
+    const pilihan = { body: isi, tag: tag, icon: LOGO_NOTIF, badge: LOGO_NOTIF, data: { ts: ts || "" }, lang: "id" };
+    /* Lewat service worker kalau ada - di Android hanya jalur ini yang bisa
+       menampilkan notifikasi. TAPI ready bisa menggantung selamanya (belum
+       terdaftar, dibuka dari berkas, atau pendaftarannya gagal), jadi diberi
+       batas waktu; sesudah itu dipakai cara biasa. */
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        const reg = await Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise(function (ok) { setTimeout(function () { ok(null); }, 1500); })
+        ]);
+        if (reg && reg.showNotification) { await reg.showNotification(judul, pilihan); return true; }
+      }
+    } catch (e) { /* jatuh ke cara biasa di bawah */ }
+    try { new Notification(judul, pilihan); return true; } catch (e) { return false; }
+  }
+  const LOGO_NOTIF = (function () {
+    const im = document.querySelector("#rk-merek img");
+    return im && im.src ? im.src : "";
+  })();
+
+  function ringkas(it) {
+    const bagian = [bersih(it.bencana), bersih(it.desakelurahan) ? "Ds. " + bersih(it.desakelurahan) : ""];
+    const jiwa = parseFloat(it.jumlahKeluarga) || 0;
+    if (jiwa) bagian.push(jiwa + " jiwa");
+    const d = it.dateObj instanceof Date && !isNaN(it.dateObj) ? it.dateObj : null;
+    if (d) bagian.push(String(d.getHours()).padStart(2, "0") + "." + String(d.getMinutes()).padStart(2, "0"));
+    return bagian.filter(Boolean).join(" · ");
+  }
+
+  async function periksa() {
+    const isi = data();
+    if (!isi.length) return;
+    const sekarang = isi.map(kunciLaporan).filter(Boolean);
+    if (dikenal === null) {
+      /* Patokan awal: yang sudah ada sekarang + yang pernah dilihat di perangkat ini */
+      dikenal = {};
+      sekarang.concat(bacaDilihat()).forEach(function (k) { dikenal[k] = true; });
+      simpanDilihat(Object.keys(dikenal));
+      siapDari = Date.now() + 4000;   /* jeda sebentar supaya data susulan tidak dianggap baru */
+      return;
+    }
+    const baru = isi.filter(function (it) { const k = kunciLaporan(it); return k && !dikenal[k]; });
+    if (!baru.length) return;
+    baru.forEach(function (it) { dikenal[kunciLaporan(it)] = true; });
+    simpanDilihat(Object.keys(dikenal));
+    if (Date.now() < siapDari) return;
+    if (!nyala() || !("Notification" in window) || Notification.permission !== "granted") return;
+
+    if (baru.length > MAKS_SATUAN) {
+      const kec = {};
+      baru.forEach(function (it) { const k = bersih(it.kec); if (k) kec[k] = 1; });
+      await tampilkan(baru.length + " laporan baru masuk",
+        Object.keys(kec).slice(0, 4).join(", ") || "Buka dasbor untuk melihat rinciannya", "rk-laporan-banyak", "");
+      return;
+    }
+    for (const it of baru) {
+      const kec = bersih(it.kec);
+      await tampilkan("Laporan baru" + (kec ? " — Kec. " + kec : ""), ringkas(it), "rk-laporan-" + kunciLaporan(it), kunciLaporan(it));
+    }
+  }
+
+  /* Klik notifikasi: panel laporan yang dimaksud langsung dibuka. */
+  function bukaLaporan(ts) {
+    if (!ts) return;
+    const it = data().find(function (x) { return String(x.timestamp) === String(ts); });
+    if (it && typeof window.openSidebarWithData === "function") {
+      try { window.openSidebarWithData(it); } catch (e) { console.error("[notif] buka laporan:", e); }
+    }
+  }
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", function (e) {
+      if (e.data && e.data.jenis === "rk-buka-laporan") { try { window.focus(); } catch (x) {} bukaLaporan(e.data.ts); }
+    });
+  }
+  try {
+    const m = location.hash.match(/laporan=([^&]+)/);
+    if (m) setTimeout(function () { bukaLaporan(decodeURIComponent(m[1])); }, 3000);
+  } catch (e) {}
+
+  setInterval(function () { periksa().catch(function (e) { console.error("[notif] periksa:", e); }); }, JEDA);
+
+  window.rkNotifBaru = {
+    periksa: periksa,
+    /* Untuk memeriksa saat ada keluhan "notifikasi tidak muncul". */
+    keadaan: function () {
+      return { nyala: nyala(), izin: ("Notification" in window) ? Notification.permission : "tidak ada",
+        dikenal: dikenal ? Object.keys(dikenal).length : 0, siapDalam: Math.max(0, siapDari - Date.now()) };
+    },
+    /* Dipakai tombol "Coba notifikasi" di Pengaturan. */
+    coba: async function () {
+      if (!("Notification" in window)) return { ok: false, pesan: "Browser ini tidak mendukung notifikasi perangkat." };
+      if (Notification.permission === "denied") return { ok: false, pesan: "Izin notifikasi diblokir untuk situs ini. Ubah di setelan situs pada browser." };
+      if (Notification.permission !== "granted") {
+        const izin = await Notification.requestPermission();
+        if (izin !== "granted") return { ok: false, pesan: "Izin notifikasi belum diberikan." };
+      }
+      const ok = await tampilkan("Contoh notifikasi laporan baru", "Cuaca Ekstrem · Ds. Contoh · 3 jiwa", "rk-laporan-coba", "");
+      return ok
+        ? { ok: true, pesan: "Notifikasi terkirim. Kalau tidak terlihat, periksa mode Jangan Ganggu di perangkat." }
+        : { ok: false, pesan: "Notifikasi gagal ditampilkan browser ini." };
+    }
+  };
+})();
+</script>
+<style id="rk-insiden-gaya">
+/* ══════════════════════════════════════════════════════════════════════
+   KEJADIAN BESAR (INSIDEN)
+   Satu bencana yang menimpa banyak KK sekaligus - misalnya angin kencang
+   yang merusak 12 rumah di satu kecamatan dalam dua hari - di database
+   tercatat sebagai 12 laporan terpisah. Lembar ini menyatukannya kembali
+   supaya terlihat sebagai SATU kejadian, tanpa mengubah apa pun di
+   spreadsheet: pengelompokan dihitung di dasbor.
+   ══════════════════════════════════════════════════════════════════════ */
+#insiden-view{position:fixed;inset:0;z-index:1200;display:flex;flex-direction:column;overflow-y:auto;
+  background:var(--rk-dasar,#0F1719);color:var(--rk-tinta,#EAF0EE);transition:opacity .25s ease}
+#insiden-view.hidden{display:none}
+#insiden-view .rki-bungkus{width:min(1100px,100%);margin:0 auto;padding:36px 28px 64px}
+#insiden-view .rki-kep{display:flex;align-items:flex-start;gap:18px;margin-bottom:26px}
+#insiden-view .rki-kep h1{font:800 34px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin:0}
+#insiden-view .rki-kep p{margin:8px 0 0;font-size:14px;color:var(--rk-tipis,#8A9A9E);max-width:70ch;line-height:1.6}
+#insiden-view .rki-tutup{margin-left:auto;height:38px;padding:0 15px;border:1px solid var(--rk-sekat,#243036);border-radius:11px;
+  background:transparent;color:inherit;font:600 13px "Plus Jakarta Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+#insiden-view .rki-tutup:hover{background:var(--rk-sekat,#243036)}
+#insiden-view .rki-kartu{border:1px solid var(--rk-sekat,#243036);border-radius:18px;background:var(--rk-kartu,#16201F);padding:20px 22px;margin-bottom:16px}
+#insiden-view .rki-atas{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+#insiden-view .rki-atas h2{font:700 21px "Bricolage Grotesque",sans-serif;margin:0}
+#insiden-view .rki-atas s{text-decoration:none;font:500 12.5px "DM Mono",monospace;color:var(--rk-tipis,#8A9A9E)}
+#insiden-view .rki-angka{display:flex;flex-wrap:wrap;gap:22px;margin:14px 0 12px}
+#insiden-view .rki-angka div small{display:block;font:500 11px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
+#insiden-view .rki-angka div b{font:800 26px/1.15 "Bricolage Grotesque",sans-serif}
+#insiden-view .rki-cip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:99px;font-size:12.5px;font-weight:600}
+#insiden-view .rki-cip.salur{background:rgba(239,68,68,.14);color:#FCA5A5}
+#insiden-view .rki-cip.monitor{background:rgba(245,184,46,.14);color:#FCD34D}
+#insiden-view .rki-cip.tuntas{background:rgba(34,197,94,.14);color:#86EFAC}
+#insiden-view .rki-daftar{margin-top:6px;border-top:1px solid var(--rk-sekat,#243036)}
+#insiden-view .rki-baris{display:grid;grid-template-columns:92px minmax(0,1fr) auto;align-items:center;gap:14px;padding:10px 0;
+  border-bottom:1px solid var(--rk-sekat,#243036);width:100%;background:none;border-left:0;border-right:0;border-top:0;color:inherit;text-align:left;cursor:pointer;font:inherit}
+#insiden-view .rki-baris:hover{background:var(--rk-sekat,#243036)}
+#insiden-view .rki-baris i{font-style:normal;font:500 12.5px "DM Mono",monospace;color:var(--rk-tipis,#8A9A9E)}
+#insiden-view .rki-baris b{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#insiden-view .rki-baris span{font-size:13px;color:var(--rk-tipis,#8A9A9E)}
+#insiden-view .rki-kosong{padding:40px 0;text-align:center;color:var(--rk-tipis,#8A9A9E);font-size:15px}
+.rkd-insiden{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:12px;cursor:pointer;
+  background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.35);color:#BAE6FD;font:inherit;font-size:12.5px;line-height:1.45;text-align:left;width:100%}
+.rkd-insiden:hover{background:rgba(56,189,248,.16)}
+.rkd-insiden b{display:block;font-weight:700}
+</style>
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   KEJADIAN BESAR (INSIDEN)
+   ══════════════════════════════════════════════════════════════════════
+   Aturan pengelompokan - sengaja sederhana supaya hasilnya bisa ditebak
+   petugas, bukan kotak ajaib:
+
+     · jenis bencana sama,
+     · kecamatan sama,
+     · jarak antar laporan berurutan <= 3 hari (rantai, bukan rentang tetap),
+     · minimal 3 laporan.
+
+   Tidak ada yang ditulis ke spreadsheet. Kalau aturannya kelak dirasa
+   kurang pas, yang diubah cuma angka di bawah ini.
+   ══════════════════════════════════════════════════════════════════════ */
+(function () {
+  const JEDA_HARI = 3, MIN_LAPORAN = 3;
+  const BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  let lembar = null, terakhirBuka = 0;
+
+  const data = function () { try { return Array.isArray(allData) ? allData : []; } catch (e) { return []; } };
+  const esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+  const bersih = function (v) { v = String(v == null ? "" : v).trim(); return v && v !== "-" ? v : ""; };
+  const tgl = function (it) { return it && it.dateObj instanceof Date && !isNaN(it.dateObj) ? it.dateObj : null; };
+  const tglPendek = function (d) { return d.getDate() + " " + BULAN[d.getMonth()]; };
+  const tglPanjang = function (d) { return d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear(); };
+  function rupiah(n) {
+    n = +n || 0;
+    if (n >= 1e9) return "Rp " + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
+    if (n >= 1e6) return "Rp " + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
+    return "Rp " + n.toLocaleString("id-ID");
+  }
+  function status(it) {
+    try { const t = window.rkTunggakan && window.rkTunggakan(it); return t && t.st ? t.st : "tuntas"; }
+    catch (e) { return "tuntas"; }
+  }
+
+  /* Rantai waktu: laporan diurutkan, lalu dipotong tiap kali jaraknya
+     dengan laporan sebelumnya lebih dari JEDA_HARI. */
+  function hitung() {
+    const per = {};
+    data().forEach(function (it) {
+      const d = tgl(it), jenis = bersih(it.bencana), kec = bersih(it.kec);
+      if (!d || !jenis || !kec) return;
+      const k = jenis.toLowerCase() + "|" + kec.toLowerCase();
+      (per[k] = per[k] || []).push({ it: it, d: d, jenis: jenis, kec: kec });
+    });
+    const hasil = [];
+    Object.keys(per).forEach(function (k) {
+      const daftar = per[k].sort(function (a, b) { return a.d - b.d; });
+      let kel = [daftar[0]];
+      for (let i = 1; i <= daftar.length; i++) {
+        const lanjut = i < daftar.length && (daftar[i].d - kel[kel.length - 1].d) <= JEDA_HARI * 864e5;
+        if (lanjut) { kel.push(daftar[i]); continue; }
+        if (kel.length >= MIN_LAPORAN) hasil.push(rangkum(kel));
+        kel = i < daftar.length ? [daftar[i]] : [];
+      }
+    });
+    return hasil.sort(function (a, b) { return b.akhir - a.akhir; });
+  }
+  function rangkum(kel) {
+    const n = { salur: 0, monitor: 0, tuntas: 0 };
+    let jiwa = 0, nilai = 0;
+    const desa = {};
+    kel.forEach(function (x) {
+      n[status(x.it)]++;
+      jiwa += parseFloat(x.it.jumlahKeluarga) || 0;
+      nilai += parseFloat(x.it.nilaiKerusakan) || 0;
+      const ds = bersih(x.it.desakelurahan); if (ds) desa[ds] = (desa[ds] || 0) + 1;
+    });
+    return {
+      id: kel[0].jenis.toLowerCase().replace(/\s+/g, "-") + "-" + kel[0].kec.toLowerCase().replace(/\s+/g, "-") + "-" + kel[0].d.getTime(),
+      jenis: kel[0].jenis, kec: kel[0].kec, mulai: kel[0].d, akhir: kel[kel.length - 1].d,
+      daftar: kel.map(function (x) { return x.it; }), jiwa: jiwa, nilai: nilai, status: n,
+      desa: Object.keys(desa).sort(function (a, b) { return desa[b] - desa[a]; })
+    };
+  }
+  /* Insiden yang memuat satu laporan tertentu - dipakai panel detail. */
+  function untuk(it) {
+    if (!it) return null;
+    const kunci = String(it.timestamp || "");
+    return hitung().find(function (ins) {
+      return ins.daftar.some(function (x) { return String(x.timestamp || "") === kunci; });
+    }) || null;
+  }
+
+  /* ── lembar ── */
+  function bangun() {
+    if (lembar) return lembar;
+    lembar = document.createElement("div");
+    lembar.id = "insiden-view";
+    lembar.className = "hidden";
+    lembar.setAttribute("role", "dialog");
+    lembar.setAttribute("aria-label", "Kejadian besar");
+    lembar.innerHTML = '<div class="rki-bungkus">' +
+      '<header class="rki-kep"><div><h1>Kejadian Besar</h1>' +
+        "<p>Laporan yang jenis bencananya sama, kecamatannya sama, dan berdekatan waktu (maksimal " + JEDA_HARI +
+        " hari antar laporan) dikumpulkan jadi satu kejadian. Hanya kumpulan berisi minimal " + MIN_LAPORAN +
+        " laporan yang ditampilkan. Pengelompokan ini dihitung di dasbor; data di spreadsheet tidak diubah.</p></div>" +
+        '<button type="button" class="rki-tutup" data-ins="tutup"><span class="material-symbols-outlined">close</span>Tutup</button>' +
+      "</header><div data-ins=\"isi\"></div></div>";
+    document.body.appendChild(lembar);
+    lembar.addEventListener("click", function (e) {
+      if (e.target.closest('[data-ins="tutup"]')) { tutup(); return; }
+      const baris = e.target.closest("[data-ts]");
+      if (!baris) return;
+      const it = data().find(function (x) { return String(x.timestamp || "") === baris.getAttribute("data-ts"); });
+      if (it && typeof window.openSidebarWithData === "function") { tutup(); window.openSidebarWithData(it); }
+    });
+    return lembar;
+  }
+  function gambar() {
+    const isi = lembar.querySelector('[data-ins="isi"]');
+    const daftar = hitung();
+    if (!daftar.length) {
+      isi.innerHTML = '<div class="rki-kosong">Belum ada kejadian yang memenuhi syarat.<br>Minimal ' + MIN_LAPORAN +
+        " laporan dengan jenis bencana dan kecamatan yang sama, berselang paling lama " + JEDA_HARI + " hari.</div>";
+      return;
+    }
+    isi.innerHTML = daftar.map(function (ins) {
+      const rentang = ins.mulai.toDateString() === ins.akhir.toDateString()
+        ? tglPanjang(ins.mulai)
+        : tglPendek(ins.mulai) + " – " + tglPanjang(ins.akhir);
+      const cip = [
+        ins.status.salur ? '<span class="rki-cip salur">' + ins.status.salur + " menunggu penyaluran</span>" : "",
+        ins.status.monitor ? '<span class="rki-cip monitor">' + ins.status.monitor + " menunggu monitoring</span>" : "",
+        ins.status.tuntas ? '<span class="rki-cip tuntas">' + ins.status.tuntas + " tuntas</span>" : ""
+      ].filter(Boolean).join(" ");
+      const baris = ins.daftar.slice().sort(function (a, b) { return tgl(a) - tgl(b); }).map(function (it) {
+        const d = tgl(it);
+        return '<button type="button" class="rki-baris" data-ts="' + esc(it.timestamp) + '">' +
+          "<i>" + (d ? tglPendek(d) : "-") + "</i>" +
+          "<span><b>" + esc(it.nama || "-") + "</b><br><span>" + esc([bersih(it.desakelurahan), bersih(it.kerusakan)].filter(Boolean).join(" · ")) + "</span></span>" +
+          '<span class="rki-cip ' + status(it) + '">' + ({ salur: "Penyaluran", monitor: "Monitoring", tuntas: "Tuntas" })[status(it)] + "</span></button>";
+      }).join("");
+      return '<article class="rki-kartu" id="ins-' + esc(ins.id) + '">' +
+        '<div class="rki-atas"><h2>' + esc(ins.jenis) + " — Kec. " + esc(ins.kec) + "</h2><s>" + esc(rentang) + "</s></div>" +
+        '<div class="rki-angka">' +
+          "<div><small>Laporan</small><b>" + ins.daftar.length + "</b></div>" +
+          "<div><small>Jiwa terdampak</small><b>" + ins.jiwa.toLocaleString("id-ID") + "</b></div>" +
+          "<div><small>Taksiran kerusakan</small><b>" + rupiah(ins.nilai) + "</b></div>" +
+          "<div><small>Desa</small><b>" + ins.desa.length + "</b></div>" +
+        "</div>" +
+        "<div>" + cip + "</div>" +
+        '<div class="rki-daftar">' + baris + "</div></article>";
+    }).join("");
+  }
+  function buka(idSorot) {
+    bangun();
+    gambar();
+    lembar.classList.remove("hidden");
+    terakhirBuka = Date.now();
+    if (idSorot) {
+      const el = lembar.querySelector("#ins-" + (window.CSS && CSS.escape ? CSS.escape(idSorot) : idSorot));
+      if (el) setTimeout(function () { el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 60);
+    }
+  }
+  function tutup() { if (lembar) lembar.classList.add("hidden"); }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && lembar && !lembar.classList.contains("hidden")) tutup();
+  });
+
+  /* ── pintu masuk: tombol di lembar Reports ── */
+  function pasangTombol() {
+    const kep = document.querySelector("#reports-view .rkr-kep");
+    if (!kep || kep.querySelector("[data-ins-tombol]")) return !!kep;
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "rlb-tombol"; b.setAttribute("data-ins-tombol", "");
+    b.style.marginLeft = "10px";
+    b.style.background = "transparent";
+    b.style.border = "1px solid var(--rk-sekat,#243036)";
+    b.style.color = "inherit";
+    b.innerHTML = '<span class="material-symbols-outlined" aria-hidden="true">workspaces</span>Kejadian besar';
+    b.addEventListener("click", function () { buka(); });
+    kep.appendChild(b);
+    return true;
+  }
+  if (!pasangTombol()) {
+    let sisa = 80;
+    const jam = setInterval(function () { if (pasangTombol() || --sisa <= 0) clearInterval(jam); }, 250);
+  }
+
+  /* ── penanda di panel detail ── */
+  function tandaiPanel(it) {
+    const isi = document.getElementById("sidebar-content");
+    if (!isi) return;
+    const lama = isi.querySelector(".rkd-insiden");
+    const ins = untuk(it);
+    if (!ins) { if (lama) lama.remove(); return; }
+    const kotak = lama || document.createElement("button");
+    kotak.type = "button";
+    kotak.className = "rkd-insiden";
+    kotak.innerHTML = '<span class="material-symbols-outlined">workspaces</span><span><b>Bagian dari kejadian besar</b>' +
+      esc(ins.jenis) + " — Kec. " + esc(ins.kec) + " · " + ins.daftar.length + " laporan · " +
+      ins.jiwa.toLocaleString("id-ID") + " jiwa. Ketuk untuk melihat semuanya.</span>";
+    kotak.onclick = function () { buka(ins.id); };
+    if (!lama) isi.insertBefore(kotak, isi.firstChild);
+  }
+  function pasangPanel() {
+    if (typeof window.openSidebarWithData !== "function") return false;
+    const asli = window.openSidebarWithData;
+    window.openSidebarWithData = function (d) {
+      const hasil = asli.apply(this, arguments);
+      try { setTimeout(function () { tandaiPanel(d); }, 0); } catch (e) {}
+      return hasil;
+    };
+    return true;
+  }
+  if (!pasangPanel()) window.addEventListener("load", pasangPanel);
+
+  window.rkInsiden = { hitung: hitung, untuk: untuk, buka: buka, tutup: tutup };
+})();
+</script>
 </body>
 </html>
