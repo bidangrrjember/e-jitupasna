@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyStzuw97ZabBuGtzoXsC_o1tQuLvfrZymv_HCkUvnk9frBuFeW5zxaed3D1dAPONGT/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -12848,7 +12848,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     s.innerHTML =
       '<div class="rk-cincin rk-naik"><div class="rk-lencana">' +
         '<img src="' + LOGO + '" alt="Logo BPBD"></div></div>' +
-      '<h1 class="rk-naik" style="animation-delay:.12s">JITU<span>PASNA</span></h1>' +
+      '<h1 class="rk-naik" style="animation-delay:.12s">E-JITU<span>PASNA</span></h1>' +
       '<p class="rk-instansi rk-naik" style="animation-delay:.24s">BPBD <i></i> Kabupaten Jember</p>' +
       '<div class="rk-jalur rk-naik" style="animation-delay:.36s"><b></b></div>' +
       '<div class="rk-tahap rk-naik" id="rk-tahap" style="animation-delay:.44s"></div>';
@@ -14212,7 +14212,36 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     return bilah;
   }
 
-  function lapor(sebab, jalur) {
+  /* Apps Script di sisi Google sesekali tersendat beberapa menit: permintaan
+     tertahan puluhan detik lalu dijawab 404, sedangkan percobaan berikutnya
+     biasanya langsung berhasil. Kalau data tersimpan masih ada, kegagalan
+     PERTAMA tidak perlu diumumkan dengan bilah merah - cukup dicoba lagi
+     diam-diam. Bilah baru muncul kalau gagalnya berturut-turut, atau kalau
+     memang tidak ada data yang bisa ditampilkan (layar akan kosong). */
+  const SABAR = 2;               // gagal TARIKAN DATA berturut-turut sebelum bilah muncul
+  let gagalData = 0, jamCobaCepat = 0;
+  function cobaLagiCepat() {
+    if (jamCobaCepat) return;
+    jamCobaCepat = setTimeout(function () {
+      jamCobaCepat = 0;
+      try { if (window.rkIrama && window.rkIrama.paksa) window.rkIrama.paksa(); } catch (e) {}
+    }, 8000);
+  }
+
+  function lapor(sebab, jalur, opsi) {
+    gagalBeruntun++;
+    /* Yang menentukan bukan cuma simpanan: selama dasbor MASIH menampilkan
+       laporan, layarnya tidak kosong dan tidak ada yang perlu ditakutkan dulu.
+       Pemeriksa sidik pun gagal saat Apps Script tersendat, dan ia tidak punya
+       simpanan sendiri. */
+    let adaDiLayar = false;
+    try { adaDiLayar = typeof allData !== "undefined" && Array.isArray(allData) && allData.length > 0; } catch (e) {}
+    /* Pemeriksa sidik (mode=sidik) tidak pernah meributkan dirinya sendiri:
+       kalau ia gagal, kode langsung menarik data penuh - tarikan ITU yang
+       berhak memutuskan ada masalah atau tidak. */
+    const sidik = /mode=sidik/.test(jalur || "");
+    if (!sidik) gagalData++;
+    if (((opsi && opsi.adaSimpanan) || adaDiLayar) && (sidik || gagalData < SABAR)) { cobaLagiCepat(); return; }
     const b = bangun();
     /* Halaman yang dibuka dari berkas punya asal "null", dan sebagian
        permintaan memang ditolak di sana. Disebut sebagai KEMUNGKINAN,
@@ -14226,13 +14255,14 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
        pemeriksa sidik, dan panggilan Logistik. Menyebut angka galatnya
        saja membuat ketiganya terlihat sama, dan langkah berikutnya cuma
        tebakan. */
-    gagalBeruntun++;
     sebabEl.textContent = (jalur ? jalur + "  \u00b7  " : "") + sebab + tambahan;
     b.classList.add("tampil");
+    cobaLagiCepat();
   }
 
   function pulih() {
-    gagalBeruntun = 0;
+    gagalBeruntun = 0; gagalData = 0;
+    if (jamCobaCepat) { clearTimeout(jamCobaCepat); jamCobaCepat = 0; }
     if (bilah) bilah.classList.remove("tampil");
   }
 
@@ -14301,7 +14331,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       if (!bacaanData(alamat, pilihan)) return null;
       const simpanan = ambilSimpanan();
       if (!simpanan) return null;
-      lapor(sebab + "  \u00b7  menampilkan data tersimpan " + jamTerbaca(simpanan.jam), jalur);
+      lapor(sebab + "  \u00b7  menampilkan data tersimpan " + jamTerbaca(simpanan.jam), jalur, { adaSimpanan: true });
       return new Response(simpanan.teks, {
         status: 200, headers: { "Content-Type": "application/json" }
       });
