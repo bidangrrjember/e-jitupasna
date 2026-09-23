@@ -5551,7 +5551,7 @@ async function handleSidebarUpload(fileType, reportIndex) {
                 if(fetchInterval) clearInterval(fetchInterval);
                 window.__rkTarikPaksa = true;       // lewati jalan pintas "data tidak berubah"
                 fetchData(); 
-                fetchInterval = setInterval(fetchData, 5000);
+                fetchInterval = setInterval(function () { window.fetchData(); }, 5000);
 
             } catch (error) {
                 console.error('Gagal upload file:', error);
@@ -6450,7 +6450,12 @@ async function generateDampakAI() {
 }
 
         fetchData(); 
-        fetchInterval = setInterval(fetchData, 5000);
+        /* Lewat window.fetchData, BUKAN rujukan langsung: penjaga irama (rkIrama)
+           membungkus ulang window.fetchData SESUDAH baris ini jalan. Rujukan
+           langsung menyimpan fungsi lama, dan dasbor jadi menarik seluruh data
+           tiap 5 detik tanpa henti - itu yang membuat Apps Script kewalahan
+           lalu menjawab 404. */
+        fetchInterval = setInterval(function () { window.fetchData(); }, 5000);
 	fetchWeather();
 	setInterval(fetchWeather, 600000);
 	window.addEventListener('resize', adjustTableHeight); 
@@ -7149,7 +7154,7 @@ if (!lanjut) return;
                     showNotification('✅ Laporan berhasil dikirim!');
                     if(fetchInterval) clearInterval(fetchInterval);
                     fetchData();
-                    fetchInterval = setInterval(fetchData, 5000);
+                    fetchInterval = setInterval(function () { window.fetchData(); }, 5000);
                 } else {
                     // Jangan bilang "terkirim" kalau memang belum sampai server
                     showNotification('📥 Tanpa sinyal — laporan disimpan, akan terkirim otomatis.');
@@ -13529,7 +13534,14 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       try { return window.fetchData(); } catch (e) { console.error("[kulit] paksa:", e); }
     }
 
-    window.rkIrama = { boleh: boleh, jeda: jeda, paksa: paksa };
+    /* Pemeriksaan sidik pun perlu mencatat waktunya: kalau tidak, ia dianggap
+       belum pernah jalan dan diulang tiap 5 detik walau tidak ada yang berubah. */
+    function tandai() { mulaiTerakhir = Date.now(); pernahJalan = true; }
+    /* Sidik yang sudah berubah TIDAK boleh ditahan penjaga: pemeriksaannya
+       barusan mencatat waktu, dan tanpa lepas() tarikan penuhnya ikut
+       terblokir - dasbor jadi tahu ada laporan baru tapi tidak menariknya. */
+    function lepas() { mulaiTerakhir = 0; }
+    window.rkIrama = { boleh: boleh, jeda: jeda, paksa: paksa, tandai: tandai, lepas: lepas };
     return true;
   }
 
@@ -13621,11 +13633,21 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     const _tarik = window.fetchData;
 
     window.fetchData = function () {
+      /* Penjaga irama ada di lapisan DALAM, jadi tanpa penjagaan di sini
+         pemeriksaan sidik ikut jalan tiap 5 detik - murah per permintaan,
+         tapi tetap satu eksekusi Apps Script tiap kali, sepanjang hari. */
+      try {
+        if (window.rkIrama && window.rkIrama.boleh) {
+          if (!window.rkIrama.boleh()) return;
+          if (window.rkIrama.tandai) window.rkIrama.tandai();
+        }
+      } catch (e) {}
       const argumen = arguments;
       const diri = this;
 
       function tarikPenuh() {
         penuhTerakhir = Date.now();
+        try { if (window.rkIrama && window.rkIrama.lepas) window.rkIrama.lepas(); } catch (e) {}
         return _tarik.apply(diri, argumen);
       }
 
@@ -24462,10 +24484,17 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
   const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const WARNA_JENIS = ["#F2711C", "#38BDF8", "#EF4444", "#A78BFA", "#94A3B8", "#22C55E", "#F5B82E"];
   const JEDA_FOTO = 6000;
+  /* Di TV tidak ada yang menyentuh tetikus, jadi dasbor menganggap sesinya
+     "sepi" dan memperlambat tarikan data sampai 4-5 menit sekali. Untuk layar
+     yang harus terasa langsung, Mode TV menarik sendiri tiap setengah menit
+     (lewat jalur murah mode=sidik - kalau tidak ada yang berubah, jawabannya
+     cuma beberapa puluh byte) dan menggambar ulang begitu datanya berubah. */
+  const JEDA_TARIK = 30000, JEDA_CEK = 2000;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
   let akar = null, peta = null, lapisPanas = null, lapisTitik = null, lapisBaru = null, batas = null, zoom = null, zoomTitik = null;
   let buka = false, kunciBaru = "", fotoKe = 0;
-  let jamDetik = 0, jamSegar = 0, jamFoto = 0, jamGerak = 0, kunciLayar = null;
+  let jamDetik = 0, jamSegar = 0, jamFoto = 0, jamGerak = 0, jamTarik = 0, jamCek = 0, kunciLayar = null;
+  let sidikData = "";
 
   const $ = function (s) { return akar.querySelector(s); };
   const esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
@@ -24535,6 +24564,28 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     document.body.appendChild(akar);
     akar.addEventListener("click", function (e) { if (e.target.closest('[data-tv="tutup"]')) tutup(); });
     akar.addEventListener("mousemove", tandaGerak);
+  }
+
+  function tarikData() {
+    try {
+      if (window.rkIrama && window.rkIrama.paksa) window.rkIrama.paksa();
+      else if (typeof window.fetchData === "function") window.fetchData();
+    } catch (e) { console.error("[tv] tarik data:", e); }
+  }
+  /* Sidik ringkas isi layar: jumlah laporan + laporan terbaru + berkasnya.
+     Begitu berubah, Mode TV langsung menggambar ulang - tidak menunggu
+     giliran 20 detik berikutnya. */
+  function sidikIsi() {
+    const d = data();
+    let akhir = null;
+    d.forEach(function (it) { const t = tgl(it); if (t && (!akhir || t > akhir.t)) akhir = { t: t, it: it }; });
+    return d.length + "|" + (akhir ? String(akhir.it.timestamp || akhir.t.getTime()) + "|" + (akhir.it.photos || []).length : "-");
+  }
+  function cekData() {
+    const s = sidikIsi();
+    if (s === sidikData) return;
+    sidikData = s;
+    gambar();
   }
 
   function skala() {
@@ -24720,6 +24771,10 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     clearInterval(jamDetik); jamDetik = setInterval(detak, 5000);
     clearInterval(jamSegar); jamSegar = setInterval(gambar, 20000);
     clearInterval(jamFoto); jamFoto = setInterval(gantiFoto, JEDA_FOTO);
+    sidikData = sidikIsi();
+    clearInterval(jamTarik); jamTarik = setInterval(tarikData, JEDA_TARIK);
+    clearInterval(jamCek); jamCek = setInterval(cekData, JEDA_CEK);
+    tarikData();
     jagaLayar();
     tandaGerak();
     try { $('[data-tv="tutup"]').focus({ preventScroll: true }); } catch (e) {}
@@ -24729,7 +24784,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     buka = false;
     akar.classList.remove("buka", "gerak");
     document.documentElement.classList.remove("rk-tv-aktif");
-    clearInterval(jamDetik); clearInterval(jamSegar); clearInterval(jamFoto);
+    clearInterval(jamDetik); clearInterval(jamSegar); clearInterval(jamFoto); clearInterval(jamTarik); clearInterval(jamCek);
     if (kunciLayar) { try { kunciLayar.release(); } catch (e) {} kunciLayar = null; }
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     // alamat ?tv dibersihkan supaya muat ulang berikutnya kembali ke dasbor
