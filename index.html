@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzJXmmGzBwuLR2DvXGqWQXLjuatQIhe0gfbrKum0QwrdzQTA781ES9s-goSPPcov4eP/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -10385,6 +10385,7 @@ const BATAS_KECAMATAN = {"type":"FeatureCollection","features":[{"type":"Feature
   --rk-tinta:#0C1417; --rk-sedang:#4A5A5F; --rk-tipis:#7B8B90;
   --rk-api:#D9540B; --rk-api-t:#FBE8DA; --rk-emas:#B07A05; --rk-laut:#0C6E6A;
   --rk-muka:#F2F6F7; --rk-merah:#B4321F; --rk-merah-t:#FAE7E3; --rk-emas-t:#FBF1DA;
+  --rk-kartu:#FFFFFF;
   --rk-laut-t:#DCEEED;
   --rk-r1:#F6D4B4; --rk-r2:#EC9046; --rk-r3:#C64E09;
   --rk-naik:0 1px 2px rgba(12,20,23,.06), 0 10px 30px -14px rgba(12,20,23,.3);
@@ -10395,6 +10396,7 @@ html.dark{
   --rk-tinta:#EFF4F5; --rk-sedang:#A3B3B7; --rk-tipis:#75868B;
   --rk-api:#FF7A2F; --rk-api-t:#3A1E0C; --rk-emas:#F5B544; --rk-laut:#3FBFA8;
   --rk-muka:#1D282B; --rk-merah:#FF8E7A; --rk-merah-t:#331714; --rk-emas-t:#2E2408;
+  --rk-kartu:#0F1719;
   --rk-laut-t:#0E2C28;
   --rk-r1:#6B4222; --rk-r2:#C4681F; --rk-r3:#FF8A3D;
   --rk-naik:0 1px 2px rgba(0,0,0,.5), 0 10px 30px -14px rgba(0,0,0,.85);
@@ -25056,7 +25058,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #insiden-view .rki-kep{display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;padding:20px 30px 12px}
 #insiden-view .rki-kep h1{font:800 26px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin:0}
 #insiden-view .rki-kep p{font-size:12px;color:var(--rk-tipis,#8A9A9E);margin:5px 0 0;max-width:72ch;line-height:1.5}
-#insiden-view .rki-kep p b{color:#C9D4D1;font-weight:600}
+#insiden-view .rki-kep p b{color:var(--rk-sedang);font-weight:600}
 #insiden-view .rki-kanan{margin-left:auto;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
 #insiden-view .rki-ang small{display:block;font:500 10px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
 #insiden-view .rki-ang b{font:800 23px/1.1 "Bricolage Grotesque",sans-serif}
@@ -25067,33 +25069,33 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 
 /* ── saringan ── */
 #insiden-view .rki-saring{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 30px 14px}
-#insiden-view .rki-cari{display:flex;align-items:center;gap:7px;padding:0 11px;border-radius:10px;background:#121B1C;border:1px solid #1F2B2D;min-width:230px}
+#insiden-view .rki-cari{display:flex;align-items:center;gap:7px;padding:0 11px;border-radius:10px;background:var(--rk-muka);border:1px solid var(--rk-sekat);min-width:230px}
 #insiden-view .rki-cari input{border:0;background:none;color:inherit;font:inherit;font-size:12.5px;padding:8px 0;width:100%;outline:none}
 #insiden-view .rki-cari .material-symbols-outlined{font-size:17px;color:var(--rk-tipis,#8A9A9E)}
-#insiden-view .rki-grup{display:flex;background:#121B1C;border:1px solid #1F2B2D;border-radius:10px;overflow:hidden;flex:0 0 auto}
+#insiden-view .rki-grup{display:flex;background:var(--rk-muka);border:1px solid var(--rk-sekat);border-radius:10px;overflow:hidden;flex:0 0 auto}
 #insiden-view .rki-grup button{border:0;background:none;color:var(--rk-tipis,#8A9A9E);font:600 12px "Plus Jakarta Sans",sans-serif;padding:7px 12px;cursor:pointer}
 #insiden-view .rki-grup button.on{background:var(--rk-api,#F2711C);color:#fff}
-#insiden-view .rki-urut{padding:7px 12px;border-radius:10px;background:#121B1C;border:1px solid #1F2B2D;color:#C9D4D1;
+#insiden-view .rki-urut{padding:7px 12px;border-radius:10px;background:var(--rk-muka);border:1px solid var(--rk-sekat);color:var(--rk-sedang);
   font:600 12px "Plus Jakarta Sans",sans-serif;cursor:pointer}
 #insiden-view .rki-hasil{margin-left:auto;font-size:12px;color:var(--rk-tipis,#8A9A9E)}
 
 /* ── panggung: peta besar + panel rincian ── */
 #insiden-view .rki-utama{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:16px;padding:0 30px;min-height:0}
-#insiden-view .rki-peta-bungkus{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--rk-sekat,#243036);background:#101819}
+#insiden-view .rki-peta-bungkus{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--rk-sekat,#243036);background:var(--rk-muka)}
 #insiden-view .rki-peta{position:absolute;inset:0}
 #insiden-view .rki-judul{position:absolute;z-index:500;left:18px;top:16px;max-width:60%;padding:12px 16px;border-radius:13px;
-  background:rgba(11,18,20,.86);border:1px solid var(--rk-sekat,#243036);backdrop-filter:blur(8px)}
-#insiden-view .rki-judul small{font:500 10px "DM Mono",monospace;letter-spacing:.16em;color:#FDBA74;text-transform:uppercase}
+  background:var(--rk-kaca2);border:1px solid var(--rk-sekat,#243036);backdrop-filter:blur(8px)}
+#insiden-view .rki-judul small{font:500 10px "DM Mono",monospace;letter-spacing:.16em;color:var(--rk-api);text-transform:uppercase}
 #insiden-view .rki-judul h2{font:700 20px/1.2 "Bricolage Grotesque",sans-serif;margin:6px 0 0}
-#insiden-view .rki-judul .tgl{font-size:12px;color:#9FB0B4;margin-top:4px}
+#insiden-view .rki-judul .tgl{font-size:12px;color:var(--rk-tipis);margin-top:4px}
 #insiden-view .rki-legenda{position:absolute;z-index:500;left:18px;bottom:16px;display:flex;flex-wrap:wrap;gap:12px;padding:8px 13px;border-radius:10px;
-  background:rgba(11,18,20,.86);border:1px solid var(--rk-sekat,#243036);font-size:11.5px;color:#9FB0B4}
+  background:var(--rk-kaca2);border:1px solid var(--rk-sekat,#243036);font-size:11.5px;color:var(--rk-sedang)}
 #insiden-view .rki-legenda i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 #insiden-view .rki-nama{font:600 11.5px "Plus Jakarta Sans",sans-serif;color:#fff;text-shadow:0 1px 4px #000,0 0 8px rgba(0,0,0,.7);white-space:nowrap;pointer-events:none}
 
 #insiden-view .rki-rinci{display:flex;flex-direction:column;min-height:0;border:1px solid var(--rk-sekat,#243036);border-radius:18px;
-  background:var(--rk-kartu,#0F1719);overflow:hidden}
-#insiden-view .rki-rang{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px 20px;border-bottom:1px solid #1B2527}
+  background:var(--rk-kartu);overflow:hidden}
+#insiden-view .rki-rang{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:18px 20px;border-bottom:1px solid var(--rk-sekat)}
 #insiden-view .rki-rang div small{display:block;font:500 9.5px "DM Mono",monospace;letter-spacing:.12em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase}
 #insiden-view .rki-rang div b{font:800 23px "Bricolage Grotesque",sans-serif}
 #insiden-view .rki-rang div b.k{font-size:16px}
@@ -25103,33 +25105,34 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #insiden-view .rki-daftar{flex:1;overflow:auto;margin-top:14px}
 #insiden-view .rki-daftar h3{font:500 9.5px "DM Mono",monospace;letter-spacing:.14em;color:var(--rk-tipis,#8A9A9E);text-transform:uppercase;padding:0 20px 8px;margin:0}
 #insiden-view .rki-brs{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;align-items:center;
-  padding:10px 20px;border-bottom:1px solid #182223;cursor:pointer}
-#insiden-view .rki-brs:hover{background:#141E20}
+  padding:10px 20px;border-bottom:1px solid var(--rk-sekat);cursor:pointer}
+#insiden-view .rki-brs:hover{background:var(--rk-muka)}
 #insiden-view .rki-brs.sorot{background:rgba(242,113,28,.12)}
 #insiden-view .rki-brs b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #insiden-view .rki-brs s{text-decoration:none;font-size:11.5px;color:var(--rk-tipis,#8A9A9E);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#insiden-view .rki-num{text-align:right;font-size:12.5px;color:#C9D4D1;font-variant-numeric:tabular-nums;white-space:nowrap}
+#insiden-view .rki-num{text-align:right;font-size:12.5px;color:var(--rk-sedang);font-variant-numeric:tabular-nums;white-space:nowrap}
 #insiden-view .rki-cip{display:inline-flex;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
-#insiden-view .rki-aksi{padding:12px 20px;border-top:1px solid #1B2527;display:flex;gap:7px}
-#insiden-view .rki-aksi button{flex:1;height:33px;border:1px solid var(--rk-sekat,#243036);border-radius:9px;background:none;color:#C9D4D1;
+#insiden-view .rki-aksi{padding:12px 20px;border-top:1px solid var(--rk-sekat);display:flex;gap:7px}
+#insiden-view .rki-aksi button{flex:1;height:33px;border:1px solid var(--rk-sekat,#243036);border-radius:9px;background:none;color:var(--rk-sedang);
   font:600 11.5px "Plus Jakarta Sans",sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px}
-#insiden-view .rki-aksi button:hover{background:#1A2527}
-#insiden-view .rki-aksi button.utama{border-color:var(--rk-api,#F2711C);color:#FDBA74}
+#insiden-view .rki-aksi button:hover{background:var(--rk-sekat)}
+#insiden-view .rki-aksi button.utama{border-color:var(--rk-api,#F2711C);color:var(--rk-api)}
 #insiden-view .rki-aksi .material-symbols-outlined{font-size:15px}
 
 /* ── strip pemilih ── */
 #insiden-view .rki-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(290px,1fr);gap:12px;padding:14px 30px 18px;overflow-x:auto}
 #insiden-view .rki-kartu{display:grid;grid-template-columns:84px minmax(0,1fr);gap:12px;align-items:center;text-align:left;
-  border:1px solid var(--rk-sekat,#243036);border-radius:14px;background:var(--rk-kartu,#0F1719);padding:11px;cursor:pointer;color:inherit;font:inherit}
-#insiden-view .rki-kartu:hover{border-color:#31424A}
+  border:1px solid var(--rk-sekat,#243036);border-radius:14px;background:var(--rk-kartu);padding:11px;cursor:pointer;color:inherit;font:inherit}
+#insiden-view .rki-kartu:hover{border-color:var(--rk-tipis)}
 #insiden-view .rki-kartu.on{border-color:var(--rk-api,#F2711C);background:rgba(242,113,28,.1)}
-#insiden-view .rki-kp{position:relative;height:84px;border-radius:10px;overflow:hidden;background:#101819}
+#insiden-view .rki-kp{position:relative;height:84px;border-radius:10px;overflow:hidden;background:var(--rk-muka)}
 #insiden-view .rki-kp .rki-mini{position:absolute;inset:0}
 #insiden-view .rki-kartu .b1{display:flex;align-items:center;gap:7px}
 #insiden-view .rki-kartu b{font:700 14px "Bricolage Grotesque",sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #insiden-view .rki-kartu .len{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:99px;margin-left:auto;white-space:nowrap}
-#insiden-view .l-baru{background:rgba(242,113,28,.16);color:#FDBA74}
-#insiden-view .l-besar{background:rgba(56,189,248,.14);color:#BAE6FD}
+#insiden-view .l-baru{background:var(--rk-api-t);color:var(--rk-api)}
+#insiden-view .l-besar{background:#DCEDF9;color:#08405C}
+html.dark #insiden-view .l-besar{background:rgba(56,189,248,.14);color:#BAE6FD}
 #insiden-view .rki-kartu s{text-decoration:none;display:block;font-size:11.5px;color:var(--rk-tipis,#8A9A9E);margin-top:4px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #insiden-view .rki-kartu .bar{display:flex;height:6px;gap:2px;border-radius:99px;overflow:hidden;background:var(--rk-sekat,#243036);margin-top:8px}
@@ -25139,16 +25142,16 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 
 /* ── panel aturan ── */
 #insiden-view .rki-pop{position:absolute;right:30px;top:78px;z-index:1300;width:330px;border-radius:16px;border:1px solid var(--rk-api,#F2711C);
-  background:#141E20;box-shadow:0 24px 60px -24px rgba(0,0,0,.85);padding:18px 20px}
+  background:var(--rk-kaca2);box-shadow:var(--rk-naikK);padding:18px 20px}
 #insiden-view .rki-pop[hidden]{display:none}
 #insiden-view .rki-pop h3{font:700 16px "Bricolage Grotesque",sans-serif;margin:0}
 #insiden-view .rki-pop p{font-size:12.5px;color:var(--rk-tipis,#8A9A9E);margin:6px 0 0;line-height:1.5}
 #insiden-view .rki-set{margin-top:16px}
 #insiden-view .rki-set label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
-#insiden-view .rki-set label b{font:700 13px "DM Mono",monospace;color:#FDBA74}
+#insiden-view .rki-set label b{font:700 13px "DM Mono",monospace;color:var(--rk-api)}
 #insiden-view .rki-set input[type=range]{width:100%;accent-color:var(--rk-api,#F2711C)}
 #insiden-view .rki-pop .kaki{display:flex;gap:8px;margin-top:18px}
-#insiden-view .rki-pop .kaki button{flex:1;height:34px;border-radius:10px;border:1px solid var(--rk-sekat,#243036);background:none;color:#C9D4D1;
+#insiden-view .rki-pop .kaki button{flex:1;height:34px;border-radius:10px;border:1px solid var(--rk-sekat,#243036);background:none;color:var(--rk-sedang);
   font:600 12.5px "Plus Jakarta Sans",sans-serif;cursor:pointer}
 #insiden-view .rki-pop .kaki button.utama{background:var(--rk-api,#F2711C);border-color:var(--rk-api,#F2711C);color:#fff}
 
@@ -25187,10 +25190,19 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
   #insiden-view .rki-aksi button{flex:1 1 44%}
   #insiden-view .rki-pop{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;border-radius:20px 20px 0 0}
 }
-.rkd-insiden{display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:12px;cursor:pointer;
-  background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.35);color:#BAE6FD;font:inherit;font-size:12.5px;line-height:1.45;text-align:left;width:100%}
-.rkd-insiden:hover{background:rgba(56,189,248,.16)}
-.rkd-insiden b{display:block;font-weight:700}
+.rkd-insiden{
+  --rkdi-latar:#E7F3FB; --rkdi-garis:#9CC9E4; --rkdi-tinta:#0A4E66; --rkdi-judul:#08405C;
+  --rkdi-ikon:#0E7CB0; --rkdi-sorot:#D8EBF8;
+  display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;padding:10px 12px;border-radius:12px;cursor:pointer;
+  background:var(--rkdi-latar);border:1px solid var(--rkdi-garis);color:var(--rkdi-tinta);
+  font:inherit;font-size:12.5px;line-height:1.45;text-align:left;width:auto;box-sizing:border-box}
+html.dark .rkd-insiden{
+  --rkdi-latar:rgba(56,189,248,.1); --rkdi-garis:rgba(56,189,248,.35); --rkdi-tinta:#BAE6FD; --rkdi-judul:#BAE6FD;
+  --rkdi-ikon:#7DD3FC; --rkdi-sorot:rgba(56,189,248,.16)}
+.rkd-insiden:hover{background:var(--rkdi-sorot)}
+.rkd-insiden > .material-symbols-outlined{color:var(--rkdi-ikon);flex:0 0 auto}
+.rkd-insiden > span:last-child{min-width:0}
+.rkd-insiden b{display:block;font-weight:700;color:var(--rkdi-judul)}
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
