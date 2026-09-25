@@ -22039,6 +22039,13 @@ html[data-saku] .rkw2 button{background:var(--sk-kartu);color:var(--sk-api-tua)}
   box-shadow:0 6px 18px -8px var(--rk-api)}
 .rlb-tombol .material-symbols-outlined{font-size:18px}
 .rlb-tombol:hover{filter:brightness(1.07)}
+/* tombol sekunder di sebelah tombol utama: bergaris, tanpa bayangan */
+/* margin-left dinolkan: .rlb-tombol memakai auto untuk mendorong tombol
+   utama ke kanan, dan jarak ke tombol ini cukup dari gap kepala (22px) */
+.rlb-dua{margin-left:0;box-sizing:border-box;background:transparent;color:var(--rk-sedang);
+  border:1px solid var(--rk-sekat);box-shadow:none}
+.rlb-dua .material-symbols-outlined{color:var(--rk-api)}
+.rlb-dua:hover{filter:none;background:var(--rk-muka);color:var(--rk-tinta);border-color:var(--rk-tipis)}
 html[data-saku] .rlb-tombol{display:none}
 
 #rlb{position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;padding:16px;
@@ -23562,21 +23569,38 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     const doc = fr.contentDocument;
     doc.open(); doc.write(d.html); doc.close();
 
-    const imgs = Array.prototype.slice.call(doc.images);
-    let sisa = imgs.length;
-    const tulis = function () { if (ini === giliran && sisa > 0) aturTombol("Memuat foto " + Math.round((imgs.length - sisa) / imgs.length * 100) + "%"); };
-    const siap = new Promise(function (ok) {
-      if (!sisa) return ok();
-      imgs.forEach(function (im) {
-        const beres = function () { sisa--; tulis(); if (sisa <= 0) ok(); };
-        if (im.complete && im.naturalWidth) { beres(); return; }
-        im.addEventListener("load", beres, { once: true });
-        im.addEventListener("error", function () { im.classList.add("gagal"); beres(); }, { once: true });
-      });
-      setTimeout(ok, 30000);   // foto yang terlalu lama tidak menahan cetak
+    /* Uraian dokumen ditunggu dulu. Kalau fotonya dihitung sebelum ini,
+       doc.images masih kosong dan seluruh penantian foto terlewat. */
+    const uraiSelesai = new Promise(function (ok) {
+      let putar = 0;
+      const cek = function () {
+        if (doc.readyState !== "loading" || ++putar > 200) return ok();   // maks ~10 detik
+        setTimeout(cek, 50);
+      };
+      cek();
     });
-    tulis();
-    Promise.all([siap, (doc.fonts && doc.fonts.ready) || Promise.resolve()]).then(function () {
+
+    uraiSelesai.then(function () {
+      const imgs = Array.prototype.slice.call(doc.images);
+      let sisa = imgs.length;
+      const tulis = function () { if (ini === giliran && sisa > 0) aturTombol("Memuat foto " + Math.round((imgs.length - sisa) / imgs.length * 100) + "%"); };
+      const siap = new Promise(function (ok) {
+        if (!sisa) return ok();
+        imgs.forEach(function (im) {
+          const beres = function () { sisa--; tulis(); if (sisa <= 0) ok(); };
+          if (im.complete && im.naturalWidth) { beres(); return; }
+          im.addEventListener("load", beres, { once: true });
+          im.addEventListener("error", function () { im.classList.add("gagal"); beres(); }, { once: true });
+        });
+        /* Batas waktu ikut banyaknya foto: satu laporan bulanan bisa memuat
+           ratusan gambar dari Drive, dan 30 detik yang dipatok dulu terlalu
+           pendek untuk itu. Foto yang benar-benar macet tetap tidak menahan
+           cetak selamanya. */
+        setTimeout(ok, Math.min(180000, Math.max(30000, imgs.length * 700)));
+      });
+      tulis();
+      return Promise.all([siap, (doc.fonts && doc.fonts.ready) || Promise.resolve()]);
+    }).then(function () {
       return new Promise(function (ok) { setTimeout(ok, 400); });
     }).then(function () {
       if (ini !== giliran) { fr.remove(); return; }
@@ -25865,11 +25889,7 @@ html.dark .rkd-insiden{
     const kep = document.querySelector("#reports-view .rkr-kep");
     if (!kep || kep.querySelector("[data-ins-tombol]")) return !!kep;
     const b = document.createElement("button");
-    b.type = "button"; b.className = "rlb-tombol"; b.setAttribute("data-ins-tombol", "");
-    b.style.marginLeft = "10px";
-    b.style.background = "transparent";
-    b.style.border = "1px solid var(--rk-sekat,#243036)";
-    b.style.color = "inherit";
+    b.type = "button"; b.className = "rlb-tombol rlb-dua"; b.setAttribute("data-ins-tombol", "");
     b.innerHTML = ikon("workspaces") + "Kejadian masif";
     b.addEventListener("click", function () { buka(); });
     kep.appendChild(b);
