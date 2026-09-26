@@ -27118,5 +27118,546 @@ html[data-saku] #rk-lonceng{display:none}
   };
 })();
 </script>
+<!-- ══════════════════════════════════════════════════════════════════════
+     PENAMPIL FOTO "BERKAS"
+     ══════════════════════════════════════════════════════════════════════
+     Foto di kiri, keterangan laporan di kanan - supaya foto bisa dicocokkan
+     dengan angkanya tanpa menutup penampil.
+
+     Penampil lama hanya menerima satu URL, jadi ia tidak tahu foto ke berapa
+     dari laporan siapa. Di sini konteksnya diambil dari DOM saat foto diklik
+     (penangkap di fase capture, sebelum onclick bawaan jalan), jadi TIDAK
+     ADA markup lama yang perlu diubah - mode edit, unggah, pindah, dan hapus
+     foto tetap memakai jalur yang sama persis.
+
+     Warnanya gelap di kedua tema dengan palet sendiri, tidak menumpang token
+     tema. Penampil gambar memang lazim gelap, dan dengan begitu tidak ada
+     jalan bagi mode terang untuk merusaknya.
+     ══════════════════════════════════════════════════════════════════════ -->
+<style id="rk-foto-gaya">
+#rkv{position:fixed;inset:0;z-index:10000;display:grid;grid-template-columns:minmax(0,1fr) 372px;
+  background:#070B0C;color:#EFF4F5;font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+  opacity:0;transition:opacity .18s ease}
+#rkv[hidden]{display:none}
+#rkv.tampil{opacity:1}
+#rkv *{box-sizing:border-box}
+#rkv .rkv-mono{font-family:"DM Mono",monospace;font-variant-numeric:tabular-nums}
+
+/* ── sisi kiri: foto ── */
+.rkv-kiri{position:relative;display:flex;flex-direction:column;gap:20px;
+  padding:20px;min-width:0;min-height:0;overflow:hidden}
+.rkv-pang{position:relative;flex:1 1 auto;min-height:0;display:flex;
+  align-items:center;justify-content:center}
+#rkv-gbr{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:10px;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.9);transition:transform .2s ease,opacity .18s ease;
+  transform-origin:center center;cursor:zoom-in}
+#rkv.rkv-besar #rkv-gbr{cursor:grab;transition:none}
+#rkv.rkv-seret #rkv-gbr{cursor:grabbing}
+#rkv-gbr.rkv-muat{opacity:0}
+.rkv-atas{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0}
+.rkv-no{padding:5px 11px;border-radius:9px;background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.14);font-family:"DM Mono",monospace;font-size:12px}
+.rkv-cip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:99px;
+  font-size:11.5px;font-weight:600;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14)}
+.rkv-cip i{width:7px;height:7px;border-radius:50%;background:#F5B544;display:block;flex:0 0 auto}
+.rkv-cip[hidden]{display:none}
+.rkv-bawah{flex:0 0 auto;display:flex;justify-content:center;min-width:0}
+.rkv-panah{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;
+  display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);background:rgba(10,14,16,.6);
+  color:#fff;cursor:pointer;z-index:6;padding:0}
+.rkv-panah:hover{background:rgba(255,255,255,.16)}
+.rkv-panah[disabled]{opacity:.28;cursor:default}
+.rkv-panah.kiri{left:12px} .rkv-panah.kanan{right:12px}
+
+/* pita gambar kecil */
+.rkv-strip{display:flex;gap:8px;align-items:center;max-width:100%;overflow-x:auto;padding:2px;
+  scrollbar-width:none}
+.rkv-strip::-webkit-scrollbar{display:none}
+.rkv-strip button{position:relative;flex:0 0 auto;width:64px;height:46px;padding:0;border-radius:9px;
+  overflow:hidden;cursor:pointer;border:1px solid transparent;background:#0d1214;opacity:.5}
+.rkv-strip button img{width:100%;height:100%;object-fit:cover;display:block}
+.rkv-strip button.on{opacity:1;border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.24)}
+.rkv-strip button:hover{opacity:.85}
+
+/* ── sisi kanan: keterangan laporan ── */
+.rkv-kanan{border-left:1px solid rgba(255,255,255,.14);background:#0B1113;
+  display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.rkv-kanan > header{padding:20px;border-bottom:1px solid rgba(255,255,255,.14);flex:0 0 auto}
+.rkv-mata{font:500 10px "DM Mono",monospace;letter-spacing:.14em;text-transform:uppercase;color:#FF7A2F;
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkv-kanan h2{margin:7px 0 4px;font-family:"Bricolage Grotesque","Plus Jakarta Sans",sans-serif;
+  font-size:21px;font-weight:800;letter-spacing:-.03em;line-height:1.15;overflow-wrap:anywhere}
+.rkv-alamat{margin:0;font-size:12.5px;color:#A3B3B7;line-height:1.5;overflow-wrap:anywhere}
+.rkv-kisi{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.14);
+  border-bottom:1px solid rgba(255,255,255,.14);flex:0 0 auto}
+.rkv-kisi div{padding:12px 20px;background:#0B1113;min-width:0}
+.rkv-kisi s{text-decoration:none;display:block;font:500 9.5px "DM Mono",monospace;letter-spacing:.11em;
+  text-transform:uppercase;color:#75868B}
+.rkv-kisi b{display:block;margin-top:5px;font-size:13.5px;font-weight:700;overflow-wrap:anywhere}
+.rkv-tab{display:flex;gap:6px;padding:16px 20px 12px;flex:0 0 auto}
+.rkv-tab button{flex:1;min-width:0;height:32px;padding:0 6px;border-radius:9px;
+  border:1px solid rgba(255,255,255,.14);background:none;color:#A3B3B7;cursor:pointer;
+  font:600 11.5px "Plus Jakarta Sans",sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkv-tab button.on{background:#FF7A2F;border-color:transparent;color:#fff}
+.rkv-tab button[disabled]{opacity:.4;cursor:default}
+.rkv-petak{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 20px 20px;
+  overflow-y:auto;flex:1 1 auto;min-height:0;align-content:start}
+.rkv-petak button{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;padding:0;
+  cursor:pointer;border:1px solid transparent;background:#0d1214}
+.rkv-petak button img{width:100%;height:100%;object-fit:cover;display:block}
+.rkv-petak button.on{border-color:#FF7A2F;box-shadow:0 0 0 3px rgba(255,122,47,.22)}
+.rkv-kosong{grid-column:1 / -1;margin:6px 0 0;font-size:12.5px;color:#75868B}
+.rkv-kaki{padding:16px 20px;border-top:1px solid rgba(255,255,255,.14);display:flex;gap:8px;flex:0 0 auto}
+
+#rkv .rkv-tbl{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 13px;
+  border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.07);color:#fff;
+  cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;text-decoration:none}
+#rkv .rkv-tbl:hover{background:rgba(255,255,255,.14)}
+#rkv .rkv-tbl.bulat{width:36px;padding:0;flex:0 0 auto}
+#rkv .rkv-tbl .material-symbols-outlined{font-size:18px}
+.rkv-kaki .rkv-tbl{flex:1;min-width:0}
+
+/* ── tanpa keterangan laporan (mis. foto dokumen) ── */
+#rkv.rkv-polos{grid-template-columns:minmax(0,1fr)}
+#rkv.rkv-polos .rkv-kanan{display:none}
+#rkv.rkv-polos .rkv-tutup-kiri{display:grid}
+.rkv-tutup-kiri{display:none;margin-left:auto;flex:0 0 auto}
+
+/* ── mode saku: bertumpuk, foto di atas ── */
+html[data-saku] #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58vh) minmax(0,1fr)}
+html[data-saku] #rkv .rkv-kiri{padding:14px;gap:14px}
+html[data-saku] #rkv .rkv-kanan{border-left:0;border-top:1px solid rgba(255,255,255,.14)}
+html[data-saku] #rkv .rkv-panah{width:40px;height:40px}
+html[data-saku] #rkv .rkv-panah.kiri{left:8px} html[data-saku] #rkv .rkv-panah.kanan{right:8px}
+html[data-saku] #rkv .rkv-petak{grid-template-columns:repeat(4,1fr)}
+/* panel kanan turun ke bawah, jadi tombol tutupnya dinaikkan ke atas foto */
+html[data-saku] #rkv .rkv-tutup-kiri{display:grid}
+
+@media (max-width:1100px){
+  #rkv{grid-template-columns:minmax(0,1fr) 320px}
+  .rkv-kiri{padding:16px;gap:16px}
+}
+@media (max-width:860px){
+  #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58vh) minmax(0,1fr)}
+  #rkv .rkv-kanan{border-left:0;border-top:1px solid rgba(255,255,255,.14)}
+  #rkv .rkv-tutup-kiri{display:grid}
+  .rkv-kiri{padding:14px;gap:14px}
+}
+</style>
+<script>
+(function () {
+  "use strict";
+
+  /* Peta kategori -> kunci data & judulnya, sama persis dengan modul galeri
+     supaya urutan fotonya identik dengan yang tampil di panel detail. */
+  const JENIS = {
+    kerusakan: { kunci: "photos",         judul: "Foto Kerusakan",  tab: "Kerusakan" },
+    kegiatan:  { kunci: "fotoKegiatan",   judul: "Foto Kegiatan",   tab: "Kegiatan"  },
+    identitas: { kunci: "fotoIdentitas",  judul: "Foto KTP / KK",   tab: "KTP/KK"    }
+  };
+  const URUT = ["kerusakan", "kegiatan", "identitas"];
+
+  let lembar = null, keadaan = null;
+  let skala = 1, geserX = 0, geserY = 0, seret = null;
+  let seri = 0;
+  /* Diisi penangkap klik sesaat sebelum openImagePreview dipanggil. */
+  let konteksKlik = null;
+
+  const esc = function (t) {
+    return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  };
+  const isi = function (v) {
+    v = String(v == null ? "" : v).trim();
+    return v && v !== "-" ? v : "";
+  };
+  const angka = function (v) {
+    const n = parseFloat(v);
+    return isFinite(n) ? n.toLocaleString("id-ID") : "";
+  };
+  const rupiah = function (v) {
+    const n = parseFloat(v);
+    return isFinite(n) && n > 0 ? "Rp " + n.toLocaleString("id-ID") : "";
+  };
+  const semuaData = function () {
+    /* allData sudah disamarkan untuk tamu - itu yang dipakai, bukan rkDataAsli */
+    try { if (Array.isArray(allData)) return allData; } catch (e) {}
+    return [];
+  };
+  const kecil = function (u) {
+    try { return typeof getDriveImgUrl === "function" ? getDriveImgUrl(u) : u; } catch (e) { return u; }
+  };
+  const besar = function (u) {
+    let s = kecil(u);
+    if (s.indexOf("google.com/thumbnail") >= 0) s = s.replace("sz=s1000", "sz=s3000");
+    return s;
+  };
+  const berkasId = function (u) {
+    const m = String(u || "").match(/\/d\/([-\w]{20,})|[?&]id=([-\w]{20,})/);
+    return m ? (m[1] || m[2]) : "";
+  };
+
+  /* ── rangka ── */
+  function rangka() {
+    if (lembar) return lembar;
+    lembar = document.createElement("div");
+    lembar.id = "rkv";
+    lembar.hidden = true;
+    lembar.setAttribute("role", "dialog");
+    lembar.setAttribute("aria-modal", "true");
+    lembar.setAttribute("aria-label", "Penampil foto laporan");
+    lembar.innerHTML =
+      '<div class="rkv-kiri">' +
+        '<div class="rkv-atas">' +
+          '<span class="rkv-no" data-rkv="no">1 / 1</span>' +
+          '<span class="rkv-cip" data-rkv="cip" hidden><i></i><span></span></span>' +
+          '<div class="rkv-tutup-kiri"><button type="button" class="rkv-tbl bulat" data-rkv="tutup" aria-label="Tutup">' +
+            '<span class="material-symbols-outlined">close</span></button></div>' +
+        '</div>' +
+        '<div class="rkv-pang">' +
+          '<img id="rkv-gbr" alt="" referrerpolicy="no-referrer">' +
+          '<button type="button" class="rkv-panah kiri" data-rkv="mundur" aria-label="Foto sebelumnya">' +
+            '<span class="material-symbols-outlined">chevron_left</span></button>' +
+          '<button type="button" class="rkv-panah kanan" data-rkv="maju" aria-label="Foto berikutnya">' +
+            '<span class="material-symbols-outlined">chevron_right</span></button>' +
+        '</div>' +
+        '<div class="rkv-bawah"><div class="rkv-strip" data-rkv="strip"></div></div>' +
+      '</div>' +
+      '<aside class="rkv-kanan">' +
+        '<header><span class="rkv-mata" data-rkv="mata"></span>' +
+          '<h2 data-rkv="nama"></h2><p class="rkv-alamat" data-rkv="alamat"></p></header>' +
+        '<div class="rkv-kisi" data-rkv="kisi"></div>' +
+        '<div class="rkv-tab" data-rkv="tab"></div>' +
+        '<div class="rkv-petak" data-rkv="petak"></div>' +
+        '<div class="rkv-kaki">' +
+          '<a class="rkv-tbl" data-rkv="unduh" target="_blank" rel="noopener">' +
+            '<span class="material-symbols-outlined">download</span>Unduh</a>' +
+          '<button type="button" class="rkv-tbl bulat" data-rkv="tutup" aria-label="Tutup">' +
+            '<span class="material-symbols-outlined">close</span></button>' +
+        '</div>' +
+      '</aside>';
+    document.body.appendChild(lembar);
+
+    lembar.addEventListener("click", function (e) {
+      if (e.target.closest('[data-rkv="tutup"]')) { tutup(); return; }
+      if (e.target.closest('[data-rkv="mundur"]')) { pindah(-1); return; }
+      if (e.target.closest('[data-rkv="maju"]')) { pindah(1); return; }
+      const t = e.target.closest("[data-rkv-tab]");
+      if (t) { gantiJenis(t.getAttribute("data-rkv-tab")); return; }
+      const g = e.target.closest("[data-rkv-i]");
+      if (g) { ke(parseInt(g.getAttribute("data-rkv-i"), 10)); return; }
+      /* klik di ruang kosong sekitar foto menutup penampil */
+      if (e.target.classList.contains("rkv-kiri") || e.target.classList.contains("rkv-pang")) tutup();
+    });
+
+    pasangZoom();
+    return lembar;
+  }
+
+  /* ── perbesar & geser ── */
+  function pasangZoom() {
+    const g = lembar.querySelector("#rkv-gbr");
+
+    g.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (seret && seret.pindah) return;        // habis menggeser, bukan mengetuk
+      pasangSkala(skala > 1 ? 1 : 2.4);
+    });
+
+    g.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      pasangSkala(skala * (e.deltaY < 0 ? 1.18 : 1 / 1.18));
+    }, { passive: false });
+
+    g.addEventListener("pointerdown", function (e) {
+      if (skala <= 1) return;
+      seret = { x: e.clientX, y: e.clientY, ax: geserX, ay: geserY, pindah: false };
+      lembar.classList.add("rkv-seret");
+      try { g.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    g.addEventListener("pointermove", function (e) {
+      if (!seret) return;
+      const dx = e.clientX - seret.x, dy = e.clientY - seret.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) seret.pindah = true;
+      geserX = seret.ax + dx; geserY = seret.ay + dy;
+      terapkan();
+    });
+    const lepas = function () {
+      if (!seret) return;
+      lembar.classList.remove("rkv-seret");
+      /* ditunda supaya klik yang mengikuti seretan tidak dianggap ketukan */
+      setTimeout(function () { seret = null; }, 0);
+    };
+    g.addEventListener("pointerup", lepas);
+    g.addEventListener("pointercancel", lepas);
+  }
+  function pasangSkala(n) {
+    skala = Math.min(6, Math.max(1, n));
+    if (skala === 1) { geserX = 0; geserY = 0; }
+    lembar.classList.toggle("rkv-besar", skala > 1);
+    terapkan();
+  }
+  function terapkan() {
+    const g = lembar.querySelector("#rkv-gbr");
+    g.style.transform = "translate(" + Math.round(geserX) + "px," + Math.round(geserY) + "px) scale(" + skala + ")";
+  }
+
+  /* ── konteks: laporan mana, kategori apa, foto ke berapa ──
+     Diambil dari DOM saat diklik, bukan dari URL - lebih tepat, dan tidak
+     satu pun markup lama perlu diubah. */
+  document.addEventListener("click", function (e) {
+    const kotak = e.target.closest ? e.target.closest(".rkd-foto") : null;
+    konteksKlik = null;
+    if (!kotak || kotak.classList.contains("rkd-foto-tambah")) return;
+    const bagian = kotak.closest("[data-galeri]");
+    if (!bagian) return;
+    const daftar = Array.prototype.filter.call(
+      bagian.querySelectorAll(".rkd-foto"),
+      function (x) { return !x.classList.contains("rkd-foto-tambah"); });
+    konteksKlik = {
+      idx: bagian.getAttribute("data-idx"),
+      jenis: bagian.getAttribute("data-galeri"),
+      i: Math.max(0, Array.prototype.indexOf.call(daftar, kotak))
+    };
+  }, true);
+
+  function fotoDari(it, jenis) {
+    const k = JENIS[jenis] && JENIS[jenis].kunci;
+    if (!k || !it) return [];
+    return (Array.isArray(it[k]) ? it[k] : []).filter(function (u) { return u && String(u).trim(); });
+  }
+  function laporanDari(idx) {
+    const d = semuaData();
+    for (let i = 0; i < d.length; i++) if (String(d[i].idx) === String(idx)) return d[i];
+    return null;
+  }
+
+  /* ── buka ── */
+  function buka(url) {
+    rangka();
+    const kk = konteksKlik;
+    const it = kk ? laporanDari(kk.idx) : null;
+
+    if (it && kk && JENIS[kk.jenis]) {
+      const daftar = fotoDari(it, kk.jenis);
+      keadaan = {
+        it: it, jenis: kk.jenis, daftar: daftar,
+        i: Math.min(Math.max(0, kk.i), Math.max(0, daftar.length - 1))
+      };
+      if (!daftar.length) keadaan = { it: it, jenis: kk.jenis, daftar: [url], i: 0 };
+      lembar.classList.remove("rkv-polos");
+    } else {
+      /* tanpa konteks (mis. foto dokumen): tampilkan apa adanya */
+      keadaan = { it: null, jenis: null, daftar: [url], i: 0 };
+      lembar.classList.add("rkv-polos");
+    }
+
+    lembar.hidden = false;
+    document.body.style.overflow = "hidden";
+    requestAnimationFrame(function () { lembar.classList.add("tampil"); });
+    gambar();
+    document.addEventListener("keydown", tombol, true);
+    window.addEventListener("resize", pasKotak);
+  }
+
+  /* Foto ditarik sampai memenuhi panggung, tanpa dipotong. */
+  function pasKotak() {
+    if (!lembar || lembar.hidden) return;
+    const g = lembar.querySelector("#rkv-gbr");
+    const p = lembar.querySelector(".rkv-pang");
+    if (!g || !p || !g.naturalWidth || !g.naturalHeight) return;
+    const r = p.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const s = Math.min(r.width / g.naturalWidth, r.height / g.naturalHeight);
+    g.style.width = Math.round(g.naturalWidth * s) + "px";
+    g.style.height = Math.round(g.naturalHeight * s) + "px";
+  }
+
+  function tutup() {
+    if (!lembar || lembar.hidden) return;
+    lembar.classList.remove("tampil");
+    window.removeEventListener("resize", pasKotak);
+    document.removeEventListener("keydown", tombol, true);
+    document.body.style.overflow = "";
+    setTimeout(function () {
+      lembar.hidden = true;
+      const g = lembar.querySelector("#rkv-gbr");
+      g.src = "";
+      g.style.width = ""; g.style.height = "";
+      pasangSkala(1);
+      keadaan = null;
+    }, 180);
+  }
+
+  function tombol(e) {
+    if (lembar.hidden) return;
+    if (e.key === "Escape") { e.stopPropagation(); tutup(); return; }
+    if (e.key === "ArrowRight") { e.preventDefault(); pindah(1); return; }
+    if (e.key === "ArrowLeft") { e.preventDefault(); pindah(-1); return; }
+    if (e.key === "+" || e.key === "=") { pasangSkala(skala * 1.25); return; }
+    if (e.key === "-") { pasangSkala(skala / 1.25); return; }
+    if (e.key === "0") { pasangSkala(1); return; }
+  }
+
+  function pindah(arah) {
+    if (!keadaan || keadaan.daftar.length < 2) return;
+    ke(keadaan.i + arah);
+  }
+  function ke(i) {
+    if (!keadaan) return;
+    const n = keadaan.daftar.length;
+    if (i < 0 || i >= n || i === keadaan.i) return;
+    keadaan.i = i;
+    pasangSkala(1);
+    gambar();
+  }
+  function gantiJenis(j) {
+    if (!keadaan || !keadaan.it || j === keadaan.jenis) return;
+    const daftar = fotoDari(keadaan.it, j);
+    if (!daftar.length) return;
+    keadaan.jenis = j; keadaan.daftar = daftar; keadaan.i = 0;
+    pasangSkala(1);
+    gambar();
+  }
+
+  /* ── gambar ulang ── */
+  function gambar() {
+    if (!keadaan) return;
+    const $ = function (n) { return lembar.querySelector('[data-rkv="' + n + '"]'); };
+    const url = keadaan.daftar[keadaan.i] || "";
+    const g = lembar.querySelector("#rkv-gbr");
+    const id = berkasId(url);
+
+    const kcl = kecil(url), bsr = besar(url), ini = ++seri;
+    g.setAttribute("data-cadangan", "0");
+    g.onerror = function () {
+      /* thumbnail Drive kadang menolak; dicoba lewat jalur lain sebelum menyerah */
+      if (this.getAttribute("data-cadangan") === "1") { this.onerror = null; this.classList.remove("rkv-muat"); return; }
+      this.setAttribute("data-cadangan", "1");
+      this.src = id ? "https://lh3.googleusercontent.com/d/" + id + "=w2000" : url;
+    };
+    g.onload = function () { g.classList.remove("rkv-muat"); pasKotak(); };
+    g.src = kcl;
+    /* kalau ukuran kecilnya sudah tersinggah, onload tidak menyala lagi -
+       jadi ukurannya dipaskan langsung di sini */
+    if (g.complete && g.naturalWidth) { g.classList.remove("rkv-muat"); pasKotak(); }
+    else g.classList.add("rkv-muat");
+
+    if (bsr !== kcl) {
+      const penuh = new Image();
+      penuh.referrerPolicy = "no-referrer";
+      penuh.onload = function () {
+        if (ini !== seri || !lembar || lembar.hidden) return;   // sudah pindah foto
+        g.src = bsr;
+        g.classList.remove("rkv-muat");
+        pasKotak();
+      };
+      penuh.src = bsr;
+    }
+    g.alt = (JENIS[keadaan.jenis] ? JENIS[keadaan.jenis].judul : "Foto") + " " + (keadaan.i + 1);
+
+    $("no").textContent = (keadaan.i + 1) + " / " + keadaan.daftar.length;
+
+    const cip = $("cip"), it0 = keadaan.it;
+    const tingkat = it0 ? [isi(it0.kerusakan), isi(it0.bagianRusak)].filter(Boolean).join(" · ") : "";
+    cip.hidden = !tingkat;
+    if (tingkat) cip.querySelector("span").textContent = tingkat;
+    lembar.querySelector('[data-rkv="mundur"]').disabled = keadaan.i <= 0;
+    lembar.querySelector('[data-rkv="maju"]').disabled = keadaan.i >= keadaan.daftar.length - 1;
+
+    const adaPanah = keadaan.daftar.length > 1;
+    lembar.querySelector('[data-rkv="mundur"]').hidden = !adaPanah;
+    lembar.querySelector('[data-rkv="maju"]').hidden = !adaPanah;
+
+    /* pita gambar kecil di bawah foto */
+    $("strip").innerHTML = keadaan.daftar.map(function (u, i) {
+      return '<button type="button" data-rkv-i="' + i + '" class="' + (i === keadaan.i ? "on" : "") +
+        '" aria-label="Foto ' + (i + 1) + '"><img src="' + esc(kecil(u)) + '" alt="" referrerpolicy="no-referrer"></button>';
+    }).join("");
+    const aktif = $("strip").querySelector("button.on");
+    if (aktif && aktif.scrollIntoView) aktif.scrollIntoView({ block: "nearest", inline: "center" });
+
+    const pautUnduh = $("unduh");
+    pautUnduh.href = id ? "https://drive.google.com/uc?export=download&id=" + id : (url || "#");
+
+    if (keadaan.it) isiKanan(); else $("strip").parentNode.style.display = "";
+  }
+
+  function isiKanan() {
+    const $ = function (n) { return lembar.querySelector('[data-rkv="' + n + '"]'); };
+    const it = keadaan.it;
+
+    const bencana = isi(it.bencana), kec = isi(it.kec);
+    $("mata").textContent = [bencana, kec ? "Kec. " + kec : ""].filter(Boolean).join(" · ") || "Laporan";
+    $("nama").textContent = isi(it.nama) || "-";
+
+    const baris1 = isi(it.jalandusun);
+    const desa = isi(it.desakelurahan);
+    const baris2 = [desa ? "Desa " + desa : "", isi(it.tanggalWaktu)].filter(Boolean).join(" · ");
+    $("alamat").innerHTML = [esc(baris1), esc(baris2)].filter(Boolean).join("<br>") || "-";
+
+    const ukuran = (parseFloat(it.panjang) && parseFloat(it.lebar))
+      ? it.panjang + " × " + it.lebar + " m" : "";
+    const konstruksi = [isi(it.konstruksi), ukuran].filter(Boolean).join(" · ");
+    const jiwa = angka(it.jumlahKeluarga);
+
+    const sel = function (s, b) {
+      return "<div><s>" + esc(s) + "</s><b>" + esc(b || "-") + "</b></div>";
+    };
+    $("kisi").innerHTML =
+      sel("Tingkat kerusakan", isi(it.kerusakan)) +
+      sel("Bagian rusak", isi(it.bagianRusak)) +
+      sel("Konstruksi", konstruksi) +
+      sel("Jiwa terdampak", jiwa ? jiwa + " jiwa" : "") +
+      sel("Taksiran kerusakan", rupiah(it.nilaiKerusakan)) +
+      sel("Taksiran kerugian", rupiah(it.nilaiKerugian));
+
+    /* Tab hanya untuk kategori yang benar-benar ditampilkan di panel detail -
+       KTP/KK memang disembunyikan dari tamu, jadi tidak boleh bocor di sini. */
+    const terlihat = {};
+    document.querySelectorAll("#sidebar-content [data-galeri]").forEach(function (b) {
+      terlihat[b.getAttribute("data-galeri")] = true;
+    });
+    $("tab").innerHTML = URUT.filter(function (j) {
+      return terlihat[j] || j === keadaan.jenis;
+    }).map(function (j) {
+      const n = fotoDari(it, j).length;
+      return '<button type="button" data-rkv-tab="' + j + '"' + (n ? "" : " disabled") +
+        ' class="' + (j === keadaan.jenis ? "on" : "") + '">' + JENIS[j].tab + " " + n + "</button>";
+    }).join("");
+
+    $("petak").innerHTML = keadaan.daftar.length
+      ? keadaan.daftar.map(function (u, i) {
+          return '<button type="button" data-rkv-i="' + i + '" class="' + (i === keadaan.i ? "on" : "") +
+            '" aria-label="Foto ' + (i + 1) + '"><img src="' + esc(kecil(u)) + '" alt="" loading="lazy" referrerpolicy="no-referrer"></button>';
+        }).join("")
+      : '<p class="rkv-kosong">Belum ada foto di kategori ini.</p>';
+  }
+
+  /* ── penampil lama diganti, tapi namanya dipertahankan ──
+     Semua pemanggil lama (galeri foto, grid dokumen) tetap memakai
+     openImagePreview(url) apa adanya. */
+  const bukaLama = window.openImagePreview;
+  window.openImagePreview = function (url) {
+    if (!url) return;
+    try {
+      buka(url);
+      return;
+    } catch (e) {
+      console.error("[foto] penampil baru gagal, kembali ke yang lama:", e);
+      try { if (typeof bukaLama === "function") bukaLama.apply(this, arguments); } catch (e2) {}
+    }
+  };
+
+  const tutupLama = window.closeImagePreview;
+  window.closeImagePreview = function () {
+    try { tutup(); } catch (e) {}
+    try { if (typeof tutupLama === "function") tutupLama.apply(this, arguments); } catch (e) {}
+  };
+
+  window.rkFoto = { buka: buka, tutup: tutup };
+})();
+</script>
 </body>
 </html>
