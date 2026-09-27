@@ -27224,12 +27224,16 @@ html[data-saku] #rk-lonceng{display:none}
 .rkv-tutup-kiri{display:none;margin-left:auto;flex:0 0 auto}
 
 /* ── mode saku: bertumpuk, foto di atas ── */
-html[data-saku] #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58vh) minmax(0,1fr)}
+html[data-saku] #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58%) minmax(0,1fr)}
 html[data-saku] #rkv .rkv-kiri{padding:14px;gap:14px}
 html[data-saku] #rkv .rkv-kanan{border-left:0;border-top:1px solid rgba(255,255,255,.14)}
 html[data-saku] #rkv .rkv-panah{width:40px;height:40px}
 html[data-saku] #rkv .rkv-panah.kiri{left:8px} html[data-saku] #rkv .rkv-panah.kanan{right:8px}
 html[data-saku] #rkv .rkv-petak{grid-template-columns:repeat(4,1fr)}
+/* seluruh panel yang digulir, bukan kisi gambarnya saja */
+html[data-saku] #rkv .rkv-kanan{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+html[data-saku] #rkv .rkv-petak{overflow:visible;flex:0 0 auto}
+html[data-saku] #rkv .rkv-kaki{position:sticky;bottom:0;z-index:2;background:#0B1113}
 /* panel kanan turun ke bawah, jadi tombol tutupnya dinaikkan ke atas foto */
 html[data-saku] #rkv .rkv-tutup-kiri{display:grid}
 
@@ -27238,8 +27242,11 @@ html[data-saku] #rkv .rkv-tutup-kiri{display:grid}
   .rkv-kiri{padding:16px;gap:16px}
 }
 @media (max-width:860px){
-  #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58vh) minmax(0,1fr)}
-  #rkv .rkv-kanan{border-left:0;border-top:1px solid rgba(255,255,255,.14)}
+  #rkv{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,58%) minmax(0,1fr)}
+  #rkv .rkv-kanan{border-left:0;border-top:1px solid rgba(255,255,255,.14);
+    overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  #rkv .rkv-petak{overflow:visible;flex:0 0 auto}
+  #rkv .rkv-kaki{position:sticky;bottom:0;z-index:2;background:#0B1113}
   #rkv .rkv-tutup-kiri{display:grid}
   .rkv-kiri{padding:14px;gap:14px}
 }
