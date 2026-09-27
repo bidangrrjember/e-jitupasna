@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyHlrlF1APzmwmkZTIYVOuCRsG7ASEEHWzAOsAC0UqmkykApLh2C7Nm486YbDTGSA3D/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4568,7 +4568,9 @@ let lastDataString = "";
 
 function fetchData() {
     const tokenSaatMinta = window.rkSesi ? rkSesi.token() : "";
-    fetch(DATA_URL)
+    /* janjinya dikembalikan supaya penjaga irama bisa menunggu selesainya -
+       tanpa itu ia tidak pernah tahu satu tarikan masih berjalan */
+    return fetch(DATA_URL)
         .then(r => r.json())
         .then(rawData => prosesDataLaporan(rawData, tokenSaatMinta))
         .catch(error => {
@@ -13517,11 +13519,33 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
 
     const _tarik = window.fetchData;
 
+    /* Batas aman kalau sebuah tarikan menggantung selamanya: sesudah ini
+       tarikan baru tetap diizinkan, supaya dasbor tidak membeku permanen
+       gara-gara satu permintaan yang tidak pernah selesai. */
+    const GANTUNG_MAKS = 240000;
+    let sedangTarik = false, mulaiTarik = 0;
+
     window.fetchData = function () {
+      /* Menumpuk permintaan berat ke Apps Script yang sedang tersendat
+         justru memperpanjang sendatnya - dan itulah yang membuat /echo
+         membalas 404. Satu tarikan pada satu waktu. */
+      if (sedangTarik && Date.now() - mulaiTarik < GANTUNG_MAKS) return;
       if (!boleh()) return;
       mulaiTerakhir = Date.now();
       pernahJalan = true;
-      return _tarik.apply(this, arguments);
+      sedangTarik = true; mulaiTarik = Date.now();
+      const selesai = function () {
+        sedangTarik = false;
+        /* jeda berikutnya dihitung sejak SELESAI, bukan sejak dimulai -
+           kalau tidak, tarikan 167 detik langsung disusul yang berikutnya */
+        mulaiTerakhir = Date.now();
+      };
+      let hasil;
+      try { hasil = _tarik.apply(this, arguments); }
+      catch (e) { selesai(); throw e; }
+      if (hasil && typeof hasil.then === "function") hasil.then(selesai, selesai);
+      else selesai();
+      return hasil;
     };
 
     /* Menoleh kembali ke tab ini harus langsung menyegarkan. Capnya
@@ -27069,17 +27093,23 @@ html[data-saku] #rk-lonceng{display:none}
   });
 
   /* ── setiap kabar dicatat; nilai baliknya menentukan boleh tampil ── */
+  /* Tenggang setelah pulih: kambuh di dalamnya dianggap gangguan yang sama. */
+  const TENGGANG_KAMBUH = 600000;
+  const pulihPada = {};
+
   window.rkNotifCatat = function (opsi) {
     opsi = opsi || {};
     try {
-      if (opsi.kunci && episode[opsi.kunci]) {
+      if (opsi.kunci && episode[opsi.kunci] &&
+          (!pulihPada[opsi.kunci] || Date.now() - pulihPada[opsi.kunci] < TENGGANG_KAMBUH)) {
+        delete pulihPada[opsi.kunci];
         /* gangguan yang sama berulang: catatannya diperbarui, tidak ditumpuk */
         const n = riwayat.find(function (x) { return x.i === episode[opsi.kunci]; });
         if (n) { n.s = opsi.sub || n.s; n.w = Date.now(); simpan(); }
         else episode[opsi.kunci] = catat(opsi).i;
       } else {
         const n = catat(opsi);
-        if (opsi.kunci) episode[opsi.kunci] = n.i;
+        if (opsi.kunci) { episode[opsi.kunci] = n.i; delete pulihPada[opsi.kunci]; }
       }
       segarkanLencana();
       if (pusat && !pusat.hidden) gambar();
@@ -27087,13 +27117,14 @@ html[data-saku] #rk-lonceng{display:none}
     return bolehTampil();
   };
 
-  /* Kunci yang sudah pulih membuka episode baru kalau gangguannya
-     kambuh lagi - jadi bukan satu catatan seumur sesi. */
+  /* Kunci yang sudah pulih TIDAK langsung dilupakan: hanya dicatat kapan
+     pulihnya. Kambuh dalam sepuluh menit memperbarui catatan yang sama;
+     lewat dari itu baru dianggap gangguan baru. */
   function pasangTutup() {
     if (!window.rkNotif || typeof window.rkNotif.tutupKunci !== "function") return false;
     if (window.rkNotif.tutupKunci.__rkp) return true;
     const asli = window.rkNotif.tutupKunci;
-    const baru = function (kunci) { delete episode[kunci]; return asli.apply(this, arguments); };
+    const baru = function (kunci) { pulihPada[kunci] = Date.now(); return asli.apply(this, arguments); };
     baru.__rkp = true;
     window.rkNotif.tutupKunci = baru;
     return true;
