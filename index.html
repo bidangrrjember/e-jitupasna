@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyHlrlF1APzmwmkZTIYVOuCRsG7ASEEHWzAOsAC0UqmkykApLh2C7Nm486YbDTGSA3D/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -24554,6 +24554,18 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-bawah{position:absolute;left:48px;right:48px;top:790px;bottom:36px;display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:18px}
 #rk-tv .tv-k{padding:22px 24px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
 #rk-tv .tv-k small{font:500 12px "DM Mono",monospace;letter-spacing:.14em;color:#9FB0B4;text-transform:uppercase}
+/* keterangan cakupan pita: barisnya sendiri, bukan menumpang baris judul */
+#rk-tv .tv-kapsi{font:500 10.5px "DM Mono",monospace;letter-spacing:.08em;color:#5A6B70;
+  text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* tabel tiga kolom: nama di atas, angka besar di bawah */
+#rk-tv .tv-tabel{display:flex;gap:0}
+#rk-tv .tv-tabel div{flex:1;min-width:0;padding-right:8px}
+#rk-tv .tv-tabel div + div{border-left:1px solid #1E2B2F;padding-left:10px;padding-right:0}
+#rk-tv .tv-tabel s{text-decoration:none;display:flex;align-items:center;gap:5px;font-size:11.5px;
+  color:#9FB0B4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rk-tv .tv-tabel s i{width:8px;height:8px;border-radius:3px;flex:0 0 auto}
+#rk-tv .tv-tabel em{font-style:normal;display:block;margin-top:3px;font:700 20px "Bricolage Grotesque",sans-serif;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#EFF4F5}
 #rk-tv .tv-k b{font:800 64px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.04em;font-variant-numeric:tabular-nums;white-space:nowrap}
 #rk-tv .tv-k b.sedang{font-size:48px}
 #rk-tv .tv-k p{margin:0;font-size:15px;color:#9FB0B4}
@@ -24564,7 +24576,17 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-komposisi i{display:block;height:100%}
 #rk-tv .tv-j-lain{display:flex;gap:12px;flex-wrap:wrap;min-height:18px}
 #rk-tv .tv-j-lain span{display:flex;align-items:center;gap:5px;font-size:13px;color:#C9D4D1}
-#rk-tv .tv-j-lain i{width:9px;height:9px;border-radius:3px}
+#rk-tv .tv-j-lain i{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+/* angka besar dan keterangannya dikelompokkan, supaya pita komposisi dan
+   legendanya jadi baris tersendiri di bawah - sama seperti tile 3 */
+#rk-tv .tv-k > div > p{margin-top:4px}
+/* perbandingan jiwa: bulan ini vs bulan lalu vs rata-rata bulanan */
+#rk-tv .tv-banding{display:flex;flex-direction:column;gap:6px}
+#rk-tv .tv-banding span{display:flex;align-items:center;gap:7px;font-size:13px;color:#C9D4D1;
+  font-variant-numeric:tabular-nums}
+#rk-tv .tv-banding u{text-decoration:none;width:42px;flex:0 0 auto;color:#75868B;
+  font:500 11px "DM Mono",monospace}
+#rk-tv .tv-banding i{height:9px;border-radius:99px;flex:0 0 auto;min-width:3px}
 #rk-tv .tv-grafik{padding:18px 22px 14px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;min-width:0}
 #rk-tv .tv-grafik h3{margin:0;font:700 18px "Bricolage Grotesque",sans-serif;display:flex;justify-content:space-between;align-items:baseline}
 #rk-tv .tv-grafik h3 span{font:500 12px "DM Mono",monospace;color:#9FB0B4}
@@ -24593,6 +24615,10 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 (function () {
   const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const WARNA_JENIS = ["#F2711C", "#38BDF8", "#EF4444", "#A78BFA", "#94A3B8", "#22C55E", "#F5B82E"];
+  /* Sengaja bukan jingga: tile 3 di sebelahnya sudah memakai jingga untuk
+     jenis bencana, dan dua pita jingga bersebelahan dengan arti berbeda
+     membingungkan dari jauh. */
+  const WARNA_RUSAK = { "Rusak Ringan": "#6B8F3A", "Rusak Sedang": "#E0A32E", "Rusak Berat": "#D8443A", _: "#4B5C61" };
   const JEDA_FOTO = 6000;
   /* Di TV tidak ada yang menyentuh tetikus, jadi dasbor menganggap sesinya
      "sepi" dan memperlambat tarikan data sampai 4-5 menit sekali. Untuk layar
@@ -24617,6 +24643,12 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     if (n >= 1e9) return "Rp " + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
     if (n >= 1e6) return "Rp " + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
     return "Rp " + n.toLocaleString("id-ID");
+  }
+  function rupiahKolom(n) {
+    n = +n || 0;
+    if (n >= 1e9) return (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
+    if (n >= 1e6) return Math.round(n / 1e6).toLocaleString("id-ID") + " jt";
+    return n.toLocaleString("id-ID");
   }
   const jamMenit = function (d) { return String(d.getHours()).padStart(2, "0") + "." + String(d.getMinutes()).padStart(2, "0"); };
   function batasKecamatan() { try { return typeof BATAS_KECAMATAN !== "undefined" ? BATAS_KECAMATAN : null; } catch (e) { return null; } }
@@ -24663,11 +24695,21 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
           '<div class="tv-ket"><small data-tv="baru-waktu"></small><b data-tv="baru-judul"></b><p data-tv="baru-ket"></p></div></div>' +
         '<div class="tv-legenda"><span>jarang</span><span class="tv-gradasi"></span><span>sering</span><span class="tv-kalimat" data-tv="kalimat"></span></div>' +
         '<div class="tv-bawah">' +
-          '<div class="tv-k"><small data-tv="k1-label"></small><b data-tv="k1"></b><p data-tv="k1-ket"></p></div>' +
-          '<div class="tv-k"><small>Jiwa terdampak</small><b data-tv="k2"></b><p data-tv="k2-ket"></p></div>' +
+          '<div class="tv-k"><small data-tv="k1-label"></small>' +
+            '<div><b data-tv="k1"></b><p data-tv="k1-ket"></p></div>' +
+            '<div><div class="tv-kapsi" data-tv="k1-kapsi"></div>' +
+              '<div class="tv-komposisi" data-tv="k1-bar" style="margin-top:6px"></div></div>' +
+            '<div class="tv-tabel" data-tv="k1-tabel"></div></div>' +
+          '<div class="tv-k"><small>Jiwa terdampak</small>' +
+            '<div><b data-tv="k2"></b><p data-tv="k2-ket"></p></div>' +
+            '<div class="tv-banding" data-tv="k2-banding"></div></div>' +
           '<div class="tv-k tv-jenis"><small data-tv="k3-label"></small><div><span class="tv-j-nama" data-tv="k3"></span><span class="tv-j-jml" data-tv="k3-ket"></span></div>' +
             '<div class="tv-komposisi" data-tv="komposisi"></div><div class="tv-j-lain" data-tv="jenis-lain"></div></div>' +
-          '<div class="tv-k"><small>Taksiran kerusakan</small><b class="sedang" data-tv="k4"></b><p data-tv="k4-ket"></p></div>' +
+          '<div class="tv-k"><small>Taksiran kerusakan</small>' +
+            '<div><b class="sedang" data-tv="k4"></b><p data-tv="k4-ket"></p></div>' +
+            '<div><div class="tv-kapsi" data-tv="k4-kapsi"></div>' +
+              '<div class="tv-komposisi" data-tv="k4-bar" style="margin-top:6px"></div></div>' +
+            '<div class="tv-tabel" data-tv="k4-tabel"></div></div>' +
           '<div class="tv-grafik"><h3>Kejadian per bulan <span>12 bulan terakhir</span></h3><div class="tv-batang" data-tv="batang"></div></div>' +
         "</div>" +
       "</div>";
@@ -24745,6 +24787,75 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     const rugi = p.isi.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerugian) || 0); }, 0);
     isi("k4", rupiahSingkat(rusak));
     isi("k4-ket", "kerugian " + rupiahSingkat(rugi));
+
+    /* ── tile 1: tingkat kerusakan setahun ── */
+    /* Urutannya dipatok Ringan → Sedang → Berat, bukan diurutkan menurun:
+       tiga kolom yang selalu di tempat yang sama lebih cepat dibaca dari
+       jauh daripada kolom yang berpindah tempat tiap bulan. */
+    const TINGKAT = ["Rusak Ringan", "Rusak Sedang", "Rusak Berat"];
+    const rusKel = {};
+    let belumNilai = 0;
+    p.tahun.forEach(function (it) {
+      const k = bersih(it.kerusakan);
+      if (TINGKAT.indexOf(k) >= 0) rusKel[k] = (rusKel[k] || 0) + 1;
+      else belumNilai++;
+    });
+    /* Pita hanya menggambar yang disebut tabelnya. Yang belum dinilai
+       sengaja tidak ikut digambar - pita yang isinya tidak sama dengan
+       keterangannya persis kesalahan yang sedang diperbaiki di sini.
+       Jumlahnya tetap disebut di baris judul, jadi tidak ada yang hilang. */
+    $('[data-tv="k1-bar"]').innerHTML = TINGKAT.map(function (k) {
+      return '<i style="flex:' + (rusKel[k] || 0) + ";background:" + WARNA_RUSAK[k] + '"></i>';
+    }).join("");
+    $('[data-tv="k1-tabel"]').innerHTML = TINGKAT.map(function (k) {
+      return '<div><s><i style="background:' + WARNA_RUSAK[k] + '"></i>' +
+        esc(k.replace("Rusak ", "")) + "</s><em>" + (rusKel[k] || 0) + "</em></div>";
+    }).join("");
+    const dinilai = p.tahun.length - belumNilai;
+    isi("k1-kapsi", "setahun" + (belumNilai ? " · " + dinilai + " dari " + p.tahun.length + " dinilai" : ""));
+
+    /* ── tile 2: bulan ini vs bulan lalu vs rata-rata bulanan ── */
+    const jiwaLalu = p.lalu.reduce(function (s, it) { return s + (parseFloat(it.jumlahKeluarga) || 0); }, 0);
+    const jiwaTahun = p.tahun.reduce(function (s, it) { return s + (parseFloat(it.jumlahKeluarga) || 0); }, 0);
+    const rataBulan = Math.round(jiwaTahun / 12);
+    const maksB = Math.max(jiwa, jiwaLalu, rataBulan, 1);
+    const barJiwa = function (nilai, label, warna) {
+      return '<span><u>' + esc(label) + '</u><i style="background:' + warna + ";width:" +
+        Math.max(3, Math.round(nilai / maksB * 110)) + 'px"></i>' + nilai.toLocaleString("id-ID") + "</span>";
+    };
+    $('[data-tv="k2-banding"]').innerHTML =
+      barJiwa(jiwa, BULAN[p.bl].slice(0, 3), "#F2711C") +
+      barJiwa(jiwaLalu, p.namaLalu.slice(0, 3), "#5A6B70") +
+      barJiwa(rataBulan, "rata", "#3B4A4F");
+
+    /* ── tile 4: nilai kerusakan setahun, dibagi menurut tingkatnya ── */
+    /* Tingkat dan warnanya sama persis dengan tile 1, jadi keduanya
+       terbaca sebagai sepasang: di sana berapa banyak, di sini berapa mahal. */
+    const nilaiTingkat = {};
+    let nilaiBelum = 0;
+    p.tahun.forEach(function (it) {
+      const k = bersih(it.kerusakan);
+      const v = parseFloat(it.nilaiKerusakan) || 0;
+      if (TINGKAT.indexOf(k) >= 0) nilaiTingkat[k] = (nilaiTingkat[k] || 0) + v;
+      else nilaiBelum += v;
+    });
+    const nilaiDinilai = TINGKAT.reduce(function (s, k) { return s + (nilaiTingkat[k] || 0); }, 0);
+    /* Pita hanya menggambar yang disebut tabelnya - aturan yang sama
+       seperti tile 1. Kalau semuanya nol, pitanya dibiarkan kosong supaya
+       tiga nol tidak digambar sebagai tiga bagian yang sama besar. */
+    $('[data-tv="k4-bar"]').innerHTML = nilaiDinilai > 0
+      ? TINGKAT.map(function (k) {
+          return '<i style="flex:' + (nilaiTingkat[k] || 0) + ";background:" + WARNA_RUSAK[k] + '"></i>';
+        }).join("")
+      : "";
+    $('[data-tv="k4-tabel"]').innerHTML = TINGKAT.map(function (k) {
+      return '<div><s><i style="background:' + WARNA_RUSAK[k] + '"></i>' +
+        esc(k.replace("Rusak ", "")) + "</s><em>" + rupiahKolom(nilaiTingkat[k] || 0) + "</em></div>";
+    }).join("");
+    /* Yang belum dinilai jarang punya taksiran, tapi kalau ada, jumlahnya
+       disebut - supaya 284+910+348 yang tidak pas dengan totalnya tidak
+       jadi teka-teki. */
+    isi("k4-kapsi", "nilai kerusakan setahun" + (nilaiBelum > 0 ? " · " + rupiahSingkat(nilaiBelum) + " tak dinilai" : ""));
 
     // ── jenis bencana setahun ──
     const jenis = {};
