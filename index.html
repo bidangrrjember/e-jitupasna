@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwHMH_3vuLWhEu9aBmSdjOvqx94vGliyXmto69lefBfBBWgg4KLqRm4f-wNkAvlcQFX/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -22318,6 +22318,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const kini = new Date(), acuan = akhir < kini ? akhir : kini;
     const diBulan = function (d) { return !!d && d >= awal && d <= akhir; };
     const bergerak = [], menunggu = [];
+    let selesaiKemudian = 0;      /* tertunda di akhir bulan, sudah tuntas sekarang */
     data().forEach(function (it) {
       if (!it.dateObj || isNaN(it.dateObj) || it.dateObj >= awal) return;
       let t; try { t = tahapan(it); } catch (e) { return; }
@@ -22330,13 +22331,27 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
       if (diBulan(t.serahTgl)) peristiwa.push("serah");
       if (diBulan(t.monTgl)) peristiwa.push("mon");
       if (peristiwa.length) { bergerak.push({ it: it, t: t, peristiwa: peristiwa, status: status }); return; }
-      if (status === "tuntas") return;
-      const sejak = status === "salur" ? t.kaji : (t.serahTgl || null);
-      menunggu.push({ it: it, t: t, status: status, sejak: sejak, hari: sejak ? hariAntara(sejak, acuan) : null });
+
+      /* Mulai di sini daftarnya bukan potret sejarah lagi, melainkan daftar
+         KERJA: yang sampai hari ini benar-benar belum kelar. Jadi yang
+         menentukan status SEKARANG - statusOf(), persis yang dipakai dasbor -
+         bukan status per akhir bulan.
+
+         Dua-duanya perlu: yang sudah dimonitor sesudah bulan itu tidak lagi
+         muncul, dan yang per akhir bulan terlanjur dianggap tuntas padahal
+         dasbor bilang belum, sekarang ikut muncul. */
+      const stKini = statusOf(it);
+      if (stKini === "tuntas") { if (status !== "tuntas") selesaiKemudian++; return; }
+      /* Tanpa tanggal serah terima, hitungannya jatuh ke asesmen - lebih
+         berguna daripada kolom "-" yang tidak mengatakan apa-apa. */
+      const sejak = stKini === "salur" ? t.kaji : (t.serahTgl || t.kaji);
+      menunggu.push({ it: it, t: t, status: stKini, sejak: sejak, dariSerah: stKini !== "salur" && !!t.serahTgl,
+        hari: sejak ? hariAntara(sejak, kini) : null });
     });
     bergerak.sort(function (a, b) { return a.t.kaji - b.t.kaji; });
     menunggu.sort(function (a, b) { return (b.hari || 0) - (a.hari || 0); });
-    return { awal: awal, akhir: akhir, acuan: acuan, bergerak: bergerak, menunggu: menunggu, diBulan: diBulan };
+    return { awal: awal, akhir: akhir, acuan: acuan, kini: kini, bergerak: bergerak, menunggu: menunggu,
+      selesaiKemudian: selesaiKemudian, diBulan: diBulan };
   }
 
   function ringkasTindakLanjut(tl) {
@@ -22380,7 +22395,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const baris = tl.menunggu.map(function (x, i) {
       const it = x.it;
       const tahap = x.status === "salur" ? "Penyaluran bantuan" : "Monitoring";
-      const dasar = x.status === "salur" ? "sejak asesmen" : "sejak serah terima";
+      const dasar = x.dariSerah ? "sejak serah terima" : "sejak asesmen";
       return "<tr><td class=\"n\">" + (i + 1) + "</td><td><b>" + esc(it.nama || "-") + "</b><br><span class=\"redup\">" + esc(it.bencana || "") + "</span></td><td>" + lokasi(it) + "</td>" +
         "<td>" + esc(tglPendek(x.t.kaji)) + "</td><td>" + chip(x.status) + "</td>" +
         "<td class=\"n" + (x.hari > 30 ? " lama" : "") + "\">" + (x.hari === null ? "-" : x.hari + " hari") + "<br><span class=\"redup\">" + dasar + "</span></td></tr>";
@@ -22389,16 +22404,20 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     const angkaTl = function (n, label, warna) { return '<div><b' + (warna ? ' style="color:' + warna + '"' : "") + ">" + n + "</b><s>" + label + "</s></div>"; };
     return '<div class="bab"><h2>Tindak lanjut laporan sebelumnya</h2><span>posisi per ' + esc(akhirTeks) + "</span></div>" +
       '<p class="pengantar">Laporan dari bulan-bulan sebelumnya yang tahap penanganannya berlanjut pada ' + esc(bln) +
-        ", serta yang sampai akhir bulan masih menunggu. Status di bab ini dihitung per akhir bulan laporan.</p>" +
+        ", serta yang sampai sekarang belum kelar. Kartu <b>Bergerak bulan ini</b> dihitung per akhir bulan laporan — " +
+        "itu catatan apa yang terjadi selama " + esc(bln) + ". Tabel <b>Masih menunggu</b> dihitung per hari ini, " +
+        "sebab ia daftar kerja: yang sudah dikerjakan sesudah bulan ini tidak lagi dicantumkan.</p>" +
       '<div class="tl-angka">' +
         angkaTl(tl.bergerak.length, "ditindaklanjuti") + angkaTl(r.serah, "serah terima", "#C98A12") +
         angkaTl(r.mon, "monitoring", "#2A9384") + angkaTl(tl.menunggu.length, "masih menunggu", tl.menunggu.length ? "#CC4430" : "") +
+        (tl.selesaiKemudian ? angkaTl(tl.selesaiKemudian, "tuntas kemudian", "#2A9384") : "") +
       "</div>" +
       (tl.bergerak.length
         ? '<h3 class="tl-sub">Bergerak bulan ini<span>' + tl.bergerak.length + " laporan</span></h3>" + kartu
         : '<p class="pengantar">Tidak ada serah terima atau monitoring laporan lama pada bulan ini.</p>') +
       (tl.menunggu.length
-        ? '<h3 class="tl-sub">Masih menunggu dari bulan sebelumnya<span>' + tl.menunggu.length + " laporan · urut terlama</span></h3>" +
+        ? '<h3 class="tl-sub">Masih menunggu dari bulan sebelumnya<span>' + tl.menunggu.length + " laporan · posisi " +
+          esc(tl.kini.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })) + " · urut terlama</span></h3>" +
           '<table class="tl-tabel"><thead><tr><th class="n">No</th><th>Nama KK</th><th>Desa / Kecamatan</th><th>Asesmen</th><th>Tertunda di</th><th class="n">Lama</th></tr></thead><tbody>' + baris + "</tbody></table>"
         : "");
   }
@@ -22924,7 +22943,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 .tl-catatan{margin:0 0 12px;padding:9px 12px;border-radius:10px;background:#FFF4EB;border:1px solid #F4D5BC;font-size:8.4pt;color:#5C3B22;line-height:1.45}
 .tl-catatan b{display:block;margin-bottom:1px;font-size:8.8pt;color:#9A430C}
 .pengantar{margin:-2px 0 10px;max-width:160mm;font-size:8.5pt;color:#56605B}
-.tl-angka{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px}
+.tl-angka{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;margin-bottom:6px}
 .tl-angka div{padding:8px 10px;border-radius:10px;background:#F1F4F1}
 .tl-angka b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:17pt;font-weight:800;line-height:1;letter-spacing:-.02em}
 .tl-angka s{display:block;margin-top:4px;text-decoration:none;font:500 6.8pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
@@ -22957,7 +22976,7 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 .tl-tabel .n{text-align:right;white-space:nowrap;font-family:"DM Mono",monospace}
 .tl-tabel td.lama{color:#CC4430;font-weight:600}
 .tl-tabel .redup{font-size:7pt;color:#8A948F;font-weight:400}
-@media screen and (max-width:760px){.tl-angka{grid-template-columns:repeat(2,1fr)}.tl-alur{grid-template-columns:1fr;gap:6px}.tl-alur li::before{display:none}}
+@media screen and (max-width:760px){.tl-angka{grid-auto-flow:row;grid-template-columns:repeat(2,1fr)}.tl-alur{grid-template-columns:1fr;gap:6px}.tl-alur li::before{display:none}}
 @media print{html,body{background:#fff}.alat{display:none}.kertas{width:auto;margin:0;padding:0;box-shadow:none}.sampul{margin:0;box-shadow:none}}
 @media screen and (max-width:760px){.sampul,.sampul-svg{width:100%;height:auto}}
 @media screen and (max-width:760px){.alat{gap:10px;padding:8px 12px}.alat b{display:none}.alat span{font-size:11.5px;line-height:1.35}.alat button{height:34px;padding:0 14px}.kertas{padding:5mm}.kpi-kisi{grid-template-columns:repeat(2,1fr)}.dua{grid-template-columns:1fr}.sel-kisi{grid-template-columns:1fr 1fr}}`;
