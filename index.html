@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzahS52pvINs8PxUQK-rqtIK8Q_ae5VXbnrl7W9wD4XnUqWZ9z7iBCcPaBEoiO7urb6/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwHMH_3vuLWhEu9aBmSdjOvqx94vGliyXmto69lefBfBBWgg4KLqRm4f-wNkAvlcQFX/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4623,7 +4623,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                 // Tamu melihat versi yang disamarkan (nama & titik peta)
                 const tampilBaru = window.rkSamar ? window.rkSamar.terapkan([newData])[0] : newData;
                 if (setelan.terbangOtomatis !== false) map.flyTo([tampilBaru.lat, tampilBaru.lng], 15);
-                showNotification(`Laporan baru masuk: ${tampilBaru.nama}`);
+                showNotification(`Laporan baru masuk: ${tampilBaru.nama}`, { lapor: tampilBaru.timestamp });
                 const audio = document.getElementById('notification-sound');
                 if (audio && setelan.suara !== false) audio.play().catch(e => console.warn(e));
             }
@@ -20063,7 +20063,34 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
   function adaPemberitahuan() {
     const lencana = $("offline-badge");
     if (lencana && !lencana.classList.contains("hidden")) return true;
+    try { if (window.rkPusatNotif && rkPusatNotif.belum() > 0) return true; } catch (e) {}
     return semua().some(function (it) { return it.dateObj && Date.now() - it.dateObj.getTime() < 86400000; });
+  }
+
+  /* Warna lampu mengikuti golongan kabarnya: laporan baru memakai aksen,
+     gangguan merah, sisanya tenang. Yang sudah dibaca lampunya diredupkan -
+     satu tanda saja, tidak perlu tebal-tipis huruf ikut bicara. */
+  const NOTIF_WARNA = { baru: "var(--sk-api)", galat: "var(--sk-merah)", sukses: "var(--sk-laut)", info: "var(--sk-tipis)" };
+  function htmlRiwayatNotif() {
+    let daftar = [];
+    try { daftar = window.rkPusatNotif ? rkPusatNotif.riwayat() : []; } catch (e) {}
+    if (!daftar.length) return '<div class="sk-kosong">Belum ada notifikasi. Kabar baru muncul di sini dan tersimpan 30 hari.</div>';
+    return daftar.slice(0, 12).map(function (n) {
+      let usia = "";
+      try { usia = rkPusatNotif.usia(n.w); } catch (e) {}
+      const isi =
+        '<span style="flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:' +
+          (NOTIF_WARNA[n.j] || "var(--sk-tipis)") + (n.b ? ";opacity:.3" : "") + '"></span>' +
+        '<span class="sk-det"><b>' + esc(n.t || "") + "</b>" +
+          (n.s ? "<s" + (n.m ? ' class="sk-mono"' : "") + ">" + esc(n.s) + "</s>" : "") + "</span>" +
+        '<span class="sk-mono" style="flex:0 0 auto;font-size:10.5px;color:var(--sk-tipis)">' + esc(usia) + "</span>";
+      /* Kabar yang membawa penunjuk laporan jadi tombol sungguhan - papan
+         tik ikut jalan tanpa penangan tambahan. Sisanya div biasa, bukan
+         tombol mati yang menjanjikan sesuatu lalu diam saat ditekan. */
+      return n.r
+        ? '<button type="button" class="sk-baris" data-aksi="notif-lapor" data-nilai="' + esc(n.r) + '">' + isi + "</button>"
+        : '<div class="sk-baris" style="cursor:default">' + isi + "</div>";
+    }).join("");
   }
   async function bukaNotif() {
     const terbaru = semua().filter(function (it) { return it.dateObj && !isNaN(it.dateObj); })
@@ -20073,11 +20100,14 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
     const l = $("sk-notif");
     l.innerHTML =
       '<button type="button" class="sk-pegangan" aria-label="Tutup"></button>' +
-      '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><span class="sk-alis api">Pemberitahuan</span><h3 class="sk-tebal" style="margin:6px 0 0;font-size:27px;line-height:1.02">Laporan terbaru.</h3></div>' +
+      '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><span class="sk-alis api">Pemberitahuan</span><h3 class="sk-tebal" style="margin:6px 0 0;font-size:27px;line-height:1.02">Kabar terbaru.</h3></div>' +
       '<button type="button" class="sk-bulat tipis" data-aksi="tutup-lembar" style="width:34px;height:34px" aria-label="Tutup">' + ik("x", "width:16px;height:16px") + "</button></div>" +
-      '<div class="sk-daftar">' + (terbaru.length ? terbaru.map(function (it) {
+      '<span class="sk-alis">Laporan masuk</span>' +
+      '<div class="sk-daftar" style="margin-top:-6px">' + (terbaru.length ? terbaru.map(function (it) {
         return htmlBarisKerja({ it: it, st: statusOf(it), hari: hariSejak(it) });
       }).join("") : '<div class="sk-kosong">Belum ada laporan.</div>') + "</div>" +
+      '<span class="sk-alis">Riwayat notifikasi</span>' +
+      '<div class="sk-daftar" style="margin-top:-6px">' + htmlRiwayatNotif() + "</div>" +
       '<div style="background:var(--sk-kartu2);border-radius:20px;padding:4px 14px">' +
         '<div class="sk-tautan" style="cursor:default">' + ik("awan") + "<span>Mode lapangan<s>" + (antre ? fmt(antre) + " laporan menunggu terkirim" : "Semua laporan sudah terkirim") + "</s></span>" +
           (antre ? '<button type="button" class="sk-cip api polos" data-aksi="kirim-antrean" style="border:0;cursor:pointer">Kirim</button>' : "") + "</div>" +
@@ -20085,6 +20115,10 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
         '<button type="button" class="sk-tautan" data-aksi="' + (admin() ? "keluar" : "masuk") + '">' + ik("masuk") + "<span>" + (admin() ? "Keluar dari admin" : "Masuk sebagai admin") + "<s>" + (admin() ? "Kembali ke mode tamu" : "Untuk mencatat, mengubah, dan membuka gudang") + "</s></span>" + ik("kanan") + "</button>" +
       "</div>";
     bukaLembar("sk-notif");
+    /* Ditandai dibaca setelah tergambar: matanya masih menangkap mana yang
+       baru (lampunya penuh), tapi titik di loncengnya langsung padam. */
+    try { if (window.rkPusatNotif) rkPusatNotif.tandaiSemua(); } catch (e) {}
+    try { segarkanNav(); } catch (e) {}
   }
 
   /* ═══ lembar: pilihan (kecamatan, jenis lain) ═══ */
@@ -20604,6 +20638,15 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
     const a = t.dataset.aksi, n = t.dataset.nilai;
     switch (a) {
       case "lonceng": bukaNotif(); break;
+      case "notif-lapor": {
+        const it = semua().filter(function (x) { return String(x.timestamp || "") === String(n); })[0];
+        tutupLembar();
+        if (it) bukaDetail(it);
+        else try {
+          if (window.rkNotif) rkNotif.tampil({ jenis: "info", judul: "Laporan tidak ditemukan", sub: "Mungkin sudah dihapus dari daftar." });
+        } catch (er) {}
+        break;
+      }
       case "peta-penuh": S.petaPenuh = true; tampilkan(); break;
       case "ke-cuaca": pergi("cuaca"); break;
       case "semua-antrean":
@@ -25971,9 +26014,10 @@ html[data-saku] .rkn-kartu{background:var(--sk-kartu, var(--rk-kaca2));border-co
     if (typeof window.showNotification !== "function") return false;
     if (window.showNotification.__rkn) return true;
     const asli = window.showNotification;
-    const baru = function (pesan) {
+    const baru = function (pesan, opsi) {
       const teks = String(pesan == null ? "" : pesan).trim();
       if (!teks) return;
+      const tambah = (opsi && typeof opsi === "object") ? opsi : {};
       /* Penyaring lama tetap yang memutuskan: pesan yang murni
          keberhasilan dibungkam, jejaknya cukup di konsol. */
       try {
@@ -25983,13 +26027,13 @@ html[data-saku] .rkn-kartu{background:var(--sk-kartu, var(--rk-kaca2));border-co
              notifikasi justru tempat mencari kabar seperti ini nanti. */
           const q = pecah(teks);
           if (typeof window.rkNotifCatat === "function") {
-            window.rkNotifCatat({ jenis: "sukses", judul: q.judul, sub: q.sub });
+            window.rkNotifCatat({ jenis: "sukses", judul: q.judul, sub: q.sub, lapor: tambah.lapor });
           }
           return;
         }
       } catch (e) {}
       const p = pecah(teks);
-      tampil({ jenis: jenisDari(teks), judul: p.judul, sub: p.sub });
+      tampil({ jenis: jenisDari(teks), judul: p.judul, sub: p.sub, lapor: tambah.lapor });
     };
     baru.__rkn = true;
     baru.__asli = asli;
@@ -26070,6 +26114,10 @@ html[data-saku] #rk-lonceng{display:none}
 }
 #rk-pusat .rkp-brs:last-child{border-bottom:0}
 #rk-pusat .rkp-brs.belum{background:color-mix(in srgb,var(--rk-api) 7%,transparent)}
+/* hanya baris yang membawa penunjuk laporan yang terlihat bisa ditekan */
+#rk-pusat .rkp-brs.rkp-buka{cursor:pointer}
+#rk-pusat .rkp-brs.rkp-buka:hover{background:var(--rk-muka)}
+#rk-pusat .rkp-brs.rkp-buka:focus-visible{outline:2px solid var(--rk-api);outline-offset:-2px}
 #rk-pusat .rkp-lmb{width:30px;height:30px;border-radius:10px;display:grid;place-items:center}
 #rk-pusat .rkp-lmb .material-symbols-outlined{font-size:17px}
 #rk-pusat .rkp-brs b{display:block;font-size:12.5px;font-weight:700;letter-spacing:-.01em;line-height:1.35}
@@ -26160,6 +26208,8 @@ html[data-saku] #rk-lonceng{display:none}
       j: IKON[o.jenis] ? o.jenis : "info",
       k: o.kepala || KEPALA[IKON[o.jenis] ? o.jenis : "info"],
       t: o.judul || "", s: o.sub || "", m: o.mono ? 1 : 0,
+      /* penunjuk laporan, kalau kabarnya memang tentang satu laporan */
+      r: o.lapor ? String(o.lapor) : "",
       w: Date.now(), b: 0
     };
     riwayat.unshift(n);
@@ -26267,6 +26317,15 @@ html[data-saku] #rk-lonceng{display:none}
       if (e.target.closest('[data-p="bersih"]')) {
         riwayat = []; simpan(); segarkanLencana(); gambar(); return;
       }
+      const brs = e.target.closest(".rkp-brs[data-lapor]");
+      if (brs) { bukaLaporan(brs.getAttribute("data-lapor")); return; }
+    });
+    pusat.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const brs = e.target.closest && e.target.closest(".rkp-brs[data-lapor]");
+      if (!brs) return;
+      e.preventDefault();
+      bukaLaporan(brs.getAttribute("data-lapor"));
     });
     return pusat;
   }
@@ -26299,7 +26358,9 @@ html[data-saku] #rk-lonceng{display:none}
       daftar.forEach(function (n) {
         const h = harian(n.w);
         if (h !== hariAktif) { hariAktif = h; html += '<div class="rkp-hari">' + NAMA_HARI[h] + "</div>"; }
-        html += '<div class="rkp-brs rkp-j' + n.j + (sorot[n.i] ? " belum" : "") + '">' +
+        const kelas = "rkp-brs rkp-j" + n.j + (sorot[n.i] ? " belum" : "") + (n.r ? " rkp-buka" : "");
+        const atr = n.r ? ' role="button" tabindex="0" data-lapor="' + esc(n.r) + '"' : "";
+        html += '<div class="' + kelas + '"' + atr + ">" +
           '<span class="rkp-lmb"><span class="material-symbols-outlined" aria-hidden="true">' + IKON[n.j] + "</span></span>" +
           "<span><b>" + esc(n.t) + "</b>" + (n.s ? '<s class="' + (n.m ? "mono" : "") + '">' + esc(n.s) + "</s>" : "") + "</span>" +
           '<span class="rkp-wkt">' + esc(jarak(n.w)) + "</span>" +
@@ -26386,11 +26447,38 @@ html[data-saku] #rk-lonceng{display:none}
     const jam = setInterval(function () { if (siap() || --sisa <= 0) clearInterval(jam); }, 250);
   }
 
+  /* Laporan dicari lewat timestamp - satu-satunya penanda yang tidak
+     berubah saat daftarnya disaring atau diurut ulang. */
+  function bukaLaporan(tanda) {
+    if (!tanda) return false;
+    let daftar = [];
+    try { if (typeof allData !== "undefined" && Array.isArray(allData)) daftar = allData; } catch (e) {}
+    const it = daftar.filter(function (x) { return String(x.timestamp || "") === String(tanda); })[0];
+    if (!it) {
+      /* Laporannya bisa saja sudah dihapus, atau sedang tersaring keluar.
+         Lebih baik mengatakannya daripada diam saat ditekan. */
+      try {
+        if (window.rkNotif) window.rkNotif.tampil({
+          jenis: "info", judul: "Laporan tidak ditemukan",
+          sub: "Mungkin sudah dihapus, atau sedang tersaring keluar di peta."
+        });
+      } catch (e) {}
+      return false;
+    }
+    buka(false);
+    try { openSidebarWithData(it); }
+    catch (e) { console.error("[pusat] buka laporan:", e); return false; }
+    return true;
+  }
+
   window.rkPusatNotif = {
     buka: function () { buka(true); },
     tutup: function () { buka(false); },
     riwayat: function () { return riwayat.slice(); },
     belum: belum,
+    usia: jarak,
+    bukaLaporan: bukaLaporan,
+    tandaiSemua: function () { riwayat.forEach(function (n) { n.b = 1; }); simpan(); segarkanLencana(); if (pusat) gambar(); },
     bersihkan: function () { riwayat = []; simpan(); segarkanLencana(); if (pusat) gambar(); }
   };
 })();
