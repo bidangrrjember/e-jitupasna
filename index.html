@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycby6Onp6eSsxXbIt_DSByB5C2HFwzxuLGc8OAZC3pzEIO-JJSbpauMKpJgFcX84Eqkve/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5838,11 +5838,15 @@ const rkAdaTautan = function (v) { return !!v && v !== '-' && String(v).trim() !
    terima & monitoring punya tile-nya sendiri. */
 function renderDokumenGabungan(data) {
     const dibantu = checkIsDibantu(data);
-    const jenis = [{ k: 'disposisi', judul: 'Disposisi', link: data.linkDisposisi }];
+    /* taksiap = kuncinya tidak ada sama sekali pada data dari server, bukan
+       sekadar kosong. Bedanya penting: kosong berarti belum diunggah,
+       tidak ada berarti server tidak bisa menjawab. */
+    const taksiap = function (k) { return !(k in data); };
+    const jenis = [{ k: 'disposisi', judul: 'Disposisi', link: data.linkDisposisi, taksiap: taksiap('linkDisposisi') }];
     if (dibantu) {
-        jenis.push({ k: 'serahTerima', judul: 'Serah terima', link: data.linkDokSerahTerima });
+        jenis.push({ k: 'serahTerima', judul: 'Serah terima', link: data.linkDokSerahTerima, taksiap: taksiap('linkDokSerahTerima') });
         // bantuan yang hanya terpal tidak dimonitor - kecuali dokumennya terlanjur ada
-        if (!checkIsOnlyTerpal(data) || rkAdaTautan(data.linkDokMonitoring)) jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring });
+        if (!checkIsOnlyTerpal(data) || rkAdaTautan(data.linkDokMonitoring)) jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring, taksiap: taksiap('linkDokMonitoring') });
     }
     const pecah = function (v) { return rkAdaTautan(v) ? String(v).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : []; };
     const escA = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
@@ -5851,7 +5855,8 @@ function renderDokumenGabungan(data) {
         const urls = pecah(j.link);
         total += urls.length;
         let isi;
-        if (!urls.length) isi = '<em class="rkd-dokj-kosong">Belum ada</em>';
+        if (j.taksiap) isi = '<em class="rkd-dokj-taksiap">Server tidak melaporkan kolom ini</em>';
+        else if (!urls.length) isi = '<em class="rkd-dokj-kosong">Belum ada</em>';
         else if (urls.every(function (u) { return u === 'tersembunyi'; })) isi = '<em class="rkd-dokj-kosong">Ada · khusus petugas</em>';
         else isi = urls.map(function (u, i) {
             const pdf = /\.(pdf|docx?|xlsx?)$/i.test(u) || /format=pdf/i.test(u);
@@ -5875,10 +5880,17 @@ function renderDokumenGabungan(data) {
             '<div class="rkd-tombol-baris kiri"><button id="upload-dokumen-btn" onclick="handleSidebarUpload(\'dokumen\', \'' + data.idx + '\')" class="rkd-tombol-garis">' +
                 '<span class="material-symbols-outlined">cloud_upload</span> Unggah</button></div>' +
         '</div>' : '';
+    const belumSiap = jenis.filter(function (j) { return j.taksiap; }).map(function (j) { return j.judul.toLowerCase(); });
+    const catatan = belumSiap.length
+        ? '<p class="rkd-dokj-catatan"><span class="material-symbols-outlined">warning</span>' +
+            'Kolom <b>' + escA(belumSiap.join(', ')) + '</b> belum dikenali server, jadi berkas yang sudah diunggah tidak bisa ditampilkan di sini. ' +
+            'Deploy GAS GABUNGAN versi terbaru (Deploy &rarr; New version) - kolomnya dibuat otomatis.</p>'
+        : '';
     return '<div class="rkd-dok' + (total ? ' ada' : '') + '">' +
         '<div class="rkd-dok-kep"><span class="material-symbols-outlined">folder_managed</span><b>Dokumen</b>' +
             (total ? '<span class="rkd-cip tuntas">' + total + ' berkas</span>' : '<span class="rkd-cip kosong">Belum ada</span>') + '</div>' +
         '<div class="rkd-dokj-daftar">' + baris + '</div>' +
+        catatan +
         unggah +
     '</div>';
 }
@@ -23853,6 +23865,13 @@ html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
 .rkd-dokj-isi{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
 .rkd-dokj-isi .rkd-berkas-taut{margin:0}
 .rkd-dokj-kosong{padding-top:4px;font-style:normal;font-size:12px;color:var(--rk-tipis)}
+/* Bukan "belum ada": server memang tidak bisa menjawab. Dibedakan warnanya
+   supaya tidak terbaca sebagai keadaan normal. */
+.rkd-dokj-taksiap{padding-top:4px;font-style:normal;font-size:12px;color:var(--rk-emas,#C98A12)}
+.rkd-dokj-catatan{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:9px 11px;border-radius:10px;
+  background:color-mix(in srgb,var(--rk-emas,#C98A12) 12%,transparent);font-size:11.5px;line-height:1.45;color:var(--rk-teks,inherit)}
+.rkd-dokj-catatan .material-symbols-outlined{flex:0 0 auto;font-size:16px;color:var(--rk-emas,#C98A12)}
+.rkd-dokj-catatan b{font-weight:700}
 .rkd-dokj-jenis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
 .rkd-dokj-jenis label{position:relative;cursor:pointer}
 .rkd-dokj-jenis input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
@@ -23863,6 +23882,7 @@ html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
 .rkd-dokj-jenis input:focus-visible + span{outline:2px solid var(--rk-api);outline-offset:2px}
 html[data-saku] .rkd-dokj-baris{border-color:var(--sk-garis,rgba(255,255,255,.1))}
 html[data-saku] .rkd-dokj-nama,html[data-saku] .rkd-dokj-kosong{color:var(--sk-tipis)}
+html[data-saku] .rkd-dokj-catatan{color:var(--sk-tinta)}
 html[data-saku] .rkd-dokj-jenis span{border-color:var(--sk-garis,rgba(255,255,255,.14));color:var(--sk-tipis)}
 html[data-saku] .rkd-dokj-jenis input:checked + span{border-color:var(--sk-api);background:color-mix(in srgb,var(--sk-api) 14%,transparent);color:var(--sk-api)}
 /* tanggal serah terima/monitoring kosong */
