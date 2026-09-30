@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyAhAlNH8Q858BTkqLtxLfNGHSa02dKgU8kUl-Jna27NwpZIYa5FEJQWKtSn7zqLxcD/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -6027,13 +6027,21 @@ function openImagePreview(originalUrl) {
 
                 /* Satu baris per material; yang berisi ditandai supaya terlihat
                    sekali lihat mana yang benar-benar dikirim. */
+                /* Keadaan awal dihitung di sini juga, bukan diserahkan ke
+                   skrip sesudah tergambar - supaya barnya sudah benar pada
+                   bingkai pertama, tanpa kedip. */
+                const bs = window.rkStokBaris ? rkStokBaris(jumlah, info) : { kelas: '', lebar: 0, bar: false, teks: (info.satuan || '&nbsp;') };
                 editBantuanHtml += `
-                <label class="rkd-isi-bantuan${jumlah > 0 ? ' terisi' : ''}">
-                    <span class="rkd-isi-nama">
-                        <b title="${item}">${item}</b>
-                        <s>${info.ada ? (info.satuan || '&nbsp;') : 'belum ada di Inventori'}</s>
+                <label class="rkd-isi-bantuan${jumlah > 0 ? ' terisi' : ''}${bs.kelas ? ' ' + bs.kelas : ''}"
+                       data-ada="${info.ada ? 1 : 0}" data-stok="${info.ada ? info.stok : 0}" data-satuan="${(info.satuan || '').replace(/"/g, '&quot;')}">
+                    <span class="rkb-atas">
+                        <span class="rkd-isi-nama">
+                            <b title="${item}">${item}</b>
+                            <s>${bs.teks}</s>
+                        </span>
+                        <input type="number" min="0" inputmode="numeric" id="edit-bantuan-${data.idx}-${slugBantuan(item)}" value="${jumlah || ''}" placeholder="0" class="tanpa-spin rkd-input rkd-input-angka">
                     </span>
-                    <input type="number" min="0" inputmode="numeric" id="edit-bantuan-${data.idx}-${slugBantuan(item)}" value="${jumlah || ''}" placeholder="0" class="tanpa-spin rkd-input rkd-input-angka">
+                    ${bs.bar ? `<i class="rkb-bar"><b style="width:${bs.lebar}%"></b></i>` : ''}
                 </label>`;
             }
 
@@ -6051,7 +6059,7 @@ function openImagePreview(originalUrl) {
                     ${editBantuanBtn}
                 </div>
                 <div id="edit-bantuan-${data.idx}" class="hidden rkd-edit-blok">
-                    <p class="rkd-catatan">Isi jumlah yang benar-benar dikirim. Kosongkan atau isi 0 untuk membatalkan sebuah material — stok menyesuaikan sendiri.</p>
+                    <p class="rkd-catatan">Isi jumlah yang benar-benar dikirim. Kosongkan atau isi 0 untuk membatalkan sebuah material — stok menyesuaikan sendiri. Bar tipis di bawah tiap baris menunjukkan berapa bagian stok gudang yang diambil kiriman ini.</p>
                     <div class="rkd-daftar-isi">${editBantuanHtml}</div>
                 </div>
             </section>`;
@@ -15966,6 +15974,25 @@ body.rk #sidebar .rkd-input:disabled{opacity:.6}
 .rkd-isi-nama{flex:1;min-width:0}
 .rkd-isi-nama b{display:block;font-size:12.5px;font-weight:700;color:var(--rk-tinta);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rkd-isi-nama s{display:block;text-decoration:none;font-family:"DM Mono",monospace;font-size:10.5px;color:var(--rk-tipis)}
+/* ── bar pemakaian stok ──
+   Barisnya jadi dua tingkat: isian di atas, bar setipis rambut di bawah.
+   Semua baris memakai susunan ini, juga yang tanpa bar, supaya tingginya
+   tidak melompat saat material yang belum ada di Inventori ikut terdaftar. */
+.rkd-isi-bantuan:has(> .rkb-atas){display:block;padding:6px 8px 8px 12px}
+.rkb-atas{display:flex;align-items:center;gap:10px}
+.rkb-bar{display:block;height:3px;margin:6px 0 0;border-radius:99px;background:var(--rk-sekat);overflow:hidden}
+.rkb-bar > b{display:block;height:100%;width:0;border-radius:99px;background:var(--rk-laut);
+  transition:width .2s ease,background-color .2s ease}
+/* Aturan "terisi" yang sudah ada memakai :has(), jadi kekhususannya lebih
+   tinggi dari satu kelas - warna kurang/mepet perlu jangkar #sidebar. */
+body.rk #sidebar .rkd-isi-bantuan.rkb-mepet > .rkb-bar > b{background:var(--rk-emas)}
+body.rk #sidebar .rkd-isi-bantuan.rkb-kurang > .rkb-bar > b{background:var(--rk-merah)}
+body.rk #sidebar .rkd-isi-bantuan.rkb-mepet .rkd-isi-nama s{color:var(--rk-emas)}
+body.rk #sidebar .rkd-isi-bantuan.rkb-kurang .rkd-isi-nama s{color:var(--rk-merah)}
+body.rk #sidebar .rkd-isi-bantuan.rkb-kurang{
+  border-color:color-mix(in srgb,var(--rk-merah) 55%,var(--rk-sekat));
+  background:color-mix(in srgb,var(--rk-merah) 10%,var(--rk-muka))}
+@media (prefers-reduced-motion:reduce){.rkb-bar > b{transition:none}}
 body.rk #sidebar .rkd-input-angka{flex:0 0 84px;width:84px;height:34px;text-align:right;font-family:"DM Mono",monospace;font-size:13.5px;background-color:var(--rk-padat)}
 .tanpa-spin::-webkit-inner-spin-button,.tanpa-spin::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .tanpa-spin{-moz-appearance:textfield}
@@ -27825,6 +27852,65 @@ html[data-saku] .rks-unduh{white-space:nowrap}
   else pasangTombol();
 
   window.rkKesehatan = { buka: buka, tutup: tutup, hitung: hitung, periksa: PERIKSA };
+})();
+</script>
+<script>
+/* =========================================================================
+   KEADAAN SATU BARIS MATERIAL TERHADAP STOK
+   =========================================================================
+   Dipakai dua kali: saat baris digambar (di dalam openSidebarWithData) dan
+   tiap kali angkanya diketik ulang. Ditulis sekali di sini supaya keduanya
+   tidak bisa berbeda pendapat soal ambang dan pembulatan.
+   ========================================================================= */
+(function () {
+  "use strict";
+  var MEPET = 0.75;          /* 3/4 stok terpakai -> kuning */
+
+  function ang(v) { return Number(v).toLocaleString("id-ID"); }
+
+  window.rkStokBaris = function (jumlah, info) {
+    var n = parseFloat(jumlah);
+    if (!isFinite(n) || n < 0) n = 0;
+    if (!info || !info.ada) {
+      return { kelas: "", lebar: 0, bar: false, teks: "belum ada di Inventori" };
+    }
+    var stok = Number(info.stok) || 0;
+    var awalan = info.satuan ? info.satuan + " \u00b7 " : "";
+    if (n <= 0) return { kelas: "", lebar: 0, bar: true, teks: awalan + "stok " + ang(stok) };
+
+    var teks = awalan + ang(n) + " dari " + ang(stok);
+    if (n > stok) return { kelas: "rkb-kurang", lebar: 100, bar: true, teks: teks };
+    var pakai = stok > 0 ? n / stok : 1;
+    return {
+      kelas: pakai >= MEPET ? "rkb-mepet" : "",
+      /* sedikit pun tetap terlihat: bar 0 px tidak mengatakan apa-apa */
+      lebar: Math.max(3, Math.round(pakai * 100)),
+      bar: true, teks: teks
+    };
+  };
+
+  /* Diketik -> baris itu saja yang dihitung ulang. Fase tangkap dipakai
+     supaya tetap jalan walau ada penangan lain yang menghentikan perambatan. */
+  function segarkan(label) {
+    var inp = label.querySelector("input");
+    var teks = label.querySelector(".rkd-isi-nama s");
+    if (!inp || !teks) return;
+    var bs = window.rkStokBaris(inp.value, {
+      ada: label.getAttribute("data-ada") === "1",
+      stok: Number(label.getAttribute("data-stok")) || 0,
+      satuan: label.getAttribute("data-satuan") || ""
+    });
+    label.classList.remove("rkb-mepet", "rkb-kurang");
+    if (bs.kelas) label.classList.add(bs.kelas);
+    teks.textContent = bs.teks;
+    var isi = label.querySelector(".rkb-bar > b");
+    if (isi) isi.style.width = bs.lebar + "%";
+  }
+
+  document.addEventListener("input", function (e) {
+    var l = e.target && e.target.closest ? e.target.closest(".rkd-isi-bantuan[data-ada]") : null;
+    if (l) segarkan(l);
+  }, true);
 })();
 </script>
 </body>
