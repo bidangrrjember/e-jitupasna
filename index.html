@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbz3l3Bf1wPRww_6cK1ONf4gusezLaQaZgMQCX-anr6yWdy1-bYqFnnsq-qUDBvyOKo/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -10740,7 +10740,7 @@ body.rk .rk-lembar .rk-rail{display:none !important}
 body.rk .rk-lembar #filter-sidebar{display:none !important}
 
 /* ══ LEMBAR ══ */
-body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view{
+body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view,body.rk #rks{
   position:absolute !important;
   top:70px !important;left:14px !important;right:14px !important;bottom:74px !important;
   width:auto !important;height:auto !important;max-width:none !important;
@@ -10802,7 +10802,7 @@ body.rk .stm-scope .stm-tab.active .msym,
 body.rk .stm-scope .stm-tab.active .tab-teks,
 body.rk .stm-scope .stm-tab.active .tab-pendek{color:#fff !important}
 @media (max-width:880px){
-  body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view{
+  body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view,body.rk #rks{
     top:64px !important;left:10px !important;right:10px !important;bottom:10px !important}
 }
 /* Tombol tutup sudah tidak ada - navigasinya lewat rel ikon di kiri. */
@@ -11690,25 +11690,25 @@ body.rk #dashboard-view.opacity-0{
 body.rk #dashboard-grid.hidden{display:block !important}
 
 /* ── lembar ── */
-body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view{
+body.rk #reports-view,body.rk #logistik-view,body.rk #form-view,body.rk #weather-focus-view,body.rk #rks{
   --geser:-44px;transform-origin:left center;will-change:transform,opacity;
 }
 body.rk #form-view{--geser:44px;transform-origin:right top}
 
 /* masuk: panjang dan melambat di ujung */
 body.rk #reports-view.opacity-100,body.rk #logistik-view.opacity-100,
-body.rk #form-view.opacity-100,body.rk #weather-focus-view.opacity-100{
+body.rk #form-view.opacity-100,body.rk #weather-focus-view.opacity-100,body.rk #rks.opacity-100{
   opacity:1 !important;transform:none !important;
   transition:opacity .32s cubic-bezier(.2,.7,.2,1),transform .55s cubic-bezier(.16,1,.3,1) !important;
 }
 /* keluar: singkat dan tegas, harus selesai sebelum 300 ms milik kode lama */
 body.rk #reports-view.opacity-0,body.rk #logistik-view.opacity-0,
-body.rk #form-view.opacity-0,body.rk #weather-focus-view.opacity-0{
+body.rk #form-view.opacity-0,body.rk #weather-focus-view.opacity-0,body.rk #rks.opacity-0{
   opacity:0 !important;transform:translateX(var(--geser)) scale(.99) !important;pointer-events:none !important;
   transition:opacity .2s ease-in,transform .26s cubic-bezier(.5,0,.75,0) !important;
 }
 @media (max-width:640px){
-  body.rk #reports-view,body.rk #logistik-view,body.rk #weather-focus-view{--geser:-24px}
+  body.rk #reports-view,body.rk #logistik-view,body.rk #weather-focus-view,body.rk #rks{--geser:-24px}
   body.rk #form-view{--geser:24px}
 }
 
@@ -18676,15 +18676,15 @@ body.rk .sk-form-wadah textarea,body.rk .sk-form-wadah .rkx-pilih{
 body.rk .sk-form-wadah .rkf-petak,body.rk .sk-form-wadah .rkf-berkas,body.rk .sk-form-wadah .rkf-sakelar{background:var(--sk-kartu2) !important;border-color:transparent !important;border-radius:20px !important}
 
 /* ═══ tampilan desktop yang dibuka dari mode saku ═══ */
-html[data-saku="hp"] body.rk #reports-view,html[data-saku="hp"] body.rk #logistik-view,html[data-saku="hp"] body.rk #weather-focus-view,html[data-saku="hp"] body.rk #pengaturan-view,
-html[data-saku="tab"] body.rk #reports-view,html[data-saku="tab"] body.rk #logistik-view,html[data-saku="tab"] body.rk #weather-focus-view,html[data-saku="tab"] body.rk #pengaturan-view{
+html[data-saku="hp"] body.rk #reports-view,html[data-saku="hp"] body.rk #logistik-view,html[data-saku="hp"] body.rk #weather-focus-view,html[data-saku="hp"] body.rk #pengaturan-view,html[data-saku="hp"] body.rk #rks,
+html[data-saku="tab"] body.rk #reports-view,html[data-saku="tab"] body.rk #logistik-view,html[data-saku="tab"] body.rk #weather-focus-view,html[data-saku="tab"] body.rk #pengaturan-view,html[data-saku="tab"] body.rk #rks{
   top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;border-radius:0 !important;z-index:80 !important;
   background:var(--sk-app) !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important;box-shadow:none !important}
 html[data-saku="hp"] body.rk #reports-view,html[data-saku="hp"] body.rk #weather-focus-view,html[data-saku="hp"] body.rk #pengaturan-view,
 html[data-saku="tab"] body.rk #reports-view,html[data-saku="tab"] body.rk #weather-focus-view,html[data-saku="tab"] body.rk #pengaturan-view{padding:0 14px var(--sk-ruang-nav) !important}
 html[data-saku="hp"] body.rk #logistik-view > .stm-scope,html[data-saku="tab"] body.rk #logistik-view > .stm-scope{padding:0 14px var(--sk-ruang-nav) !important}
-html[data-saku="hp-rebah"] body.rk #reports-view,html[data-saku="hp-rebah"] body.rk #logistik-view,html[data-saku="hp-rebah"] body.rk #weather-focus-view,html[data-saku="hp-rebah"] body.rk #pengaturan-view,
-html[data-saku="tab-rebah"] body.rk #reports-view,html[data-saku="tab-rebah"] body.rk #logistik-view,html[data-saku="tab-rebah"] body.rk #weather-focus-view,html[data-saku="tab-rebah"] body.rk #pengaturan-view{
+html[data-saku="hp-rebah"] body.rk #reports-view,html[data-saku="hp-rebah"] body.rk #logistik-view,html[data-saku="hp-rebah"] body.rk #weather-focus-view,html[data-saku="hp-rebah"] body.rk #pengaturan-view,html[data-saku="hp-rebah"] body.rk #rks,
+html[data-saku="tab-rebah"] body.rk #reports-view,html[data-saku="tab-rebah"] body.rk #logistik-view,html[data-saku="tab-rebah"] body.rk #weather-focus-view,html[data-saku="tab-rebah"] body.rk #pengaturan-view,html[data-saku="tab-rebah"] body.rk #rks{
   top:8px !important;bottom:8px !important;left:var(--sk-rel-w) !important;right:8px !important;z-index:80 !important;border-radius:24px !important}
 html[data-saku] body.rk .rkr-kep{padding-top:calc(var(--sk-aman-a) + 16px) !important}
 html[data-saku="hp"] .rkr-temuan,html[data-saku="hp"] .rkw-baris,html[data-saku="hp"] #pengaturan-view .rkf-bagian{
@@ -27362,6 +27362,515 @@ html.dark .rkh-ya{color:#2A100B}
   }
 
   window.rkHapusLaporan = { buka: buka, tutup: tutup };
+})();
+</script>
+<style id="rk-sehat-gaya">
+/* ══════════════════════════════════════════════════════════════════════
+   PANEL KESEHATAN DATA (bentuk D: pilih di kiri, kerjakan di kanan)
+   ══════════════════════════════════════════════════════════════════════
+   Menutupi area isi tapi MEMBIARKAN rel ikon terlihat, supaya berpindah
+   halaman tidak perlu menutup panel ini dulu.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Letak & kacanya datang dari aturan lembar mengambang bersama di atas.
+   Yang diatur di sini cuma isi dalamnya: kepala dan kaki dipatok, badan
+   yang menggulir - sama seperti yang dilakukan #logistik-view. */
+body.rk #rks{overflow:hidden !important;padding:0 !important;
+  display:flex;flex-direction:column;color:var(--rk-tinta);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+body.rk #rks[hidden]{display:none !important}
+/* kepala & kaki ikut membulat di sudut lembar */
+.rks-kep{border-radius:18px 18px 0 0}
+.rks-kaki{border-radius:0 0 18px 18px}
+html[data-saku="hp"] .rks-kep,html[data-saku="tab"] .rks-kep,
+html[data-saku="hp"] .rks-kaki,html[data-saku="tab"] .rks-kaki{border-radius:0}
+
+.rks-kep{flex:0 0 auto;display:flex;align-items:center;gap:11px;padding:15px 20px;
+  border-bottom:1px solid var(--rk-sekat);background:transparent}
+.rks-kep > .material-symbols-outlined{font-size:21px;color:var(--rk-emas)}
+.rks-kep h2{margin:0;font-size:16px;font-weight:800;letter-spacing:-.015em}
+.rks-kep s{display:block;margin-top:2px;text-decoration:none;font-size:11.5px;color:var(--rk-tipis)}
+.rks-kanan{margin-left:auto;display:flex;gap:8px;align-items:center;flex:0 0 auto}
+.rks-cip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;
+  font-size:11.5px;font-weight:700;white-space:nowrap}
+.rks-cip.laut{background:var(--rk-laut-t);color:var(--rk-laut)}
+.rks-ikon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--rk-sekat);
+  background:transparent;color:var(--rk-tipis);cursor:pointer;flex:0 0 auto}
+.rks-ikon:hover{background:var(--rk-muka);color:var(--rk-tinta)}
+.rks-ikon .material-symbols-outlined{font-size:18px}
+
+.rks-badan{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:268px minmax(0,1fr)}
+.rks-kiri{border-right:1px solid var(--rk-sekat);overflow-y:auto;padding:10px 0}
+.rks-judul{padding:10px 16px 6px}
+.rks-alis{display:block;font:500 10px "DM Mono",monospace;letter-spacing:.07em;text-transform:uppercase;color:var(--rk-tipis)}
+.rks-p{display:flex;align-items:center;gap:10px;width:100%;padding:10px 16px;border:0;background:transparent;
+  color:inherit;cursor:pointer;text-align:left;font:inherit;border-left:2px solid transparent}
+.rks-p:hover{background:var(--rk-muka)}
+.rks-p.on{background:var(--rk-muka);border-left-color:var(--rk-api)}
+.rks-p .nm{flex:1;min-width:0;font-size:12.5px;font-weight:600}
+.rks-p i{font-style:normal;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.rks-p.m i{color:var(--rk-merah)} .rks-p.e i{color:var(--rk-emas)} .rks-p.l i{color:var(--rk-laut)}
+.rks-p.kosong i{color:var(--rk-tipis)}
+
+.rks-isi{overflow-y:auto;padding:14px 20px 18px}
+.rks-ket{margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--rk-tipis)}
+.rks-brs{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--rk-sekat);font-size:12.5px}
+.rks-brs:first-of-type{border-top:0}
+.rks-brs .no{flex:0 0 26px;font:500 11px "DM Mono",monospace;color:var(--rk-tipis)}
+.rks-brs .nm{flex:1;min-width:0}
+.rks-brs .nm b{display:block;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rks-brs .nm s{display:block;text-decoration:none;font-size:11px;color:var(--rk-tipis);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rks-brs .tg{flex:0 0 auto;font:500 11px "DM Mono",monospace;color:var(--rk-tipis)}
+.rks-brs .bk{flex:0 0 auto;height:29px;padding:0 12px;border-radius:9px;border:1px solid var(--rk-sekat);
+  background:transparent;color:var(--rk-api);font:700 11.5px inherit;cursor:pointer;white-space:nowrap}
+.rks-brs .bk:hover{border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 12%,transparent)}
+.rks-nihil{padding:40px 0;text-align:center;font-size:12.5px;color:var(--rk-tipis)}
+.rks-nihil .material-symbols-outlined{display:block;margin:0 auto 8px;font-size:30px;color:var(--rk-laut)}
+
+.rks-kaki{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 20px;
+  border-top:1px solid var(--rk-sekat);background:transparent;font-size:11.5px;color:var(--rk-tipis)}
+.rks-kaki .material-symbols-outlined{font-size:16px}
+.rks-unduh{margin-left:auto;height:31px;padding:0 14px;border-radius:9px;border:0;
+  background:var(--rk-api);color:#20100D;font:800 11.5px inherit;cursor:pointer}
+.rks-unduh:hover{filter:brightness(1.08)}
+.rks-unduh:disabled{opacity:.45;cursor:not-allowed}
+
+/* sorotan sebentar pada kotak isian yang dituju */
+@keyframes rksSorot{0%,100%{box-shadow:0 0 0 0 transparent}18%,72%{box-shadow:0 0 0 3px color-mix(in srgb,var(--rk-api) 55%,transparent)}}
+.rks-tuju{animation:rksSorot 2.4s ease both;border-radius:10px}
+
+/* ── mode saku: satu kolom, pilihan jadi deretan cip ── */
+html[data-saku] .rks-badan{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+html[data-saku] .rks-kiri{border-right:0;border-bottom:1px solid var(--rk-sekat);overflow-x:auto;overflow-y:hidden;
+  display:flex;gap:7px;padding:11px 14px;white-space:nowrap}
+html[data-saku] .rks-judul{display:none}
+html[data-saku] .rks-p{width:auto;flex:0 0 auto;gap:7px;padding:8px 13px;border-left:0;border-radius:99px;
+  background:var(--rk-muka)}
+html[data-saku] .rks-p.on{background:var(--rk-api);color:#fff}
+html[data-saku] .rks-p.on i{color:#fff}
+html[data-saku] .rks-isi{padding:12px 14px 16px}
+html[data-saku] .rks-brs .tg{display:none}
+/* kepala & kaki di layar sempit: tidak ada yang boleh melipat */
+html[data-saku] .rks-kep{padding:12px 14px;gap:9px}
+html[data-saku] .rks-kep h2{font-size:15px;white-space:nowrap}
+html[data-saku] .rks-kep s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-saku] .rks-kep > div:first-of-type{min-width:0}
+html[data-saku] .rks-cip{display:none}          /* angkanya sudah ada di baris bawah judul */
+html[data-saku] .rks-kaki{padding:10px 14px}
+html[data-saku] .rks-kaki-teks{display:none}
+html[data-saku] .rks-unduh{white-space:nowrap}
+</style>
+<script>
+/* =========================================================================
+   KESEHATAN DATA
+   =========================================================================
+   Selama ini tiap ketidakcocokan baru ketahuan karena kebetulan terlihat:
+   tanggal penyaluran yang salah, dokumen yang tak terbaca, status cetak
+   yang tidak cocok dengan dasbor. Panel ini membuat semuanya terlihat
+   sekaligus, dan - yang lebih penting - bisa dikerjakan dari satu tempat.
+
+   Dikelompokkan menurut AKIBATNYA, bukan menurut nama kolomnya:
+     · menghambat laporan bulanan - benar-benar merusak keluaran
+     · kelengkapan isi           - membuat angka ringkasan kurang
+     · perlu diperiksa orang     - tidak bisa diputuskan mesin
+
+   Tombolnya bukan "Buka" melainkan tindakan yang tepat untuk masalah itu:
+   "Isi tanggal" membuka panel laporan lalu menyorot kotak tanggalnya.
+   ========================================================================= */
+(function () {
+  "use strict";
+
+  var lembar = null, pilihan = "tglSerah", hasil = null;
+
+  function esc(v) {
+    return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function ada(v) { return !!v && v !== "-" && String(v).trim() !== ""; }
+  function tglSah(v) {
+    if (!ada(v)) return null;
+    var d = new Date(v);
+    return (isNaN(d.getTime()) || d.getFullYear() < 2000) ? null : d;
+  }
+  function angka(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function norm(v) { return String(v == null ? "" : v).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+  function tglPendek(d) {
+    if (!(d instanceof Date) || isNaN(d)) return "-";
+    return d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function data() {
+    try { if (typeof allData !== "undefined" && Array.isArray(allData)) return allData; } catch (e) {}
+    return [];
+  }
+  function lokasi(it) {
+    return [it.desakelurahan, it.kec].filter(function (x) { return x && x !== "-"; }).join(", ") || "-";
+  }
+
+  /* ══ daftar pemeriksaan ══
+     uji(it) -> true kalau laporan ini bermasalah pada pemeriksaan tsb. */
+  var GRUP = [
+    { k: "hambat", nama: "Menghambat laporan bulanan" },
+    { k: "isi", nama: "Kelengkapan isi" },
+    { k: "orang", nama: "Perlu ditinjau" }
+  ];
+
+  var PERIKSA = [
+    { k: "tglSerah", grup: "hambat", nada: "m", nama: "Tgl. serah terima kosong",
+      ket: "Berkas serah terimanya ada, tapi tanggalnya belum diisi. Laporan bulanan dan tanggal riwayat penyaluran memakai tanggal ini.",
+      aksi: "Isi",
+      uji: function (it) { return ada(it.linkSerahTerima) && !tglSah(it.tglSerahTerima); },
+      jalan: function (it) { bukaLalu(it, { tgl: "serahTerima" }); } },
+
+    { k: "tglMon", grup: "hambat", nada: "m", nama: "Tgl. monitoring kosong",
+      ket: "Berkas monitoringnya ada, tapi tanggalnya belum diisi.",
+      aksi: "Isi",
+      uji: function (it) { return ada(it.linkMonitoring) && !tglSah(it.tglMonitoring); },
+      jalan: function (it) { bukaLalu(it, { tgl: "monitoring" }); } },
+
+    { k: "tglKosong", grup: "hambat", nada: "e", nama: "Tanggal tanpa berkas",
+      ket: "Tanggalnya terisi tapi tidak ada berkas apa pun. Tercatat selesai tanpa bukti - perlu diperiksa apakah berkasnya belum diunggah.",
+      aksi: "Periksa",
+      uji: function (it) {
+        return (!!tglSah(it.tglSerahTerima) && !ada(it.linkSerahTerima)) ||
+               (!!tglSah(it.tglMonitoring) && !ada(it.linkMonitoring));
+      },
+      jalan: function (it) { bukaLalu(it, {}); } },
+
+    { k: "jiwa", grup: "isi", nada: "e", nama: "Jumlah jiwa kosong",
+      ket: "Tidak ikut terhitung pada angka jiwa terdampak di dasbor maupun laporan bulanan.",
+      aksi: "Isi",
+      uji: function (it) { return !(angka(it.jumlahKeluarga) > 0); },
+      jalan: function (it) { bukaLalu(it, { edit: "jumlahKeluarga" }); } },
+
+    { k: "rusak", grup: "isi", nada: "e", nama: "Kerusakan & taksiran nilai",
+      ket: "Tingkat kerusakan atau taksiran nilainya kosong, jadi laporan ini tidak masuk statistik tingkat kerusakan.",
+      aksi: "Hitung",
+      uji: function (it) { return !ada(it.kerusakan) || !(angka(it.nilaiKerusakan) > 0); },
+      jalan: function (it) { bukaLalu(it, { edit: "__kalkulator" }); } },
+
+    { k: "titik", grup: "isi", nada: "l", nama: "Koordinat kosong",
+      ket: "Tidak muncul di peta.",
+      aksi: "Isi",
+      uji: function (it) { return !(angka(it.lat) && angka(it.lng)); },
+      jalan: function (it) { bukaLalu(it, { edit: "lat" }); } },
+
+    { k: "ganda", grup: "orang", nada: "e", nama: "Kemungkinan ganda",
+      ket: "Nama, desa, dan kecamatannya sama persis dengan laporan lain. Belum tentu ganda - bisa jadi dua kejadian berbeda, atau dua orang bernama mirip. Bandingkan dulu isinya.",
+      aksi: "Bandingkan", kelompok: true,
+      uji: null,
+      jalan: function (it) { bukaLalu(it, {}); } }
+  ];
+
+  /* ══ menjalankan seluruh pemeriksaan ══ */
+  function hitung() {
+    var d = data();
+    var out = { total: d.length, temuan: 0, bersih: 0, per: {} };
+    PERIKSA.forEach(function (p) { out.per[p.k] = []; });
+
+    d.forEach(function (it) {
+      var kena = 0;
+      PERIKSA.forEach(function (p) {
+        if (!p.uji) return;
+        var salah = false;
+        try { salah = !!p.uji(it); } catch (e) {}
+        if (salah) { out.per[p.k].push({ it: it }); kena++; }
+      });
+      if (!kena) out.bersih++;
+    });
+
+    /* Ganda dihitung per KELOMPOK, bukan per laporan. */
+    var grup = {};
+    d.forEach(function (it) {
+      var k = norm(it.nama) + "|" + norm(it.desakelurahan) + "|" + norm(it.kec);
+      if (!norm(it.nama)) return;
+      (grup[k] = grup[k] || []).push(it);
+    });
+    var nomor = 0;
+    Object.keys(grup).forEach(function (k) {
+      if (grup[k].length < 2) return;
+      nomor++;
+      var selisih = "";
+      var waktu = grup[k].map(function (x) { return new Date(x.timestamp).getTime(); })
+        .filter(function (n) { return !isNaN(n); }).sort();
+      if (waktu.length > 1) {
+        var hari = Math.round((waktu[waktu.length - 1] - waktu[0]) / 86400000);
+        selisih = hari < 2 ? "selisih kurang dari 2 hari" : "selisih " + hari + " hari";
+      }
+      grup[k].forEach(function (it) {
+        out.per.ganda.push({ it: it, grup: nomor, catatan: selisih });
+      });
+    });
+
+    PERIKSA.forEach(function (p) { out.temuan += out.per[p.k].length; });
+    hasil = out;
+    return out;
+  }
+
+  /* ══ membuka laporan lalu menuju kotak yang dimaksud ══ */
+  function tunggu(cari, lalu, sisa) {
+    sisa = sisa === undefined ? 40 : sisa;
+    var el = cari();
+    if (el) return lalu(el);
+    if (sisa <= 0) return;
+    setTimeout(function () { tunggu(cari, lalu, sisa - 1); }, 80);
+  }
+  function sorot(el) {
+    if (!el) return;
+    try { if (typeof rkGulirPanelKe === "function") rkGulirPanelKe(el); } catch (e) {}
+    var kotak = el.closest ? (el.closest(".rkd-tanggal") || el) : el;
+    kotak.classList.remove("rks-tuju");
+    void kotak.offsetWidth;
+    kotak.classList.add("rks-tuju");
+    setTimeout(function () { try { el.focus({ preventScroll: true }); } catch (e) {} }, 320);
+    setTimeout(function () { kotak.classList.remove("rks-tuju"); }, 2600);
+  }
+  var kembaliKeSehat = false, detailDibuka = false;
+
+  /* Dipanggil saat panel/lembar detail ditutup - dari mana pun penutupnya. */
+  function selesaiDetail() {
+    if (!detailDibuka) return;
+    detailDibuka = false;
+    if (kembaliKeSehat) {
+      kembaliKeSehat = false;
+      setTimeout(function () { buka(); }, 260);   /* setelah lembarnya selesai turun */
+      return;
+    }
+    /* Di layar besar panelnya masih terbuka di belakang: hitung ulang, supaya
+       yang baru dibereskan langsung hilang dari daftar. */
+    setTimeout(function () {
+      if (lembar && !lembar.hidden) { hitung(); gambar(); }
+    }, 500);
+  }
+
+  function pantauDetail() {
+    var sb = document.getElementById("sidebar");
+    if (sb && !sb.__rksPantau) {
+      sb.__rksPantau = 1;
+      new MutationObserver(function () {
+        if (sb.classList.contains("translate-x-full")) selesaiDetail();
+      }).observe(sb, { attributes: true, attributeFilter: ["class"] });
+    }
+    var sk = document.getElementById("sk-detail");
+    if (sk && !sk.__rksPantau) {
+      sk.__rksPantau = 1;
+      new MutationObserver(function () {
+        if (!sk.classList.contains("on")) selesaiDetail();
+      }).observe(sk, { attributes: true, attributeFilter: ["class"] });
+    }
+  }
+
+  function bukaLalu(it, tuju) {
+    var saku = document.documentElement.hasAttribute("data-saku");
+    kembaliKeSehat = saku;
+    detailDibuka = true;
+    pantauDetail();
+    if (saku) tutup();
+    try { openSidebarWithData(it); } catch (e) { detailDibuka = false; kembaliKeSehat = false; return; }
+
+    if (tuju.tgl) {
+      tunggu(function () { return document.getElementById("input-tgl-" + tuju.tgl); }, sorot);
+      return;
+    }
+    if (tuju.edit) {
+      try { bukaEditSemua(it.idx); } catch (e) {}
+      if (tuju.edit === "__kalkulator") {
+        tunggu(function () { return document.querySelector("#sidebar-content .rkd-saat-edit .rkk-akar, #sidebar-content .rkd-saat-edit"); }, sorot);
+      } else {
+        tunggu(function () { return document.getElementById("input-field-" + tuju.edit + "-" + it.idx); }, sorot);
+      }
+    }
+  }
+
+  /* ══ tampilan ══ */
+  function rangka() {
+    if (lembar) return;
+    lembar = document.createElement("section");
+    lembar.id = "rks";
+    lembar.hidden = true;
+    /* keadaan awal = keadaan keluar, supaya bukaan pertama pun menggeser masuk */
+    lembar.classList.add("opacity-0");
+    lembar.setAttribute("aria-label", "Kesehatan data");
+    /* Induk yang sama dengan lembar-lembar lain: letaknya absolut, jadi ia
+       harus berpatokan pada wadah yang sama, bukan pada layar. */
+    var rv = document.getElementById("reports-view");
+    (rv && rv.parentElement ? rv.parentElement : document.body).appendChild(lembar);
+
+    lembar.addEventListener("click", function (e) {
+      var t = e.target.closest ? e.target.closest("[data-rks]") : null;
+      if (!t) return;
+      var a = t.getAttribute("data-rks");
+      if (a === "tutup") return tutup();
+      if (a === "segar") { hitung(); gambar(); return; }
+      if (a === "unduh") return unduh();
+      if (a === "pilih") { pilihan = t.getAttribute("data-k"); gambar(); return; }
+      if (a === "jalan") {
+        var p = PERIKSA.filter(function (x) { return x.k === pilihan; })[0];
+        var baris = (hasil.per[pilihan] || [])[+t.getAttribute("data-i")];
+        if (p && baris) p.jalan(baris.it);
+      }
+    });
+    pantauDetail();
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape" || !lembar || lembar.hidden) return;
+      e.stopPropagation();
+      e.preventDefault();
+      tutup();
+    }, true);
+  }
+
+  function gambar() {
+    if (!lembar || !hasil) return;
+    var p = PERIKSA.filter(function (x) { return x.k === pilihan; })[0] || PERIKSA[0];
+    var baris = hasil.per[p.k] || [];
+
+    var kiri = "";
+    GRUP.forEach(function (gr) {
+      kiri += '<div class="rks-judul"><span class="rks-alis">' + esc(gr.nama) + "</span></div>";
+      PERIKSA.filter(function (x) { return x.grup === gr.k; }).forEach(function (x) {
+        var n = (hasil.per[x.k] || []).length;
+        kiri += '<button type="button" class="rks-p ' + x.nada + (n ? "" : " kosong") + (x.k === pilihan ? " on" : "") +
+          '" data-rks="pilih" data-k="' + x.k + '"><span class="nm">' + esc(x.nama) + "</span><i>" + n + "</i></button>";
+      });
+    });
+
+    var kanan;
+    if (!baris.length) {
+      kanan = '<div class="rks-nihil"><span class="material-symbols-outlined">task_alt</span>' +
+        "Tidak ada temuan pada pemeriksaan ini.</div>";
+    } else {
+      kanan = '<p class="rks-ket">' + esc(p.ket) + "</p>" +
+        baris.map(function (b, i) {
+          var it = b.it;
+          var sub = lokasi(it) + (b.grup ? " · kelompok " + b.grup + (b.catatan ? ", " + b.catatan : "") : "");
+          return '<div class="rks-brs"><span class="no">' + (i + 1) + "</span>" +
+            '<span class="nm"><b>' + esc(it.nama || "-") + "</b><s>" + esc(sub) + "</s></span>" +
+            '<span class="tg">' + esc(tglPendek(it.dateObj)) + "</span>" +
+            '<button type="button" class="bk" data-rks="jalan" data-i="' + i + '">' + esc(p.aksi) + "</button></div>";
+        }).join("");
+    }
+
+    var persen = hasil.total ? Math.round(hasil.bersih / hasil.total * 100) : 0;
+    lembar.innerHTML =
+      '<header class="rks-kep"><span class="material-symbols-outlined">stethoscope</span>' +
+        "<div><h2>Kesehatan Data</h2><s>" + hasil.total + " laporan · " + hasil.temuan + " temuan</s></div>" +
+        '<div class="rks-kanan">' +
+          '<span class="rks-cip laut">' + persen + "% lengkap</span>" +
+          '<button type="button" class="rks-ikon" data-rks="segar" title="Periksa ulang" aria-label="Periksa ulang"><span class="material-symbols-outlined">refresh</span></button>' +
+          '<button type="button" class="rks-ikon" data-rks="tutup" title="Tutup" aria-label="Tutup"><span class="material-symbols-outlined">close</span></button>' +
+        "</div></header>" +
+      '<div class="rks-badan"><div class="rks-kiri">' + kiri + "</div>" +
+        '<div class="rks-isi">' + kanan + "</div></div>" +
+      '<footer class="rks-kaki"><span class="material-symbols-outlined">download</span>' +
+        '<span class="rks-kaki-teks">Daftar yang sedang tampil bisa diunduh untuk dibagi ke petugas.</span>' +
+        '<button type="button" class="rks-unduh" data-rks="unduh"' + (baris.length ? "" : " disabled") + ">Unduh CSV</button></footer>";
+
+  }
+
+  /* ══ unduh CSV ══ */
+  function unduh() {
+    if (!hasil) return;
+    var p = PERIKSA.filter(function (x) { return x.k === pilihan; })[0];
+    var baris = hasil.per[pilihan] || [];
+    if (!p || !baris.length) return;
+    var sel = function (v) {
+      v = String(v == null ? "" : v);
+      return /[",\n;]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    };
+    var isi = ["Pemeriksaan;Nama;Desa;Kecamatan;Tanggal asesmen;Keterangan"];
+    baris.forEach(function (b) {
+      isi.push([p.nama, b.it.nama || "", b.it.desakelurahan || "", b.it.kec || "",
+        tglPendek(b.it.dateObj), b.grup ? "kelompok " + b.grup + (b.catatan ? ", " + b.catatan : "") : ""]
+        .map(sel).join(";"));
+    });
+    /* BOM supaya Excel membaca huruf beraksen dengan benar */
+    var berkas = new Blob(["\ufeff" + isi.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(berkas);
+    a.download = "kesehatan-data-" + pilihan + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+
+  /* ══ keadaan aktif di rel ══
+     Yang dipegang pengendali rel adalah .text-primary; .rk-nyala dan kotak
+     jingganya diturunkan dari situ. Jadi cukup memindahkan .text-primary. */
+  var relSebelum = null;
+
+  function relRebut() {
+    var nav = document.getElementById("main-nav"), b = document.getElementById("rks-nav");
+    if (!nav || !b) return;
+    var aktif = nav.querySelector(":scope > button.text-primary");
+    if (aktif !== b) relSebelum = aktif;
+    Array.prototype.forEach.call(nav.children, function (x) {
+      if (x.tagName === "BUTTON") x.classList.toggle("text-primary", x === b);
+    });
+  }
+  /* pulih=false saat panel ditutup karena tombol halaman lain ditekan:
+     switchView yang akan menentukan nyalanya, jangan didahului. */
+  function relLepas(pulih) {
+    var nav = document.getElementById("main-nav"), b = document.getElementById("rks-nav");
+    if (b) b.classList.remove("text-primary");
+    if (pulih !== false && relSebelum && nav && relSebelum.parentElement === nav) {
+      relSebelum.classList.add("text-primary");
+    }
+    relSebelum = null;
+  }
+
+  /* ══ buka / tutup ══ */
+  var jamTutup = 0;
+
+  function buka() {
+    if (typeof isLoggedIn === "undefined" || !isLoggedIn) {
+      try { customAlert("Kesehatan Data hanya untuk petugas yang sudah masuk.", "info"); } catch (e) {}
+      return;
+    }
+    rangka(); hitung(); gambar();
+    /* Dibuka lagi selagi animasi tutup belum habis: batalkan jadwalnya,
+       kalau tidak panel yang baru dibuka ikut disembunyikan. */
+    if (jamTutup) { clearTimeout(jamTutup); jamTutup = 0; }
+    lembar.hidden = false;
+    void lembar.offsetWidth;          /* paksa hitung ulang, supaya transisinya jalan */
+    lembar.classList.remove("opacity-0");
+    lembar.classList.add("opacity-100");
+    relRebut();
+  }
+
+  function tutup(pulih) {
+    if (!lembar || (lembar.hidden && !jamTutup)) { relLepas(pulih); return; }
+    lembar.classList.remove("opacity-100");
+    lembar.classList.add("opacity-0");
+    relLepas(pulih);                  /* rel bereaksi seketika, tidak menunggu animasi */
+    if (jamTutup) clearTimeout(jamTutup);
+    jamTutup = setTimeout(function () { jamTutup = 0; lembar.hidden = true; }, 300);
+  }
+
+  /* ══ tombol di rel ikon ══
+     Disisipkan ke #main-nav yang di tata letak ini sudah jadi kolom tegak
+     (#nav-pill disembunyikan), jadi menambah tombol tidak merusak apa pun. */
+  function pasangTombol(sisa) {
+    sisa = sisa === undefined ? 60 : sisa;
+    var nav = document.getElementById("main-nav");
+    if (!nav) { if (sisa > 0) setTimeout(function () { pasangTombol(sisa - 1); }, 200); return; }
+    if (document.getElementById("rks-nav")) return;
+    var b = document.createElement("button");
+    b.id = "rks-nav";
+    b.type = "button";
+    b.title = "Kesehatan Data";
+    b.className = "relative z-10 flex items-center justify-center gap-2 px-2.5 lg:px-0 py-1.5 rounded text-sm font-medium transition-colors duration-300 text-gray-500 dark:text-gray-400";
+    b.innerHTML = '<span class="material-symbols-outlined text-lg">stethoscope</span><span class="hidden lg:inline">Kesehatan</span>';
+    b.addEventListener("click", function () { lembar && !lembar.hidden ? tutup() : buka(); });
+    nav.appendChild(b);
+    /* Berpindah halaman lewat tombol lain menutup panel ini. */
+    nav.addEventListener("click", function (e) {
+      var t = e.target.closest ? e.target.closest("button") : null;
+      if (t && t !== b) tutup(false);
+    }, true);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { pasangTombol(); });
+  else pasangTombol();
+
+  window.rkKesehatan = { buka: buka, tutup: tutup, hitung: hitung, periksa: PERIKSA };
 })();
 </script>
 </body>
