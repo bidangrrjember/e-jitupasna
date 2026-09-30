@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbz9GcoLrUhOffwyNHqBZD1V_FO2vGeekmDyZJpblNON23CBkFzZOv69a6yUamhpfHKu/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -12198,8 +12198,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       '<s id="rk-kerja-jml">0</s></div>' +
       '<div class="rk-gulir"><ul id="rk-kerja-isi"></ul></div>' +
       '<div class="rk-kaki"><button type="button" id="rk-kerja-lain" class="rk-taut">' +
-      'Lihat semua <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/><\/svg></button>' +
-      '<button type="button" id="rk-kerja-tgl" class="rk-kerja-tgl" hidden></button></div>';
+      'Lihat semua <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/><\/svg></button></div>';
     utama.appendChild(pk);
 
     /* Dua keadaan panel. Dipegang satu penanda supaya penggambar dan
@@ -12213,12 +12212,6 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
         return;
       }
       modeKerja = (modeKerja === "menunggu") ? "semua" : "menunggu";
-      gambarKerja();
-    });
-    // daftar laporan yang berkas serah terima/monitoringnya ada tapi tanggalnya kosong
-    document.getElementById("rk-kerja-tgl").addEventListener("click", function () {
-      if (typeof currentStatusFilter !== "undefined" && currentStatusFilter !== "all" && typeof filterByStatus === "function") filterByStatus(currentStatusFilter);
-      modeKerja = (modeKerja === "tanggal") ? "menunggu" : "tanggal";
       gambarKerja();
     });
 
@@ -12239,7 +12232,6 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
       const PETA_STATUS = { terkaji: "salur", bantuan: "monitor", tuntas: "tuntas" };
       const filterStatus = (typeof currentStatusFilter !== "undefined") ? PETA_STATUS[currentStatusFilter] || null : null;
       const semua = modeKerja === "semua" || filterStatus === "tuntas";
-      const modeTanggal = modeKerja === "tanggal" && !filterStatus;
 
       const antre = data.map(function (it) {
         // memakai penilai status yang sama dengan dasbor, bukan tiruannya
@@ -12252,11 +12244,6 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
            menunggu ia memang tidak pernah muncul - itu yang membedakan
            kedua daftar, bukan gaya barisnya. */
         const tg = window.rkTunggakan ? window.rkTunggakan(it) : null;
-        if (modeTanggal) {
-          if (!tg || !tg.tglKosong.length) return null;
-          const w0 = (it.dateObj && !isNaN(it.dateObj.getTime())) ? it.dateObj.getTime() : 0;
-          return { it: it, st: "tanggal", hari: tg.hari, waktu: w0, tg: tg };
-        }
         if (!st) { if (!semua) return null; st = "tuntas"; }
         if (filterStatus && st !== filterStatus) return null;
         const waktu = (it.dateObj && !isNaN(it.dateObj.getTime())) ? it.dateObj.getTime() : 0;
@@ -12276,36 +12263,22 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
 
       const judul = document.getElementById("rk-kerja-judul");
       const JUDUL_STATUS = { salur: "Menunggu penyaluran", monitor: "Menunggu monitoring", tuntas: "Penanganan tuntas" };
-      if (judul) judul.textContent = filterStatus ? JUDUL_STATUS[filterStatus] : modeTanggal ? "Tanggal belum diisi" : (semua ? "Semua laporan" : "Paling lama menunggu");
+      if (judul) judul.textContent = filterStatus ? JUDUL_STATUS[filterStatus] : (semua ? "Semua laporan" : "Paling lama menunggu");
       const taut = document.getElementById("rk-kerja-lain");
       if (taut) {
         /* Panahnya dibiarkan apa adanya - hanya teksnya yang ditukar,
            jadi gerak dan bentuk tautannya tetap sama. */
         const simpul = taut.firstChild;
         if (simpul && simpul.nodeType === 3) {
-          simpul.nodeValue = filterStatus ? "Tampilkan semua status " : ((semua || modeTanggal) ? "Yang menunggu " : "Lihat semua ");
+          simpul.nodeValue = filterStatus ? "Tampilkan semua status " : (semua ? "Yang menunggu " : "Lihat semua ");
         }
       }
 
       const jml = document.getElementById("rk-kerja-jml");
       if (jml) jml.textContent = antre.length.toLocaleString("id-ID");
-      const tTgl = document.getElementById("rk-kerja-tgl");
-      if (tTgl) {
-        const nTgl = window.rkTunggakan ? data.filter(function (it) { const t = window.rkTunggakan(it); return t && t.tglKosong.length; }).length : 0;
-        /* Tempatnya tetap. Dulu tombol ini disembunyikan saat hitungannya
-           nol, sehingga ia lenyap dan muncul lagi seolah tanpa sebab -
-           padahal yang berubah cuma ada-tidaknya tunggakan tanggal. */
-        tTgl.hidden = false;
-        tTgl.disabled = !nTgl || modeTanggal;
-        tTgl.classList.toggle("lengkap", !nTgl);
-        tTgl.textContent = nTgl ? nTgl + " tanggal kosong" : "Tanggal lengkap";
-        tTgl.title = nTgl
-          ? nTgl + " laporan: berkas serah terima/monitoring sudah ada, tanggalnya belum diisi"
-          : "Semua berkas serah terima & monitoring sudah ada tanggalnya";
-      }
 
       if (!antre.length) {
-        ul.innerHTML = '<li class="rk-kosong-kerja">' + (filterStatus ? "Tidak ada laporan dengan status ini." : modeTanggal ? "Semua tanggal serah terima &amp; monitoring sudah diisi." : "Tidak ada laporan yang menunggu.") + "</li>";
+        ul.innerHTML = '<li class="rk-kosong-kerja">' + (filterStatus ? "Tidak ada laporan dengan status ini." : "Tidak ada laporan yang menunggu.") + "</li>";
         return;
       }
       ul.innerHTML = antre.slice(0, filterStatus ? 200 : 40).map(function (r, i) {
@@ -12313,7 +12286,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
         const tempat = [it.desakelurahan, it.kec].filter(Boolean).join(", ");
         const sek = NAMA_SEKTOR[bakuSektor(it.sektor)] || "";
         const baris2 = [tempat, sek].filter(Boolean).join(" · ");
-        const cip = r.st === "tanggal" ? '<span class="rk-cip t">Tgl. ' + esc(r.tg.tglKosong.join(" & ")) + " kosong</span>" : r.st === "salur"
+        const cip = r.st === "salur"
           ? '<span class="rk-cip u">Belum disalurkan</span>'
           : (r.st === "tuntas"
             ? '<span class="rk-cip">Penanganan tuntas</span>'
@@ -12325,7 +12298,7 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
             Number(it.bantuan[p[0]]).toLocaleString("id-ID") + "</span>";
         }
         return '<li data-i="' + i + '">' +
-          '<span class="rk-jam' + (r.tg && r.tg.telat && r.st !== "tanggal" ? ' telat" title="Menunggu lebih dari ' + window.rkTunggakan.BATAS + ' hari sejak ' + r.tg.sejak : '') + '"><b' + (r.st === "salur" ? ' class="u"' : "") + ">" + r.hari +
+          '<span class="rk-jam' + (r.tg && r.tg.telat ? ' telat" title="Menunggu lebih dari ' + window.rkTunggakan.BATAS + ' hari sejak ' + r.tg.sejak : '') + '"><b' + (r.st === "salur" ? ' class="u"' : "") + ">" + r.hari +
           "</b><s>hari</s></span>" +
           '<div class="rk-det"><div class="rk-a">' + esc(it.nama || "-") + "</div>" +
           '<div class="rk-b">' + esc(baris2 || "-") + "</div>" +
@@ -23903,19 +23876,8 @@ html[data-saku] .rkd-dokj-jenis input:checked + span{border-color:var(--sk-api);
 .rkd-cip.tunggu{color:var(--rk-emas);background:color-mix(in srgb,var(--rk-emas) 14%,transparent)}
 html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
 /* daftar tunggakan (panel kanan) */
-#rk-kerja .rk-kaki{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.rk-kerja-tgl{display:inline-flex;align-items:center;gap:7px;padding:0;border:0;background:none;cursor:pointer;white-space:nowrap;
-  font:600 12px "Plus Jakarta Sans",system-ui,sans-serif;color:var(--rk-tipis);transition:color .15s}
-.rk-kerja-tgl::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rk-emas);flex:0 0 auto}
-.rk-kerja-tgl:hover{color:var(--rk-tinta)}
-.rk-kerja-tgl:focus-visible{outline:2px solid var(--rk-api);outline-offset:3px;border-radius:4px}
-.rk-kerja-tgl[hidden]{display:none}
-/* nol tunggakan: tetap terlihat, tapi jelas tidak bisa ditekan */
-.rk-kerja-tgl[disabled]{cursor:default;color:var(--rk-tipis);opacity:.75}
-.rk-kerja-tgl[disabled]:hover{color:var(--rk-tipis)}
-.rk-kerja-tgl.lengkap::before{background:var(--rk-laut)}
+#rk-kerja .rk-kaki{display:flex;align-items:center;gap:12px}
 #rk-kerja .rk-jam.telat b{color:var(--rk-merah) !important}
-.rk-cip.t{color:var(--rk-emas)}.rk-cip.t::before{background:var(--rk-emas)}
 </style>
 <script>
 (function () {
@@ -27393,10 +27355,6 @@ html[data-saku="hp"] .rks-kaki,html[data-saku="tab"] .rks-kaki{border-radius:0}
 .rks-cip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;
   font-size:11.5px;font-weight:700;white-space:nowrap}
 .rks-cip.laut{background:var(--rk-laut-t);color:var(--rk-laut)}
-.rks-ikon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;border:1px solid var(--rk-sekat);
-  background:transparent;color:var(--rk-tipis);cursor:pointer;flex:0 0 auto}
-.rks-ikon:hover{background:var(--rk-muka);color:var(--rk-tinta)}
-.rks-ikon .material-symbols-outlined{font-size:18px}
 
 .rks-badan{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:268px minmax(0,1fr)}
 .rks-kiri{border-right:1px solid var(--rk-sekat);overflow-y:auto;padding:10px 0}
@@ -27700,8 +27658,6 @@ html[data-saku] .rks-unduh{white-space:nowrap}
       var t = e.target.closest ? e.target.closest("[data-rks]") : null;
       if (!t) return;
       var a = t.getAttribute("data-rks");
-      if (a === "tutup") return tutup();
-      if (a === "segar") { hitung(); gambar(); return; }
       if (a === "unduh") return unduh();
       if (a === "pilih") { pilihan = t.getAttribute("data-k"); gambar(); return; }
       if (a === "jalan") {
@@ -27756,8 +27712,6 @@ html[data-saku] .rks-unduh{white-space:nowrap}
         "<div><h2>Kesehatan Data</h2><s>" + hasil.total + " laporan · " + hasil.temuan + " temuan</s></div>" +
         '<div class="rks-kanan">' +
           '<span class="rks-cip laut">' + persen + "% lengkap</span>" +
-          '<button type="button" class="rks-ikon" data-rks="segar" title="Periksa ulang" aria-label="Periksa ulang"><span class="material-symbols-outlined">refresh</span></button>' +
-          '<button type="button" class="rks-ikon" data-rks="tutup" title="Tutup" aria-label="Tutup"><span class="material-symbols-outlined">close</span></button>' +
         "</div></header>" +
       '<div class="rks-badan"><div class="rks-kiri">' + kiri + "</div>" +
         '<div class="rks-isi">' + kanan + "</div></div>" +
