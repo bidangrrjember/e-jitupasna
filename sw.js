@@ -15,7 +15,7 @@
    lapangan tidak terus memakai versi lama yang tersimpan.
    ========================================================================= */
 
-const VERSI = "v80";
+const VERSI = "v81";
 const CACHE_APP = "jitupasna-app-" + VERSI;
 const CACHE_UBIN = "jitupasna-ubin";     // sengaja tanpa versi: ubin peta mahal
                                           // diunduh, jangan ikut terhapus tiap rilis
