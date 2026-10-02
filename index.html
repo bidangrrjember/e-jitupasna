@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyL2qbDzxGGa1dYk2_9gglVG0TfOFLILYrG0mlKVQnciASBnXHQgHJh9_YbX1YsfEsR/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -9772,7 +9772,8 @@ window.OFFLINE = (function () {
         });
       }).then(function () { perbaruiTampilan(); });
     },
-    siapkanUbin: siapkanUbin
+    siapkanUbin: siapkanUbin,
+    batasJember: JEMBER
   };
 })();
 
@@ -22140,6 +22141,10 @@ html[data-saku] .rlb-tombol{display:none}
 .rlb-pilih{width:100%;height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--rk-sekat);background:var(--rk-muka);color:var(--rk-tinta);
   font-family:inherit;font-size:13.5px;font-weight:600}
 .rlb-seg{display:flex;gap:4px;padding:3px;border-radius:12px;background:var(--rk-muka);border:1px solid var(--rk-sekat)}
+/* pembungkus yang tidak ikut menata: isinya tetap mengalir seperti saudara
+   kandung, tapi seluruh blok bisa disembunyikan sekaligus */
+.rlb-blok{display:contents}
+.rlb-blok[hidden]{display:none}
 .rlb-seg button{flex:1;height:34px;border:0;border-radius:9px;background:none;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--rk-sedang)}
 .rlb-seg button[aria-pressed="true"]{background:var(--rk-api);color:#fff}
 .rlb-ringkas{margin:16px 0 0;padding:12px 14px;border-radius:12px;background:color-mix(in srgb,var(--rk-sekat) 55%,transparent);font-size:12.5px;line-height:1.55;color:var(--rk-sedang)}
@@ -22193,7 +22198,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
   const kunciBulan = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
   const namaBulan = function (k) { const p = k.split("-"); return BULAN[+p[1] - 1] + " " + p[0]; };
 
-  let pilihan = { jenis: "bulan", bulan: null, tahun: null, kec: null, foto: 4, fotoTahun: 1, fotoKec: 4 };
+  let pilihan = { jenis: "bulan", lingkup: "bulan", bulan: null, tahun: null, kec: null, foto: 4, fotoTahun: 1, fotoKec: 4 };
 
   /* ── data per bulan ── */
   function daftarBulan() {
@@ -22952,10 +22957,19 @@ ${tambahan || ""}`;
 .rekap tfoot td{border-top:1.5px solid #141917;border-bottom:0;font-weight:800;padding-top:7px}
 `;
 
-  function daftarKecamatan() {
+  /* lingkup: "bulan" (periode "2026-02"), "tahun" (periode "2026"), atau
+     tanpa keduanya = seluruh data yang pernah tercatat */
+  function dalamLingkup(it, lingkup, periode) {
+    if (!periode) return true;
+    if (lingkup === "tahun") return String(it.dateObj.getFullYear()) === String(periode);
+    if (lingkup === "bulan") return kunciBulan(it.dateObj) === periode;
+    return true;
+  }
+  function daftarKecamatan(lingkup, periode) {
     const hit = {}, desa = {};
     data().forEach(function (it) {
       if (!it.dateObj || isNaN(it.dateObj)) return;
+      if (!dalamLingkup(it, lingkup, periode)) return;
       const k = String(it.kec == null ? "" : it.kec).trim();
       if (!k || k === "-") return;
       hit[k] = (hit[k] || 0) + 1;
@@ -22967,9 +22981,10 @@ ${tambahan || ""}`;
       return { kunci: k, jumlah: hit[k], desa: Object.keys(desa[k]).length };
     });
   }
-  function laporanKecamatan(nk) {
+  function laporanKecamatan(nk, lingkup, periode) {
     return data().filter(function (it) {
-      return it.dateObj && !isNaN(it.dateObj) && String(it.kec == null ? "" : it.kec).trim() === nk;
+      return it.dateObj && !isNaN(it.dateObj) && String(it.kec == null ? "" : it.kec).trim() === nk &&
+        dalamLingkup(it, lingkup, periode);
     }).sort(function (a, b) { return a.dateObj - b.dateObj; });
   }
   /* Desa diurutkan dari yang paling banyak kejadiannya; di dalam desa, urut tanggal. */
@@ -23056,10 +23071,298 @@ ${tambahan || ""}`;
     return '<svg viewBox="0 0 ' + W + " " + H + '" class="g">' + g + "<\/svg>";
   }
 
+
+  /* ══ SAMPUL KECAMATAN ══════════════════════════════════════════════════
+     Bulanan bersampul terang & datar: bidang warna bermotif geometri dan
+     kalender. Tahunan bersampul malam gelap berpendar dengan angka tahun
+     raksasa. Kecamatan sengaja bukan dua-duanya - sampulnya PETA: titik
+     kejadian diplot dari koordinat aslinya, di atas latar bergaris ukur.
+     Jadi tiap kecamatan dan tiap periode menghasilkan gambar yang memang
+     berlainan dengan sendirinya, bukan sekadar warna yang diacak.
+
+     Rona dan motif latar ditetapkan dari nama kecamatan + periodenya, jadi
+     laporan yang sama selalu bersampul sama. Tata letak dan rinciannya
+     diacak ulang tiap kali "Buat PDF" ditekan, seperti sampul bulanan.
+     ══════════════════════════════════════════════════════════════════ */
+  const MOTIF_PETA = ["kontur", "radar", "kisi", "arsir"];
+
+  function benihTeks(t) {
+    let n = 2166136261;
+    t = String(t);
+    for (let i = 0; i < t.length; i++) { n ^= t.charCodeAt(i); n = Math.imul(n, 16777619); }
+    return n >>> 0;
+  }
+
+  function sampulKecamatan(nk, daftar, info, benih) {
+    const tetap = acakBenih(benihTeks(nk + "|" + (info.periode || "")));
+    const r = acakBenih(benih);
+    const W = 210, H = 297;
+    const f1 = function (n) { return (Math.round(n * 10) / 10).toString(); };
+    let defs = "", urutId = 0;
+    const idBaru = function (p) { return "kp" + p + (urutId++); };
+
+    /* ── warna: kertas terang dengan satu rona tanah ── */
+    const h = tetap.antara(0, 360);
+    const kuning = h > 40 && h < 95;
+    const KERTAS = hsl(h, 18, 96);
+    const TINTA = hsl(h, 30, 12);
+    const REDUP = hsl(h, 12, 44);
+    const GARIS = hsl(h, 16, 85);
+    const PANEL = hsl(h, 24, kuning ? 86 : 89);
+    const PANEL2 = hsl(h, 28, 79);
+    const TUA = hsl(h, 34, kuning ? 32 : 36);
+    const dekatJingga = Math.abs(((h - 24 + 540) % 360) - 180) < 40;
+    const AKSEN = dekatJingga ? hsl(h + 170, 55, 34) : "#E0600E";
+    const MERAH = "#C4441F", HIJAU = hsl(166, 55, 32);
+
+    /* ── titik kejadian ──
+       Koordinat di luar Kabupaten Jember dibuang dulu. Tanpa ini satu titik
+       keliru - mis. (0,0) yang tersimpan saat GPS gagal - membuat seluruh
+       titik lain menyusut jadi sebutir di sudut peta. */
+    const kotakJember = (window.OFFLINE && window.OFFLINE.batasJember) ||
+      { latMin: -8.85, latMax: -7.95, lonMin: 113.15, lonMax: 114.10 };
+    const titik = daftar.map(function (it) {
+      const la = parseFloat(it.lat), ln = parseFloat(it.lng);
+      if (!isFinite(la) || !isFinite(ln)) return null;
+      if (la < kotakJember.latMin || la > kotakJember.latMax ||
+        ln < kotakJember.lonMin || ln > kotakJember.lonMax) return null;
+      let st = "tuntas";
+      try { st = tahapan(it).status; } catch (e) {}
+      return { la: la, ln: ln, n: parseFloat(it.nilaiKerusakan) || 0, st: st, desa: namaDesa(it) };
+    }).filter(Boolean);
+
+    /* motif dipilih SEKALI di sini - kalau diambil ulang dari pengacak yang
+       sama, undiannya sudah berjalan dan hasilnya berbeda dari yang digambar */
+    const motifPeta = MOTIF_PETA[tetap.bulat(0, MOTIF_PETA.length - 1)];
+    /* b = bidang latar; kotakTitik = daerah yang benar-benar terlihat, tempat
+       titik kejadian dipaskan. Keduanya dibedakan karena kartu teks menutup
+       sebagian latar pada tata letak tertentu. */
+    const peta = function (b, kotakTitik) {
+      const kt = kotakTitik || b;
+      /* proyeksi: lintang & bujur dipaskan ke dalam kotak, nisbahnya dijaga
+         supaya sebaran titiknya tidak gepeng */
+      let g = "";
+      let px = [], py = [];
+      if (titik.length) {
+        let laMin = Infinity, laMaks = -Infinity, lnMin = Infinity, lnMaks = -Infinity;
+        titik.forEach(function (t) {
+          laMin = Math.min(laMin, t.la); laMaks = Math.max(laMaks, t.la);
+          lnMin = Math.min(lnMin, t.ln); lnMaks = Math.max(lnMaks, t.ln);
+        });
+        const tengahLa = (laMin + laMaks) / 2;
+        const kor = Math.cos(tengahLa * Math.PI / 180) || 1;
+        let lebarDer = Math.max((lnMaks - lnMin) * kor, 0.004);
+        let tinggiDer = Math.max(laMaks - laMin, 0.004);
+        const isi = 0.82;
+        const skala = Math.min(kt.w * isi / lebarDer, kt.h * isi / tinggiDer);
+        const cx = kt.x + kt.w / 2, cy = kt.y + kt.h / 2;
+        const tengahLn = (lnMin + lnMaks) / 2;
+        titik.forEach(function (t) {
+          px.push(cx + (t.ln - tengahLn) * kor * skala);
+          py.push(cy - (t.la - tengahLa) * skala);
+        });
+      }
+
+      /* ── latar bidang ── */
+      const id = idBaru("p");
+      defs += '<clipPath id="' + id + '"><rect x="' + f1(b.x) + '" y="' + f1(b.y) +
+        '" width="' + f1(b.w) + '" height="' + f1(b.h) + '"/></clipPath>';
+      let isi = '<rect x="' + f1(b.x) + '" y="' + f1(b.y) + '" width="' + f1(b.w) +
+        '" height="' + f1(b.h) + '" fill="' + PANEL + '"/>';
+
+      const cx = px.length ? px.reduce(function (a, c) { return a + c; }, 0) / px.length : b.x + b.w / 2;
+      const cy = py.length ? py.reduce(function (a, c) { return a + c; }, 0) / py.length : b.y + b.h / 2;
+      const jangkau = Math.max(b.w, b.h);
+      const motif = motifPeta;
+      let latar = "";
+
+      if (motif === "kontur") {
+        const fase = [tetap.antara(0, 6.28), tetap.antara(0, 6.28), tetap.antara(0, 6.28)];
+        const amp = [tetap.antara(0.07, 0.15), tetap.antara(0.03, 0.09), tetap.antara(0.02, 0.05)];
+        const lingkar = function (R) {
+          let d = "";
+          for (let i = 0; i <= 54; i++) {
+            const t = i / 54 * Math.PI * 2;
+            const k = 1 + amp[0] * Math.sin(t * 2 + fase[0]) + amp[1] * Math.sin(t * 3 + fase[1]) + amp[2] * Math.sin(t * 5 + fase[2]);
+            d += (i ? "L" : "M") + f1(cx + Math.cos(t) * R * k) + " " + f1(cy + Math.sin(t) * R * k * 0.78);
+          }
+          return d + "Z";
+        };
+        const n = tetap.bulat(8, 12);
+        for (let i = n; i >= 1; i--) {
+          const R = jangkau * 0.1 + jangkau * 0.62 * (i / n);
+          latar += '<path d="' + lingkar(R) + '" fill="' + (i % 3 === 0 ? PANEL2 : "none") +
+            '" fill-opacity=".45" stroke="' + TUA + '" stroke-width=".28" stroke-opacity="' +
+            (0.16 + 0.2 * (1 - i / n)).toFixed(2) + '"/>';
+        }
+      } else if (motif === "radar") {
+        const n = tetap.bulat(7, 11);
+        for (let i = n; i >= 1; i--) {
+          const R = jangkau * 0.72 * (i / n);
+          latar += '<circle cx="' + f1(cx) + '" cy="' + f1(cy) + '" r="' + f1(R) + '" fill="' +
+            (i % 2 ? "none" : PANEL2) + '" fill-opacity=".4" stroke="' + TUA +
+            '" stroke-width=".28" stroke-opacity=".2"/>';
+        }
+        const jari = tetap.bulat(10, 16);
+        for (let i = 0; i < jari; i++) {
+          const t = i / jari * Math.PI * 2 + tetap.antara(0, 0.4);
+          latar += '<line x1="' + f1(cx) + '" y1="' + f1(cy) + '" x2="' + f1(cx + Math.cos(t) * jangkau) +
+            '" y2="' + f1(cy + Math.sin(t) * jangkau) + '" stroke="' + TUA + '" stroke-width=".22" stroke-opacity=".14"/>';
+        }
+      } else if (motif === "kisi") {
+        const sel = tetap.antara(7, 11);
+        for (let x = b.x; x <= b.x + b.w + sel; x += sel) {
+          const tebal = Math.round((x - b.x) / sel) % 5 === 0;
+          latar += '<line x1="' + f1(x) + '" y1="' + f1(b.y) + '" x2="' + f1(x) + '" y2="' + f1(b.y + b.h) +
+            '" stroke="' + TUA + '" stroke-width="' + (tebal ? ".35" : ".18") + '" stroke-opacity="' + (tebal ? ".26" : ".13") + '"/>';
+        }
+        for (let y = b.y; y <= b.y + b.h + sel; y += sel) {
+          const tebal = Math.round((y - b.y) / sel) % 5 === 0;
+          latar += '<line x1="' + f1(b.x) + '" y1="' + f1(y) + '" x2="' + f1(b.x + b.w) + '" y2="' + f1(y) +
+            '" stroke="' + TUA + '" stroke-width="' + (tebal ? ".35" : ".18") + '" stroke-opacity="' + (tebal ? ".26" : ".13") + '"/>';
+        }
+      } else {
+        const sudut = tetap.pilih([30, -30, 45, -45, 60]);
+        let x = b.x - b.h, i = 0;
+        while (x < b.x + b.w + b.h) {
+          const lb = tetap.antara(1.2, 4.5);
+          latar += '<rect x="' + f1(x) + '" y="' + f1(b.y - b.h) + '" width="' + f1(lb) + '" height="' + f1(b.h * 3) +
+            '" fill="' + (i % 4 === 0 ? PANEL2 : TUA) + '" fill-opacity="' + (i % 4 === 0 ? ".5" : ".09") +
+            '" transform="rotate(' + sudut + " " + f1(cx) + " " + f1(cy) + ')"/>';
+          x += lb + tetap.antara(2.5, 7); i++;
+        }
+      }
+
+      /* ── titik kejadian di atas latar ── */
+      let tanda = "";
+      const maks = Math.max.apply(null, titik.map(function (t) { return t.n; }).concat([1]));
+      titik.forEach(function (t, i) {
+        const R = 1.0 + 2.1 * Math.sqrt(Math.min(1, t.n / maks));
+        const w = t.st === "tuntas" ? HIJAU : t.st === "monitor" ? AKSEN : MERAH;
+        tanda += '<circle cx="' + f1(px[i]) + '" cy="' + f1(py[i]) + '" r="' + f1(R * 2.6) +
+          '" fill="' + w + '" fill-opacity=".11"/>' +
+          '<circle cx="' + f1(px[i]) + '" cy="' + f1(py[i]) + '" r="' + f1(R) + '" fill="' + w + '"/>' +
+          '<circle cx="' + f1(px[i]) + '" cy="' + f1(py[i]) + '" r="' + f1(R) +
+          '" fill="none" stroke="#fff" stroke-width=".25" stroke-opacity=".8"/>';
+      });
+
+      g = isi + '<g clip-path="url(#' + id + ')">' + latar + tanda + "</g>" +
+        '<rect x="' + f1(b.x) + '" y="' + f1(b.y) + '" width="' + f1(b.w) + '" height="' + f1(b.h) +
+        '" fill="none" stroke="' + TUA + '" stroke-width=".3" stroke-opacity=".3"/>';
+      return g;
+    };
+
+    /* ── tulisan ── */
+    const T = function (x, y, isi, o) {
+      o = o || {};
+      return '<text x="' + f1(x) + '" y="' + f1(y) + '" font-family="' + (o.font || "Plus Jakarta Sans") +
+        '" font-size="' + (o.size || 3) + '" font-weight="' + (o.w || 400) + '" fill="' + (o.warna || TINTA) + '"' +
+        (o.anchor ? ' text-anchor="' + o.anchor + '"' : "") +
+        (o.ls !== undefined ? ' letter-spacing="' + o.ls + '"' : "") + ">" + esc(isi) + "</text>";
+    };
+    const DISP = "Bricolage Grotesque", MONO = "DM Mono";
+    const ringkasRp = function (n) {
+      n = parseFloat(n) || 0;
+      if (n >= 1e9) return "Rp" + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
+      if (n >= 1e6) return "Rp" + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
+      return rp(n);
+    };
+    const kop = function (x, y, warna) {
+      return '<circle cx="' + f1(x + 6.3) + '" cy="' + f1(y + 6.3) + '" r="6.9" fill="#fff"/>' +
+        '<image href="' + LOGO + '" x="' + f1(x) + '" y="' + f1(y) + '" width="12.6" height="12.6"/>' +
+        T(x + 16.5, y + 5.4, "Badan Penanggulangan Bencana Daerah", { size: 3, w: 600, warna: warna }) +
+        T(x + 16.5, y + 9.8, "Kabupaten Jember", { size: 3, w: 600, warna: warna });
+    };
+    const label = function (x, y) {
+      return '<rect x="' + f1(x) + '" y="' + f1(y - 2.4) + '" width="7" height="2" fill="' + AKSEN + '"/>' +
+        T(x + 10, y, "LAPORAN KECAMATAN · E-JITUPASNA", { font: MONO, size: 2.6, w: 500, warna: REDUP, ls: 0.45 });
+    };
+    const angkaAngka = [
+      [angka(info.kejadian), "kejadian dikaji"],
+      [angka(info.jiwa), "jiwa terdampak"],
+      [ringkasRp(info.nilai), "taksiran kerusakan"]
+    ];
+    const statistik = function (x0, x1, y) {
+      const lb = (x1 - x0) / 3;
+      return '<line x1="' + f1(x0) + '" y1="' + f1(y) + '" x2="' + f1(x1) + '" y2="' + f1(y) +
+        '" stroke="' + GARIS + '" stroke-width=".3"/>' +
+        angkaAngka.map(function (a, i) {
+          const x = x0 + i * lb;
+          return (i ? '<line x1="' + f1(x - 3) + '" y1="' + f1(y + 3) + '" x2="' + f1(x - 3) + '" y2="' + f1(y + 15) +
+            '" stroke="' + GARIS + '" stroke-width=".3"/>' : "") +
+            T(x, y + 10, a[0], { font: DISP, size: 7.4, w: 800, ls: -0.2 }) +
+            T(x, y + 14.4, a[1], { size: 2.6, warna: REDUP });
+        }).join("");
+    };
+    const ukuranJudul = function (lebar, maks) { return Math.min(maks, lebar / (Math.max(4, nk.length) * 0.58)); };
+    const judul = function (x, y, uk) {
+      return T(x - uk * 0.03, y, nk, { font: DISP, size: f1(uk), w: 800, ls: f1(-uk * 0.04) });
+    };
+    const barisPeriode = function (x, y) {
+      return T(x, y, info.periode || "Seluruh data", { font: DISP, size: 10, w: 800, warna: AKSEN, ls: -0.2 }) +
+        T(x, y + 6, info.desa + " " + (info.sebutan || "desa") + " terdampak · " +
+          (info.rentang || "-"), { font: MONO, size: 2.6, warna: REDUP });
+    };
+    /* keterangan warna titik, supaya petanya terbaca */
+    const kunciWarna = function (x, y) {
+      const baris = [[MERAH, "menunggu penyaluran"], [AKSEN, "menunggu monitoring"], [HIJAU, "tuntas"]];
+      return baris.map(function (b, i) {
+        const yy = y + i * 4.6;
+        return '<circle cx="' + f1(x + 1.4) + '" cy="' + f1(yy - 0.9) + '" r="1.4" fill="' + b[0] + '"/>' +
+          T(x + 5, yy, b[1], { font: MONO, size: 2.4, warna: REDUP });
+      }).join("");
+    };
+
+    const tata = r.pilih(["atas", "bawah", "penuh"]);
+    let badan = '<rect width="' + W + '" height="' + H + '" fill="' + KERTAS + '"/>';
+    if (tata === "atas") {
+      const ph = r.antara(150, 164);
+      badan += peta({ x: 0, y: 0, w: W, h: ph }, { x: 8, y: 26, w: W - 16, h: ph - 34 }) +
+        '<rect x="12" y="12" width="98" height="20.6" rx="10.3" fill="' + KERTAS + '" fill-opacity=".92"/>' +
+        kop(16, 16, TINTA) +
+        label(18, ph + 16) + judul(18, ph + 16 + ukuranJudul(174, 38) * 0.85, ukuranJudul(174, 38)) +
+        barisPeriode(18, ph + 34 + ukuranJudul(174, 38) * 0.85) +
+        statistik(18, 192, ph + 46 + ukuranJudul(174, 38) * 0.85) +
+        kunciWarna(18, H - 16);
+    } else if (tata === "bawah") {
+      const py = r.antara(132, 146);
+      const uk = ukuranJudul(174, 40);
+      badan += peta({ x: 0, y: py, w: W, h: H - py }, { x: 8, y: py + 8, w: W - 16, h: H - py - 36 }) +
+        kop(18, 18, TINTA) + label(18, 56) +
+        judul(18, 58 + uk * 0.85, uk) + barisPeriode(18, 76 + uk * 0.85) +
+        statistik(18, 192, 88 + uk * 0.85) +
+        '<rect x="12" y="' + f1(H - 30) + '" width="86" height="18" rx="9" fill="' + KERTAS + '" fill-opacity=".9"/>' +
+        kunciWarna(17, H - 22);
+    } else {
+      const ky = r.antara(150, 168);
+      const uk = ukuranJudul(166, 36);
+      badan += peta({ x: 0, y: 0, w: W, h: H }, { x: 10, y: 34, w: W - 20, h: ky - 46 }) +
+        '<rect x="12" y="12" width="98" height="20.6" rx="10.3" fill="' + KERTAS + '" fill-opacity=".92"/>' +
+        kop(16, 16, TINTA) +
+        '<rect x="12" y="' + f1(ky) + '" width="186" height="' + f1(285 - ky) + '" rx="4" fill="' + KERTAS + '"/>' +
+        label(22, ky + 14) + judul(22, ky + 14 + uk * 0.85, uk) +
+        barisPeriode(22, ky + 32 + uk * 0.85) +
+        statistik(22, 188, ky + 44 + uk * 0.85);
+    }
+
+    return {
+      svg: '<svg class="sampul-svg" viewBox="0 0 ' + W + " " + H +
+        '" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg"><defs>' + defs + "</defs>" + badan + "<\/svg>",
+      desain: motifPeta + " · " + tata + " · rona " + Math.round(h) + "°"
+    };
+  }
+
   function susunKecamatan(nk, opsi) {
     opsi = opsi || {};
-    const daftar = laporanKecamatan(nk);
-    const semua = data().filter(function (it) { return it.dateObj && !isNaN(it.dateObj); });
+    const lingkup = opsi.lingkup || "", periode = opsi.periode || "";
+    const daftar = laporanKecamatan(nk, lingkup, periode);
+    /* pembanding se-kabupaten ikut lingkup yang sama, supaya persentasenya jujur */
+    const semua = data().filter(function (it) {
+      return it.dateObj && !isNaN(it.dateObj) && dalamLingkup(it, lingkup, periode);
+    });
+    const labelPeriode = lingkup === "bulan" && periode ? namaBulan(periode)
+      : lingkup === "tahun" && periode ? "Tahun " + periode
+      : "Seluruh data tercatat";
     const kini = new Date();
     const sebutan = sebutanDesa(nk);
     const kelompok = kelompokDesa(daftar);
@@ -23090,12 +23393,13 @@ ${tambahan || ""}`;
       '<header class="kop"><img src="' + LOGO + '" alt="" class="logo"><div>' +
       '<span class="mata">Badan Penanggulangan Bencana Daerah · Kabupaten Jember</span>' +
       "<h1>Laporan Kecamatan<br>Kejadian Bencana</h1>" +
-      '<p class="bulan">Kecamatan ' + esc(nk) + " · " + kelompok.length + " " + sebutan + "</p></div></header>" +
-      '<p class="meta">Seluruh data tercatat' + (rentang ? " · " + esc(rentang) : "") +
+      '<p class="bulan">Kecamatan ' + esc(nk) + " · " + esc(labelPeriode) + "</p></div></header>" +
+      '<p class="meta">' + kelompok.length + " " + sebutan + " terdampak" + (rentang ? " · " + esc(rentang) : "") +
       " · disusun " + esc(disusun) + " dari basis data E-JITUPASNA</p>";
 
     if (!daftar.length) {
-      ringkasan += '<div class="kosong">Belum ada laporan tercatat di Kecamatan ' + esc(nk) + ".</div>";
+      ringkasan += '<div class="kosong">Tidak ada laporan di Kecamatan ' + esc(nk) +
+        (lingkup ? " pada " + esc(labelPeriode) : "") + ".</div>";
     } else {
       ringkasan +=
         '<section class="kpi-kisi">' +
@@ -23116,7 +23420,8 @@ ${tambahan || ""}`;
             "). Rinciannya di bab Tindak lanjut.</section>"
           : '<section class="tl-catatan"><b>Tindak lanjut</b>Seluruh ' + daftar.length +
             " laporan di kecamatan ini sudah tuntas.</section>") +
-        '<section class="grafik lebar"><h2>Kejadian per bulan</h2>' + grafikBulanRentang(daftar) +
+        '<section class="grafik lebar"><h2>Kejadian per ' + (lingkup === "bulan" ? "tanggal" : "bulan") + "</h2>" +
+        (lingkup === "bulan" && periode ? grafikTanggal(daftar, periode) : grafikBulanRentang(daftar)) +
         '<div class="leg">' + jenis.map(function (j, i) {
           return '<span><i style="background:' + WARNA_JENIS[i % WARNA_JENIS.length] + '"></i>' + esc(j.nama) + " (" + j.n + ")</span>";
         }).join("") + "</div></section>" +
@@ -23197,14 +23502,20 @@ ${tambahan || ""}`;
         "<span>Tuntas <b>" + d.tuntas + "/" + d.isi.length + "</b></span></span></div>" + kartu;
     }).join("");
 
-    const gaya = gayaCetak("Laporan Kecamatan E-JITUPASNA · Kec. " + nk + " · BPBD Kabupaten Jember", GAYA_KELOMPOK_DESA);
-    const judul = "Laporan Kecamatan E-JITUPASNA - " + nk;
+    /* benih baru tiap kali dokumen disusun -> tata letak sampul berbeda tiap
+       klik "Buat PDF", sementara rona & motifnya tetap per kecamatan+periode */
+    const sampulData = sampulKecamatan(nk, daftar, {
+      kejadian: daftar.length, jiwa: jiwa, nilai: nilai, desa: kelompok.length,
+      sebutan: sebutan, periode: labelPeriode, rentang: rentang || "belum ada kejadian"
+    }, opsi.benih !== undefined ? opsi.benih : Math.floor(Math.random() * 4294967295));
+    const gaya = gayaCetak("Laporan Kecamatan E-JITUPASNA · Kec. " + nk + " · " + labelPeriode + " · BPBD Kabupaten Jember", GAYA_KELOMPOK_DESA);
+    const judul = "Laporan Kecamatan E-JITUPASNA - " + nk + " - " + labelPeriode;
     const html = '<!doctype html><html lang="id"><head><meta charset="utf-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1">' +
       "<title>" + esc(judul) + "</title>" +
       '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
       "<style>" + gaya + "<\/style><\/head><body>" +
-      '<main class="kertas">' + ringkasan +
+      '<section class="sampul">' + sampulData.svg + '</section><main class="kertas">' + ringkasan +
       (babTl ? '<div class="halaman-baru"></div>' + babTl : "") +
       (daftar.length
         ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian per ' + sebutan + "</h2><span>" +
@@ -23213,7 +23524,8 @@ ${tambahan || ""}`;
         : "") +
       '<p class="penutup">Angka taksiran mengikuti rumus pengkajian E-JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
       "</main><\/body><\/html>";
-    return { html: html, jumlah: daftar.length, foto: jumlahFoto, desa: kelompok.length };
+    return { html: html, jumlah: daftar.length, foto: jumlahFoto, desa: kelompok.length,
+      periode: labelPeriode, sampul: sampulData.desain };
   }
 
   function susunDokumen(k, opsi) {
@@ -23850,7 +24162,11 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
   /* ── dialog pilih jenis & periode ── */
   const tahunan = function () { return pilihan.jenis === "tahun"; };
   const perKec = function () { return pilihan.jenis === "wilayah"; };
-  const periodeAktif = function () { return tahunan() ? pilihan.tahun : perKec() ? pilihan.kec : pilihan.bulan; };
+  const lingkupKec = function () { return pilihan.lingkup === "tahun" ? "tahun" : "bulan"; };
+  /* benar untuk pilihan tahun: laporan tahunan, dan laporan kecamatan berlingkup tahun */
+  const pakaiTahun = function () { return tahunan() || (perKec() && lingkupKec() === "tahun"); };
+  const periodeKini = function () { return pakaiTahun() ? pilihan.tahun : pilihan.bulan; };
+  const periodeAktif = function () { return perKec() ? (pilihan.kec && periodeKini() ? pilihan.kec : null) : periodeKini(); };
   const fotoKini = function () { return tahunan() ? pilihan.fotoTahun : perKec() ? pilihan.fotoKec : pilihan.foto; };
   function pastikanDialog() {
     let l = $("rlb");
@@ -23863,7 +24179,12 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       '<div class="rlb-seg" id="rlb-jenis"><button type="button" data-j="bulan">Bulanan</button>' +
       '<button type="button" data-j="tahun">Tahunan</button>' +
       '<button type="button" data-j="wilayah">Kecamatan</button></div>' +
+      '<div class="rlb-blok" id="rlb-blok-lingkup" hidden><span class="rlb-label">Lingkup laporan</span>' +
+      '<div class="rlb-seg" id="rlb-lingkup"><button type="button" data-l="bulan">Bulanan</button>' +
+      '<button type="button" data-l="tahun">Tahunan</button></div></div>' +
       '<label class="rlb-label" for="rlb-bulan" id="rlb-label-periode">Bulan</label><select id="rlb-bulan" class="rlb-pilih"></select>' +
+      '<div class="rlb-blok" id="rlb-blok-wil" hidden><label class="rlb-label" for="rlb-wil">Kecamatan</label>' +
+      '<select id="rlb-wil" class="rlb-pilih"></select></div>' +
       '<span class="rlb-label">Foto per kejadian</span><div class="rlb-seg" id="rlb-foto"></div>' +
       '<div class="rlb-ringkas" id="rlb-ringkas"></div>' +
       '<div class="rlb-kaki"><button type="button" class="rlb-hantu" data-rlb="tutup">Batal</button>' +
@@ -23875,6 +24196,8 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       if (menyiapkan) return;
       const j = e.target.closest("#rlb-jenis button");
       if (j) { pilihan.jenis = j.dataset.j; isiPeriode(); return; }
+      const g2 = e.target.closest("#rlb-lingkup button");
+      if (g2) { pilihan.lingkup = g2.dataset.l; isiPeriode(); return; }
       const f = e.target.closest("#rlb-foto button");
       if (f) {
         if (tahunan()) pilihan.fotoTahun = +f.dataset.n;
@@ -23885,32 +24208,53 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       if (e.target.closest('[data-rlb="buat"]')) buat();
     });
     l.querySelector("#rlb-bulan").addEventListener("change", function () {
-      if (tahunan()) pilihan.tahun = this.value;
-      else if (perKec()) pilihan.kec = this.value;
-      else pilihan.bulan = this.value;
+      if (pakaiTahun()) pilihan.tahun = this.value; else pilihan.bulan = this.value;
+      /* daftar kecamatan ikut periodenya, jadi harus diisi ulang */
+      if (perKec()) isiWilayah();
       segarkan();
     });
+    l.querySelector("#rlb-wil").addEventListener("change", function () { pilihan.kec = this.value; segarkan(); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !l.hidden) tutup(); });
     return l;
+  }
+  /* daftar kecamatan selalu mengikuti periode yang sedang dipilih, dan yang
+     tanpa kejadian pada periode itu tidak ditawarkan sama sekali */
+  function isiWilayah() {
+    const sel = $("rlb-wil");
+    if (!sel) return;
+    const dk = daftarKecamatan(lingkupKec(), periodeKini());
+    sel.innerHTML = dk.length
+      ? dk.map(function (b) {
+          return '<option value="' + esc(b.kunci) + '">Kec. ' + esc(b.kunci) + " · " + b.jumlah +
+            " kejadian · " + b.desa + " desa/kelurahan</option>";
+        }).join("")
+      : '<option value="">Tidak ada kejadian pada periode ini</option>';
+    if (!pilihan.kec || !dk.some(function (b) { return b.kunci === pilihan.kec; })) pilihan.kec = dk.length ? dk[0].kunci : null;
+    sel.value = pilihan.kec || "";
+    try { if (window.rkKontrol) window.rkKontrol.sinkron(sel); } catch (e) {}
   }
   function isiPeriode() {
     const l = pastikanDialog();
     const sel = $("rlb-bulan");
-    const daftar = tahunan() ? daftarTahun() : perKec() ? daftarKecamatan() : daftarBulan();
+    const tahun = pakaiTahun();
+    const daftar = tahun ? daftarTahun() : daftarBulan();
     sel.innerHTML = daftar.map(function (b) {
-      const isi = tahunan() ? b.jumlah + " kejadian"
-        : perKec() ? b.jumlah + " kejadian · " + b.desa + " desa/kelurahan"
+      const isi = tahun ? b.jumlah + " kejadian"
         : (b.jumlah ? b.jumlah + " kejadian" : "tanpa asesmen baru") + (b.tindak ? " · " + b.tindak + " tindak lanjut" : "");
-      const nama = tahunan() ? "Tahun " + b.kunci : perKec() ? "Kec. " + b.kunci : namaBulan(b.kunci);
+      const nama = tahun ? "Tahun " + b.kunci : namaBulan(b.kunci);
       return '<option value="' + esc(b.kunci) + '">' + esc(nama) + " · " + isi + "</option>";
     }).join("");
-    const kunci = tahunan() ? "tahun" : perKec() ? "kec" : "bulan";
+    const kunci = tahun ? "tahun" : "bulan";
     if (!pilihan[kunci] || !daftar.some(function (b) { return b.kunci === pilihan[kunci]; })) pilihan[kunci] = daftar.length ? daftar[0].kunci : null;
     sel.value = pilihan[kunci];
-    $("rlb-label-periode").textContent = tahunan() ? "Tahun" : perKec() ? "Kecamatan" : "Bulan";
+    $("rlb-label-periode").textContent = tahun ? "Tahun" : "Bulan";
+    $("rlb-blok-lingkup").hidden = !perKec();
+    $("rlb-blok-wil").hidden = !perKec();
+    l.querySelectorAll("#rlb-lingkup button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.l === lingkupKec())); });
     l.querySelectorAll("#rlb-jenis button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.j === pilihan.jenis)); });
     $("rlb-foto").innerHTML = (tahunan() ? [0, 1, 2] : [0, 2, 4, 6]).map(function (n) { return '<button type="button" data-n="' + n + '">' + (n ? n + " foto" : "Tanpa foto") + "</button>"; }).join("");
-    try { if (window.rkKontrol) { window.rkKontrol.pasang(l); window.rkKontrol.sinkron(sel); } } catch (e) {}
+    if (perKec()) isiWilayah();
+    try { if (window.rkKontrol) { window.rkKontrol.pasang(l); window.rkKontrol.sinkron(sel); if (perKec()) window.rkKontrol.sinkron($("rlb-wil")); } } catch (e) {}
     segarkan();
   }
   function segarkan() {
@@ -23918,18 +24262,19 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     const nFoto = fotoKini();
     l.querySelectorAll("#rlb-foto button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.n === nFoto)); });
     const daftar = !periodeAktif() ? [] : tahunan() ? laporanTahun(pilihan.tahun)
-      : perKec() ? laporanKecamatan(pilihan.kec) : laporanBulan(pilihan.bulan);
+      : perKec() ? laporanKecamatan(pilihan.kec, lingkupKec(), periodeKini())
+      : laporanBulan(pilihan.bulan);
     const foto = daftar.reduce(function (s, it) { return s + Math.min(nFoto, (it.photos || []).filter(Boolean).length); }, 0);
     const nDesa = perKec() && periodeAktif() ? kelompokDesa(daftar).length : 0;
     const halaman = !daftar.length ? 1 : tahunan()
       ? 4 + Math.ceil(daftar.length / 22) + Math.ceil(foto / 12)
       : perKec()
-      ? 2 + Math.ceil(daftar.length / (nFoto ? 2.3 : 3.5)) + Math.ceil(nDesa / 8)
+      ? 3 + Math.ceil(daftar.length / (nFoto ? 2.3 : 3.5)) + Math.ceil(nDesa / 8)
       : 1 + Math.ceil(daftar.length / (nFoto ? 2.3 : 3.5));
     const isi = tahunan()
       ? "Sampul, ringkasan per bulan, sebaran, penanganan bantuan, daftar seluruh kejadian dengan tanggal serah terima &amp; monitoring" + (nFoto ? ", lalu lampiran foto ukuran besar." : ".")
       : perKec()
-      ? "Ringkasan kecamatan, tindak lanjut, rekapitulasi per desa, lalu rincian tiap laporan yang dikelompokkan per desa."
+      ? "Sampul peta titik kejadian, ringkasan kecamatan, tindak lanjut, rekapitulasi per desa, lalu rincian tiap laporan yang dikelompokkan per desa."
       : "Grafik kejadian dan rincian tiap laporan, termasuk tanggal serah terima &amp; monitoring.";
     const tl = (!tahunan() && !perKec() && periodeAktif()) ? tindakLanjutBulan(pilihan.bulan) : null;
     const nTl = tl ? tl.bergerak.length : 0, nTunggu = tl ? tl.menunggu.length : 0;
@@ -23982,7 +24327,7 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     let d;
     try {
       d = tahunan() ? susunTahunan(pilihan.tahun, { foto: pilihan.fotoTahun })
-        : perKec() ? susunKecamatan(pilihan.kec, { foto: pilihan.fotoKec })
+        : perKec() ? susunKecamatan(pilihan.kec, { foto: pilihan.fotoKec, lingkup: lingkupKec(), periode: periodeKini() })
         : susunDokumen(pilihan.bulan, { foto: pilihan.foto, sematkan: true });
     } catch (e) {
       console.error("[laporan] gagal menyusun:", e);
@@ -23991,7 +24336,8 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       return;
     }
     const namaBerkas = tahunan() ? "Laporan Tahunan E-JITUPASNA - " + pilihan.tahun
-      : perKec() ? "Laporan Kecamatan E-JITUPASNA - " + pilihan.kec
+      : perKec() ? "Laporan Kecamatan E-JITUPASNA - " + pilihan.kec + " - " +
+        (lingkupKec() === "tahun" ? "Tahun " + pilihan.tahun : namaBulan(pilihan.bulan))
       : "Laporan Bulanan E-JITUPASNA - " + namaBulan(pilihan.bulan);
     const lama = $("rlb-cetak"); if (lama) lama.remove();
     const fr = document.createElement("iframe");
@@ -24927,7 +25273,9 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-panggung{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center;overflow:hidden;
   background:#0B1214;color:#EEF3F1;font-family:"Plus Jakarta Sans",system-ui,sans-serif}
 #rk-tv #rk-tv-peta{position:absolute;left:0;right:0;top:0;height:780px;background:#05090A}
-#rk-tv #rk-tv-peta .leaflet-tile-pane{filter:brightness(.42) saturate(.6) contrast(1.1)}
+/* Ubin satelit dulu diredupkan ke 42% dan hampir tidak terbaca di layar TV.
+   .78 masih menjaga watak gelap Mode TV tapi daratannya kembali terbaca. */
+#rk-tv #rk-tv-peta .leaflet-tile-pane{filter:brightness(.78) saturate(.62) contrast(1.02)}
 #rk-tv .leaflet-control-container{display:none}
 #rk-tv .tv-pudar{position:absolute;left:0;right:0;top:640px;height:140px;z-index:400;background:linear-gradient(0deg,#0B1214,rgba(11,18,20,0));pointer-events:none}
 #rk-tv .tv-garis{position:absolute;z-index:550;left:0;top:0;width:1920px;height:780px;pointer-events:none}
@@ -24959,10 +25307,22 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-ket b{display:block;font:700 22px "Bricolage Grotesque",sans-serif;margin-top:4px}
 #rk-tv .tv-ket p{margin:4px 0 0;font-size:15px;color:#9FB0B4}
 
-#rk-tv .tv-legenda{position:absolute;z-index:500;left:48px;top:730px;display:flex;align-items:center;gap:8px;font-size:15px;color:#C9D4D1}
-#rk-tv .tv-gradasi{width:180px;height:10px;border-radius:99px;margin:0 10px;background:linear-gradient(90deg,#1d4ed8,#22c55e,#facc15,#f97316,#ef4444)}
-#rk-tv .tv-kalimat{margin-left:22px;padding-left:22px;border-left:1px solid #33454A;font-size:17px;color:#C9D4D1}
-#rk-tv .tv-kalimat b{color:#fff}
+/* Baris giliran: papan jenis yang sedang tampil, titik urutan, bilah sisa
+   waktu, lalu nama jenis berikutnya. Menggantikan legenda "jarang - sering"
+   yang lama, karena sekarang warna awan mengikuti jenis, bukan kepadatan. */
+#rk-tv .tv-legenda{position:absolute;z-index:500;left:48px;right:48px;top:722px;display:flex;align-items:center;gap:20px;font-size:15px;color:#C9D4D1}
+#rk-tv .gl-papan{display:flex;align-items:center;gap:12px;padding:7px 18px 7px 7px;border-radius:14px;flex:0 0 auto;
+  background:color-mix(in srgb,var(--w) 22%,rgba(11,18,20,.92));border:2px solid var(--w)}
+#rk-tv .gl-bul{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--w);flex:0 0 auto;color:#fff}
+#rk-tv .gl-bul .material-symbols-outlined{font-size:24px}
+#rk-tv .gl-papan b{display:block;font:800 25px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
+#rk-tv .gl-papan s{text-decoration:none;display:block;margin-top:2px;font-size:13px;color:#C9D4D1}
+#rk-tv .gl-urut{display:flex;align-items:center;gap:9px;flex:0 0 auto;font:500 13px "DM Mono",monospace;color:#9FB0B4}
+#rk-tv .gl-urut i{width:10px;height:10px;border-radius:99px;background:#33454A}
+#rk-tv .gl-urut i.on{background:var(--w);box-shadow:0 0 0 3px color-mix(in srgb,var(--w) 30%,transparent)}
+#rk-tv .gl-bilah{flex:1;height:4px;border-radius:99px;background:#23333A;overflow:hidden;max-width:260px}
+#rk-tv .gl-bilah i{display:block;height:100%;width:0;background:var(--w)}
+#rk-tv .gl-sisa{flex:0 0 auto;font:500 13px "DM Mono",monospace;color:#9FB0B4;white-space:nowrap}
 
 #rk-tv .tv-bawah{position:absolute;left:48px;right:48px;top:790px;bottom:36px;display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:18px}
 #rk-tv .tv-k{padding:22px 24px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
@@ -25016,7 +25376,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv.gerak .tv-tutup{opacity:1;pointer-events:auto}
 #rk-tv .tv-tutup:hover{background:rgba(255,255,255,.2)}
 #rk-tv .tv-tutup:focus-visible{outline:2px solid #F2711C;outline-offset:2px;opacity:1}
-@media (prefers-reduced-motion:reduce){#rk-tv .tv-foto img,#rk-tv .tv-batang i{transition:none}}
+@media (prefers-reduced-motion:reduce){#rk-tv .tv-foto img,#rk-tv .tv-batang i,#rk-tv .gl-bilah i{transition:none}}
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
@@ -25028,6 +25388,36 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 (function () {
   const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
   const WARNA_JENIS = ["#F2711C", "#38BDF8", "#EF4444", "#A78BFA", "#94A3B8", "#22C55E", "#F5B82E"];
+  /* Warna diikat ke NAMA jenis, bukan ke urutan terbanyak. Dulu warnanya
+     ikut peringkat, jadi Banjir bisa berganti warna begitu jumlahnya
+     disalip jenis lain - dan awan di peta tidak akan cocok dengan pita di
+     kotak bawah. Semua warnanya tetap diambil dari WARNA_JENIS di atas. */
+  /* ikon Material Symbols, hurufnya sudah dimuat halaman ini */
+  const IKON_BENCANA = {
+    "Cuaca Ekstrem": "storm",
+    "Kebakaran": "local_fire_department",
+    "Banjir": "flood",
+    "Tanah Longsor": "landslide",
+    "Gempa Bumi": "earthquake"
+  };
+  const ikonBencana = function (n) { return IKON_BENCANA[String(n == null ? "" : n).trim()] || "crisis_alert"; };
+  const WARNA_BENCANA = {
+    "Cuaca Ekstrem": "#F2711C",
+    "Kebakaran": "#EF4444",
+    "Banjir": "#38BDF8",
+    "Tanah Longsor": "#F5B82E",
+    "Gempa Bumi": "#A78BFA"
+  };
+  /* jenis di luar daftar tetap dapat warna, diambil bergiliran dari WARNA_JENIS */
+  const warnaBencana = (function () {
+    const cadangan = {}; let urut = 0;
+    return function (nama) {
+      const n = String(nama == null ? "" : nama).trim();
+      if (WARNA_BENCANA[n]) return WARNA_BENCANA[n];
+      if (!cadangan[n]) { cadangan[n] = WARNA_JENIS[urut % WARNA_JENIS.length]; urut++; }
+      return cadangan[n];
+    };
+  })();
   /* Sengaja bukan jingga: tile 3 di sebelahnya sudah memakai jingga untuk
      jenis bencana, dan dua pita jingga bersebelahan dengan arti berbeda
      membingungkan dari jauh. */
@@ -25040,9 +25430,12 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
      cuma beberapa puluh byte) dan menggambar ulang begitu datanya berubah. */
   const JEDA_TARIK = 30000, JEDA_CEK = 2000;
   const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-  let akar = null, peta = null, lapisPanas = null, lapisTitik = null, lapisBaru = null, batas = null, zoom = null, zoomTitik = null;
+  let akar = null, peta = null, lapisPanas = null, lapisTitik = null, lapisRedup = null, lapisBaru = null, batas = null, zoom = null, zoomTitik = null;
   let buka = false, kunciBaru = "", fotoKe = 0;
   let jamDetik = 0, jamSegar = 0, jamFoto = 0, jamGerak = 0, jamTarik = 0, jamCek = 0, kunciLayar = null;
+  /* giliran jenis bencana: slot 0 selalu "Semua jenis" */
+  const JEDA_GILIRAN = 10000;
+  let giliranKe = 0, jamGiliran = 0, mulaiSlot = 0, slotGiliran = [], titikTahun = [], tahunIni = [], semuaLaporan = [];
   let sidikData = "";
 
   const $ = function (s) { return akar.querySelector(s); };
@@ -25106,7 +25499,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
         '<div class="tv-jam"><b data-tv="jam"></b><span data-tv="tanggal"></span></div>' +
         '<div class="tv-baru" hidden><div class="tv-dua"><div class="tv-foto" data-tv="foto"></div><div id="rk-tv-zoom"></div></div>' +
           '<div class="tv-ket"><small data-tv="baru-waktu"></small><b data-tv="baru-judul"></b><p data-tv="baru-ket"></p></div></div>' +
-        '<div class="tv-legenda"><span>jarang</span><span class="tv-gradasi"></span><span>sering</span><span class="tv-kalimat" data-tv="kalimat"></span></div>' +
+        '<div class="tv-legenda" data-tv="giliran"></div>' +
         '<div class="tv-bawah">' +
           '<div class="tv-k"><small data-tv="k1-label"></small>' +
             '<div><b data-tv="k1"></b><p data-tv="k1-ket"></p></div>' +
@@ -25174,6 +25567,9 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     if (bk) batas = L.geoJSON(bk, { interactive: false, style: { color: "rgba(255,255,255,.28)", weight: 1, fill: false } }).addTo(peta);
     pasBatas();
     lapisTitik = L.layerGroup().addTo(peta);
+    /* kejadian jenis LAIN saat satu jenis sedang disorot - tetap tampak
+       samar supaya penonton tidak mengira kejadian lain hilang */
+    lapisRedup = L.layerGroup().addTo(peta);
     lapisBaru = L.layerGroup().addTo(peta);
   }
   function pasBatas() {
@@ -25277,9 +25673,11 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     isi("k3-label", "Bencana terbanyak · " + p.th);
     isi("k3", urut.length ? urut[0][0] : "-");
     isi("k3-ket", urut.length ? urut[0][1] + " dari " + p.tahun.length + " kejadian" : "belum ada kejadian");
-    $('[data-tv="komposisi"]').innerHTML = urut.map(function (x, i) { return '<i style="flex:' + x[1] + ";background:" + WARNA_JENIS[Math.min(i, WARNA_JENIS.length - 1)] + '"></i>'; }).join("");
-    $('[data-tv="jenis-lain"]').innerHTML = urut.slice(1, 3).map(function (x, i) {
-      return '<span><i style="background:' + WARNA_JENIS[i + 1] + '"></i>' + esc(x[0]) + " " + x[1] + "</span>";
+    $('[data-tv="komposisi"]').innerHTML = urut.map(function (x) {
+      return '<i style="flex:' + x[1] + ";background:" + warnaBencana(x[0]) + '"></i>';
+    }).join("");
+    $('[data-tv="jenis-lain"]').innerHTML = urut.slice(1, 3).map(function (x) {
+      return '<span><i style="background:' + warnaBencana(x[0]) + '"></i>' + esc(x[0]) + " " + x[1] + "</span>";
     }).join("");
 
     // ── grafik 12 bulan, berakhir di bulan periode ──
@@ -25293,44 +25691,162 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
       return "<div" + (i === 11 ? ' class="ini"' : "") + "><b>" + b.n + '</b><i style="height:' + Math.max(2, b.n / maks * 78) + '%"></i><span>' + b.l + "</span></div>";
     }).join("");
 
-    // ── kalimat & titik panas (setahun) ──
-    const kec = {};
-    p.tahun.forEach(function (it) { const k = bersih(it.kec); if (k) kec[k] = (kec[k] || 0) + 1; });
-    const kecUrut = Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; });
-    $('[data-tv="kalimat"]').innerHTML = kecUrut.length
-      ? "Paling banyak di <b>" + esc(kecUrut[0]) + "</b>" + (kecUrut[1] ? " dan <b>" + esc(kecUrut[1]) + "</b>" : "") + " · " + p.tahun.length + " laporan " + p.th
-      : "Belum ada laporan " + p.th;
+    // ── titik panas, bergiliran per jenis (setahun) ──
+    semuaLaporan = semua;
+    tahunIni = p.tahun;
+    /* Titik di luar Kabupaten Jember dibuang dari PETA saja - jumlah pada
+       papan tetap dihitung dari seluruh laporan, supaya angkanya tidak
+       bertentangan dengan kotak di bawah. */
+    titikTahun = p.tahun.map(function (it) {
+      const la = parseFloat(it.lat), ln = parseFloat(it.lng);
+      if (!isFinite(la) || !isFinite(ln)) return null;
+      if (la < -8.85 || la > -7.95 || ln < 113.15 || ln > 114.10) return null;
+      return { la: la, ln: ln, j: bersih(it.bencana) || "Lainnya" };
+    }).filter(Boolean);
+    const slotLama = slotGiliran.length ? slotGiliran[giliranKe].label : null;
+    slotGiliran = susunSlot(p.tahun);
+    /* jenisnya bisa berubah saat data baru masuk - pertahankan slot yang
+       sedang tampil kalau masih ada, supaya layar tidak melompat */
+    const ketemu = slotGiliran.map(function (x) { return x.label; }).indexOf(slotLama);
+    giliranKe = ketemu >= 0 ? ketemu : 0;
+    if (!mulaiSlot) mulaiSlot = Date.now();
     siapkanPeta();
-    if (peta) {
-      const titik = p.tahun.map(function (it) { return [parseFloat(it.lat), parseFloat(it.lng)]; }).filter(function (t) { return isFinite(t[0]) && isFinite(t[1]); });
-      if (L.heatLayer) {
-        const panas = titik.map(function (t) { return [t[0], t[1], 1]; });
-        if (!lapisPanas) lapisPanas = L.heatLayer(panas, { radius: 44, blur: 36, maxZoom: 10, max: 3.2, minOpacity: .25,
-          gradient: { .2: "#1d4ed8", .4: "#22c55e", .6: "#facc15", .8: "#f97316", 1: "#ef4444" } }).addTo(peta);
-        else lapisPanas.setLatLngs(panas);
-      } else {
-        // cadangan bila plugin titik panas gagal dimuat: titik oranye transparan
-        lapisTitik.clearLayers();
-        titik.forEach(function (t) { L.circleMarker(t, { radius: 14, stroke: false, fillColor: "#F2711C", fillOpacity: .35, interactive: false }).addTo(lapisTitik); });
-      }
-    }
+    gambarGiliran();
 
-    gambarTerbaru(semua);
     gambarCuaca();
   }
 
-  function gambarTerbaru(semua) {
-    const it = semua.filter(tgl).slice().sort(function (a, b) { return tgl(b) - tgl(a); })[0];
+
+  /* ══ GILIRAN JENIS BENCANA ═══════════════════════════════════════════
+     Awan titik panas hanya menampilkan satu jenis, lalu berganti tiap 10
+     detik. Slot pertama "Semua jenis" memakai gradasi pelangi yang lama,
+     jadi tampilan asli Mode TV tetap muncul sebagai salah satu giliran.
+     ════════════════════════════════════════════════════════════════ */
+  const GRAD_SEMUA = { 0.2: "#1d4ed8", 0.4: "#22c55e", 0.6: "#facc15", 0.8: "#f97316", 1: "#ef4444" };
+
+  function susunSlot(daftar) {
+    const hit = {};
+    daftar.forEach(function (it) { const j = bersih(it.bencana) || "Lainnya"; hit[j] = (hit[j] || 0) + 1; });
+    const urut = Object.keys(hit).sort(function (a, b) { return hit[b] - hit[a] || a.localeCompare(b, "id"); });
+    const slot = [{ nama: null, label: "Semua jenis", jumlah: daftar.length }];
+    /* kalau cuma ada satu jenis, giliran per jenis tidak ada gunanya */
+    if (urut.length > 1) urut.forEach(function (n) { slot.push({ nama: n, label: n, jumlah: hit[n] }); });
+    return slot;
+  }
+
+  function pasangPanas(titik, grad, maks) {
+    if (!peta) return;
+    if (!L.heatLayer) {
+      /* cadangan bila plugin titik panas gagal dimuat: titik oranye transparan */
+      if (!lapisTitik) return;
+      lapisTitik.clearLayers();
+      titik.forEach(function (t) {
+        L.circleMarker([t.la, t.ln], { radius: 14, stroke: false, fillColor: "#F2711C", fillOpacity: .35, interactive: false }).addTo(lapisTitik);
+      });
+      return;
+    }
+    const panas = titik.map(function (t) { return [t.la, t.ln, 1]; });
+    const opsi = { radius: 44, blur: 36, maxZoom: 10, max: maks, minOpacity: .25, gradient: grad };
+    if (!lapisPanas) { lapisPanas = L.heatLayer(panas, opsi).addTo(peta); return; }
+    if (typeof lapisPanas.setOptions === "function") lapisPanas.setOptions(opsi);
+    lapisPanas.setLatLngs(panas);
+  }
+
+  /* bilah sisa waktu; dihitung dari jam mulai slot supaya gambar ulang di
+     tengah slot tidak membuat bilahnya melompat balik */
+  function aturBilah() {
+    const bar = $(".gl-bilah i");
+    if (!bar) return;
+    const lewat = Math.max(0, Math.min(JEDA_GILIRAN, Date.now() - mulaiSlot));
+    const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    bar.style.transition = "none";
+    bar.style.width = (lewat / JEDA_GILIRAN * 100).toFixed(1) + "%";
+    if (diam) return;
+    void bar.offsetWidth;
+    bar.style.transition = "width " + (JEDA_GILIRAN - lewat) + "ms linear";
+    bar.style.width = "100%";
+  }
+
+  function gambarGiliran() {
+    if (!slotGiliran.length) return;
+    if (giliranKe >= slotGiliran.length) giliranKe = 0;
+    const s = slotGiliran[giliranKe];
+    const semua = !s.nama;
+    const w = semua ? "#F2711C" : warnaBencana(s.nama);
+    const pakai = semua ? titikTahun : titikTahun.filter(function (t) { return t.j === s.nama; });
+
+    /* kejadian jenis lain tetap tampak samar */
+    if (lapisRedup) {
+      lapisRedup.clearLayers();
+      if (!semua) titikTahun.forEach(function (t) {
+        if (t.j === s.nama) return;
+        L.circleMarker([t.la, t.ln], { radius: 4, stroke: false, fillColor: "#C9D4D1", fillOpacity: .3, interactive: false }).addTo(lapisRedup);
+      });
+    }
+
+    /* Jenis yang jarang hanya menumpuk sedikit titik. Puncak gradasinya
+       diturunkan sebanding jumlahnya supaya awannya tetap mencapai warna
+       penuh - kalau tidak, bercaknya pucat dan tidak terbaca dari jauh. */
+    const grad = semua ? GRAD_SEMUA
+      : { 0.25: "rgba(255,255,255,.06)", 0.55: w + "99", 1: w };
+    const maks = semua ? 3.2
+      : Math.min(3.2, Math.max(1.2, 3.2 * pakai.length / Math.max(1, titikTahun.length)));
+    pasangPanas(pakai, grad, maks);
+
+    /* baris giliran */
+    const baris = $('[data-tv="giliran"]');
+    if (!baris) return;
+    const kec = {};
+    tahunIni.forEach(function (it) {
+      if (!semua && (bersih(it.bencana) || "Lainnya") !== s.nama) return;
+      const k = bersih(it.kec); if (k) kec[k] = (kec[k] || 0) + 1;
+    });
+    const kecUrut = Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; });
+    const ket = s.jumlah + " kejadian" + (kecUrut.length ? " · terbanyak di " + esc(kecUrut[0]) + " (" + kec[kecUrut[0]] + ")" : "");
+    /* kartu kanan mengikuti giliran: kejadian terakhir dari jenis ini */
+    if (semuaLaporan.length) gambarTerbaru(semuaLaporan, s.nama);
+    const lanjut = slotGiliran.length > 1 ? slotGiliran[(giliranKe + 1) % slotGiliran.length] : null;
+    baris.style.setProperty("--w", w);
+    baris.innerHTML =
+      '<div class="gl-papan"><span class="gl-bul"><span class="material-symbols-outlined" aria-hidden="true">' +
+      (semua ? "scatter_plot" : ikonBencana(s.nama)) + "</span></span>" +
+      "<div><b>" + esc(s.label.toUpperCase()) + "</b><s>" + ket + "</s></div></div>" +
+      (slotGiliran.length > 1
+        ? '<span class="gl-urut">' + slotGiliran.map(function (_, i) {
+            return '<i class="' + (i === giliranKe ? "on" : "") + '"></i>';
+          }).join("") + "<span>" + (giliranKe + 1) + " dari " + slotGiliran.length + "</span></span>" +
+          '<span class="gl-bilah"><i></i></span>' +
+          '<span class="gl-sisa">berikutnya: ' + esc(lanjut.label) + "</span>"
+        : "");
+    aturBilah();
+  }
+
+  function majuGiliran() {
+    if (!buka || slotGiliran.length < 2) return;
+    giliranKe = (giliranKe + 1) % slotGiliran.length;
+    mulaiSlot = Date.now();
+    gambarGiliran();
+  }
+
+  /* jenis: null = laporan terbaru apa pun jenisnya; selain itu, kejadian
+     terakhir dari jenis itu saja - mengikuti giliran yang sedang tampil */
+  function gambarTerbaru(semua, jenis) {
+    const calon = semua.filter(function (x) {
+      if (!tgl(x)) return false;
+      return !jenis || (bersih(x.bencana) || "Lainnya") === jenis;
+    });
+    const it = calon.slice().sort(function (a, b) { return tgl(b) - tgl(a); })[0];
     const kartu = $(".tv-baru");
     if (!it) { kartu.hidden = true; $('[data-tv="garis"]').innerHTML = ""; return; }
     const d = tgl(it), hariIni = d.toDateString() === new Date().toDateString();
-    isi("baru-waktu", "● Laporan terbaru · " + (hariIni ? "hari ini " + jamMenit(d) : d.getDate() + " " + BULAN[d.getMonth()].slice(0, 3) + " " + d.getFullYear()));
+    const kapan = hariIni ? "hari ini " + jamMenit(d) : d.getDate() + " " + BULAN[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
+    isi("baru-waktu", "● " + (jenis ? jenis + " terakhir" : "Laporan terbaru") + " · " + kapan);
     isi("baru-judul", (bersih(it.bencana) || "Kejadian") + " — " + (bersih(it.desakelurahan) || bersih(it.kec) || "-"));
     const jiwa = parseFloat(it.jumlahKeluarga) || 0;
     isi("baru-ket", [bersih(it.kerusakan), bersih(it.kec) ? "Kec. " + bersih(it.kec) : "", jiwa ? jiwa + " jiwa terdampak" : ""].filter(Boolean).join(" · "));
     kartu.hidden = false;
 
-    const kunci = String(it.timestamp || "") + "|" + (it.photos || []).length;
+    const kunci = String(jenis || "*") + "|" + String(it.timestamp || "") + "|" + (it.photos || []).length;
     const la = parseFloat(it.lat), ln = parseFloat(it.lng), adaTitik = isFinite(la) && isFinite(ln);
     if (kunci !== kunciBaru) {
       kunciBaru = kunci;
@@ -25405,6 +25921,9 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     clearInterval(jamDetik); jamDetik = setInterval(detak, 5000);
     clearInterval(jamSegar); jamSegar = setInterval(gambar, 20000);
     clearInterval(jamFoto); jamFoto = setInterval(gantiFoto, JEDA_FOTO);
+    giliranKe = 0; mulaiSlot = Date.now();
+    clearInterval(jamGiliran); jamGiliran = setInterval(majuGiliran, JEDA_GILIRAN);
+    gambarGiliran();
     sidikData = sidikIsi();
     clearInterval(jamTarik); jamTarik = setInterval(tarikData, JEDA_TARIK);
     clearInterval(jamCek); jamCek = setInterval(cekData, JEDA_CEK);
@@ -25419,6 +25938,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     akar.classList.remove("buka", "gerak");
     document.documentElement.classList.remove("rk-tv-aktif");
     clearInterval(jamDetik); clearInterval(jamSegar); clearInterval(jamFoto); clearInterval(jamTarik); clearInterval(jamCek);
+    clearInterval(jamGiliran); jamGiliran = 0;
     if (kunciLayar) { try { kunciLayar.release(); } catch (e) {} kunciLayar = null; }
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     // alamat ?tv dibersihkan supaya muat ulang berikutnya kembali ke dasbor
