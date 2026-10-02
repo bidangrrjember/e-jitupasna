@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyRbkZJTG-Tw02ZxeAXiHAji1gnVkiVPj_RwTF1hMscuatJMVsctL-6FOapSnKjWrT1/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -19458,11 +19458,6 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       return b.hari - a.hari;
     });
   }
-  function tanggalKosong() {
-    if (!window.rkTunggakan) return [];
-    return semua().map(function (it) { const t = window.rkTunggakan(it); return t && t.tglKosong.length ? { it: it, t: t } : null; }).filter(Boolean)
-      .sort(function (a, b) { return b.t.hari - a.t.hari; });
-  }
   function statusAktif() { return (typeof currentStatusFilter !== "undefined") ? currentStatusFilter : "all"; }
   const CIP = { salur: ["merah", "Salurkan"], monitor: ["emas", "Monitor"], tuntas: ["laut", "Tuntas"] };
 
@@ -19576,7 +19571,6 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       '<div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:' + (judulUkuran || 14.5) + 'px">Paling lama menunggu</b><span class="sk-mono sk-kanan" style="color:var(--sk-api);font-size:12px">' + fmt(q.length) + "</span></div>" +
       '<div class="sk-daftar" style="margin-top:4px">' + (baris.length ? baris.map(htmlBarisKerja).join("") : '<div class="sk-kosong">Tidak ada laporan yang menunggu.</div>') +
       (q.length > jumlahBaris ? '<button type="button" class="sk-baris" data-aksi="semua-antrean" style="justify-content:center;color:var(--sk-api);font-size:12.5px;font-weight:700">Lihat semua ' + fmt(q.length) + "</button>" : "") +
-      (function () { const n = tanggalKosong().length; return n ? '<button type="button" class="sk-baris" data-aksi="tanggal-kosong" style="justify-content:space-between;gap:10px;color:var(--sk-emas,#C98A12);font-size:12.5px;font-weight:700"><span>Tanggal serah terima/monitoring belum diisi</span><span class="sk-mono">' + fmt(n) + "</span></button>" : ""; })() +
       "</div></div>";
   }
 
@@ -20671,11 +20665,6 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       case "semua-antrean":
         bukaPilih("Menunggu penanganan", antrean().slice(0, 80).map(function (x) {
           return { label: x.it.nama || "-", sub: x.hari + " hari" + (x.telat ? " (lewat 30 hari)" : "") + " · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
-        }), function (o) { bukaDetail(o.it); });
-        break;
-      case "tanggal-kosong":
-        bukaPilih("Tanggal belum diisi", tanggalKosong().slice(0, 80).map(function (x) {
-          return { label: x.it.nama || "-", sub: "Tgl. " + x.t.tglKosong.join(" & ") + " kosong · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", "), it: x.it };
         }), function (o) { bukaDetail(o.it); });
         break;
       case "pilih-kec": {
@@ -22204,7 +22193,7 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
   const kunciBulan = function (d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); };
   const namaBulan = function (k) { const p = k.split("-"); return BULAN[+p[1] - 1] + " " + p[0]; };
 
-  let pilihan = { jenis: "bulan", bulan: null, tahun: null, foto: 4, fotoTahun: 1 };
+  let pilihan = { jenis: "bulan", bulan: null, tahun: null, kec: null, foto: 4, fotoTahun: 1, fotoKec: 4 };
 
   /* ── data per bulan ── */
   function daftarBulan() {
@@ -22768,80 +22757,10 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
     };
   }
 
-  function susunDokumen(k, opsi) {
-    const daftar = laporanBulan(k);
-    const acuan = acuanBulan(k);        // status di laporan bulanan = posisi per akhir bulan
-    const p = k.split("-");
-    const lalu = kunciBulan(new Date(+p[0], +p[1] - 2, 1));
-    const jumlahLalu = laporanBulan(lalu).length;
-    const selisih = daftar.length - jumlahLalu;
-    const jiwa = daftar.reduce(function (s, it) { return s + (parseFloat(it.jumlahKeluarga) || 0); }, 0);
-    const nilai = daftar.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerusakan) || 0); }, 0);
-    const rugi = daftar.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerugian) || 0); }, 0);
-    const kec = {};
-    daftar.forEach(function (it) { if (it.kec && it.kec !== "-") kec[it.kec] = (kec[it.kec] || 0) + 1; });
-    const tingkat = { "Rusak Ringan": 0, "Rusak Sedang": 0, "Rusak Berat": 0 };
-    daftar.forEach(function (it) { if (tingkat[it.kerusakan] !== undefined) tingkat[it.kerusakan]++; });
-    const status = { salur: 0, monitor: 0, tuntas: 0 };
-    daftar.forEach(function (it) { status[tahapan(it, acuan).status]++; });
-    let dibantu = 0; daftar.forEach(function (it) { try { if (checkIsDibantu(it)) dibantu++; } catch (e) {} });
-    const jenis = urutJenis(daftar);
-    const disusun = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-    const judulBulan = namaBulan(k);
-    const tl = tindakLanjutBulan(k);
-    const tlHtml = htmlTindakLanjut(tl, k);
-    let jumlahFoto = 0;
-    // benih baru tiap kali dokumen disusun -> sampul berbeda setiap klik "Buat PDF"
-    const sampulData = sampulBulanan(k, daftar, { kejadian: daftar.length, jiwa: jiwa, nilai: nilai, disusun: disusun },
-      opsi.benih !== undefined ? opsi.benih : Math.floor(Math.random() * 4294967295));
-
-    const persen = function (n) { return Math.round(n / Math.max(1, daftar.length) * 100) + "% dari kejadian"; };
-    const kpi = function (label, isi, catatan) { return '<div class="kpi"><s>' + label + "</s><b>" + isi + "</b>" + (catatan ? "<em>" + catatan + "</em>" : "") + "</div>"; };
-
-    let ringkasan =
-      '<header class="kop"><img src="' + LOGO + '" alt="" class="logo"><div><span class="mata">Badan Penanggulangan Bencana Daerah · Kabupaten Jember</span>' +
-        "<h1>Laporan Bulanan<br>Kejadian Bencana</h1>" +
-        '<p class="bulan">' + esc(judulBulan) + "</p></div></header>";
-
-    // catatan singkat di halaman ringkasan yang menunjuk bab tindak lanjut
-    const rTl = ringkasTindakLanjut(tl);
-    const catatanTl = tlHtml
-      ? '<section class="tl-catatan"><b>Tindak lanjut laporan sebelumnya</b>' +
-          (tl.bergerak.length ? tl.bergerak.length + " laporan bulan sebelumnya berlanjut bulan ini (" + [rTl.serah ? rTl.serah + " serah terima" : "", rTl.mon ? rTl.mon + " monitoring" : ""].filter(String).join(", ") + ")" : "Tidak ada laporan lama yang berlanjut bulan ini") +
-          (tl.menunggu.length ? " · " + tl.menunggu.length + " masih menunggu" : "") + ". Rinciannya di bab Tindak lanjut.</section>"
-      : "";
-    if (!daftar.length) {
-      ringkasan += '<div class="kosong">Tidak ada asesmen baru pada ' + esc(judulBulan) + ".</div>";
-    } else {
-      ringkasan +=
-        '<section class="kpi-kisi">' +
-          kpi("Kejadian", angka(daftar.length), (selisih === 0 ? "sama dengan" : (selisih > 0 ? "+" + selisih + " dari" : selisih + " dari")) + " " + esc(namaBulan(lalu)) + " (" + jumlahLalu + ")") +
-          kpi("Jiwa terdampak", angka(jiwa), "rata-rata " + (jiwa / daftar.length).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " per kejadian") +
-          kpi("Taksiran kerusakan", rp(nilai), "total seluruh kejadian") +
-          kpi("Taksiran kerugian", rp(rugi), "total seluruh kejadian") +
-          kpi("Kecamatan terdampak", angka(Object.keys(kec).length), "dari 31 kecamatan") +
-          kpi("Rusak berat", angka(tingkat["Rusak Berat"]), persen(tingkat["Rusak Berat"])) +
-          kpi("Menerima bantuan", angka(dibantu), persen(dibantu)) +
-          kpi("Penanganan tuntas", angka(status.tuntas), persen(status.tuntas)) +
-        "</section>" + catatanTl +
-        '<section class="grafik lebar"><h2>Kejadian per tanggal</h2>' + grafikTanggal(daftar, k) +
-          '<div class="leg">' + jenis.map(function (j, i) { return '<span><i style="background:' + WARNA_JENIS[i % WARNA_JENIS.length] + '"></i>' + esc(j.nama) + " (" + j.n + ")</span>"; }).join("") + "</div></section>" +
-        '<div class="dua">' +
-          '<section class="grafik"><h2>Jenis bencana</h2>' + batangMendatar(jenis, function (b, i) { return WARNA_JENIS[i % WARNA_JENIS.length]; }) + "</section>" +
-          '<section class="grafik"><h2>Tingkat kerusakan</h2>' + batangMendatar([
-            { nama: "Rusak Ringan", n: tingkat["Rusak Ringan"] }, { nama: "Rusak Sedang", n: tingkat["Rusak Sedang"] }, { nama: "Rusak Berat", n: tingkat["Rusak Berat"] }],
-            function (b) { return { "Rusak Ringan": "#E8B98F", "Rusak Sedang": "#E08A45", "Rusak Berat": "#B8480C" }[b.nama]; }) +
-            '<h2 class="sub">Status penanganan</h2><div class="alur">' + ["salur", "monitor", "tuntas"].map(function (s) {
-              return status[s] ? '<i style="flex:' + status[s] + ";background:" + STATUS[s][1] + '"></i>' : "";
-            }).join("") + '</div><div class="leg">' + ["salur", "monitor", "tuntas"].map(function (s) {
-              return '<span><i style="background:' + STATUS[s][1] + '"></i>' + STATUS[s][0] + " (" + status[s] + ")</span>";
-            }).join("") + "</div></section>" +
-        "</div>" +
-        '<section class="grafik lebar"><h2>Kecamatan terdampak</h2>' +
-          batangMendatar(Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; }).map(function (n) { return { nama: n, n: kec[n] }; }), "#2A9384") + "</section>";
-    }
-
-    const rincian = daftar.map(function (it, i) {
+  /* Kartu satu kejadian - dipakai laporan bulanan dan laporan kecamatan.
+     acuan: sudut pandang status (akhir bulan untuk bulanan, hari ini untuk
+     kecamatan). nFoto: 0 berarti tanpa foto. */
+  function kartuKejadian(it, nomor, acuan, nFoto) {
       const st = tahapan(it, acuan).status;
       const jenisW = KEC_KOTA.indexOf(String(it.kec || "").toLowerCase().trim()) >= 0 ? "Kelurahan" : "Desa";
       const alamat = [it.jalandusun && it.jalandusun !== "-" ? it.jalandusun : "",
@@ -22850,13 +22769,12 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
       const la = parseFloat(it.lat), ln = parseFloat(it.lng);
       const bagian = String(it.bagianRusak || "").split(",").map(function (x) { return x.trim(); }).filter(function (x) { return x && x !== "-"; });
       const bantuan = bantuanTeks(it);
-      const foto = opsi.foto ? fotoLaporan(it, opsi.foto) : [];
-      jumlahFoto += foto.length;
+      const foto = nFoto ? fotoLaporan(it, nFoto) : [];
       const tanggal = it.dateObj.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + " · " +
         it.dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
       const sel = function (label, isi) { return isi ? '<div class="sel"><s>' + label + "</s><b>" + isi + "</b></div>" : ""; };
-      return '<article class="kejadian">' +
-        '<header><span class="no">' + String(i + 1).padStart(2, "0") + '</span><div class="kep-teks"><span class="mata">' + esc(tanggal) + "</span>" +
+      return { foto: foto.length, html: '<article class="kejadian">' +
+        '<header><span class="no">' + String(nomor).padStart(2, "0") + '</span><div class="kep-teks"><span class="mata">' + esc(tanggal) + "</span>" +
           "<h3>" + esc(it.nama || "-") + "</h3><p>" + esc(alamat || "-") + (isFinite(la) && isFinite(ln) ? ' <span class="koord">' + la.toFixed(5) + ", " + ln.toFixed(5) + "</span>" : "") + "</p></div>" +
           '<div class="cip-kolom"><span class="cip">' + esc(it.bencana || "-") + '</span><span class="cip st" style="--c:' + STATUS[st][1] + '">' + STATUS[st][0] + "</span></div></header>" +
         '<div class="sel-kisi">' +
@@ -22875,13 +22793,14 @@ html[data-saku="hp"] .rlb-kaki > *{flex:1}
         (foto.length ? '<div class="foto foto-' + foto.length + '">' + foto.map(function (src, fi) {
           return '<figure><img src="' + esc(src) + '" alt="Foto ' + (fi + 1) + '" referrerpolicy="no-referrer"><figcaption>Foto ' + (fi + 1) + "</figcaption></figure>";
         }).join("") + "</div>" : "") +
-      "</article>";
-    }).join("");
+      "</article>" };
+  }
 
-    const gaya = `
-@page{size:A4;margin:14mm 13mm 16mm;
+  /* Lembar gaya cetak bersama. kaki = tulisan di kiri bawah tiap halaman. */
+  function gayaCetak(kaki, tambahan) {
+    return `@page{size:A4;margin:14mm 13mm 16mm;
   @top-center{content:""}
-  @bottom-left{content:"Laporan Bulanan E-JITUPASNA · ${judulBulan} · BPBD Kabupaten Jember";font:7.5pt "DM Mono",monospace;color:#8A948F}
+  @bottom-left{content:"${kaki}";font:7.5pt "DM Mono",monospace;color:#8A948F}
   @bottom-right{content:"Halaman " counter(page) " dari " counter(pages);font:7.5pt "DM Mono",monospace;color:#8A948F}}
 @page sampul{margin:0}
 .sampul{page:sampul;width:210mm;height:297mm;margin:16px auto 0;overflow:hidden;break-after:page;background:#fff;box-shadow:0 10px 30px -18px rgba(0,0,0,.4)}
@@ -22998,7 +22917,385 @@ h1{margin:4px 0 0;font-family:"Bricolage Grotesque",sans-serif;font-size:24pt;fo
 @media screen and (max-width:760px){.tl-angka{grid-auto-flow:row;grid-template-columns:repeat(2,1fr)}.tl-alur{grid-template-columns:1fr;gap:6px}.tl-alur li::before{display:none}}
 @media print{html,body{background:#fff}.alat{display:none}.kertas{width:auto;margin:0;padding:0;box-shadow:none}.sampul{margin:0;box-shadow:none}}
 @media screen and (max-width:760px){.sampul,.sampul-svg{width:100%;height:auto}}
-@media screen and (max-width:760px){.alat{gap:10px;padding:8px 12px}.alat b{display:none}.alat span{font-size:11.5px;line-height:1.35}.alat button{height:34px;padding:0 14px}.kertas{padding:5mm}.kpi-kisi{grid-template-columns:repeat(2,1fr)}.dua{grid-template-columns:1fr}.sel-kisi{grid-template-columns:1fr 1fr}}`;
+@media screen and (max-width:760px){.alat{gap:10px;padding:8px 12px}.alat b{display:none}.alat span{font-size:11.5px;line-height:1.35}.alat button{height:34px;padding:0 14px}.kertas{padding:5mm}.kpi-kisi{grid-template-columns:repeat(2,1fr)}.dua{grid-template-columns:1fr}.sel-kisi{grid-template-columns:1fr 1fr}}
+${tambahan || ""}`;
+  }
+
+
+  /* ══ LAPORAN PER KECAMATAN ═════════════════════════════════════════════
+     Bentuknya laporan bulanan: kop, kartu angka, grafik, bab tindak lanjut,
+     lalu rincian tiap kejadian memakai kartu yang sama. Bedanya lingkup -
+     satu kecamatan, seluruh waktu - dan rinciannya DIKELOMPOKKAN PER DESA,
+     dipisah pita desa. Status dihitung per hari ini, bukan per akhir bulan.
+     ══════════════════════════════════════════════════════════════════ */
+  function namaDesa(it) {
+    const d = String(it.desakelurahan == null ? "" : it.desakelurahan).trim();
+    return d && d !== "-" ? d : "(desa belum diisi)";
+  }
+  function sebutanDesa(namaKec) {
+    return KEC_KOTA.indexOf(String(namaKec || "").toLowerCase().trim()) >= 0 ? "kelurahan" : "desa";
+  }
+  /* Aturan gaya yang hanya dipakai laporan kecamatan. Sengaja dipisah
+     supaya laporan bulanan dan tahunan tidak ikut membawa aturan ini. */
+  const GAYA_KELOMPOK_DESA = `/* laporan per kecamatan: pengelompokan per desa */
+.desa-kop{display:flex;align-items:center;gap:12px;margin:0 0 9px;padding:8px 12px;border-radius:10px;background:#141917;color:#fff;break-inside:avoid;break-after:avoid}
+.desa-kop h3{margin:0;font-family:"Bricolage Grotesque",sans-serif;font-size:13pt;font-weight:800;letter-spacing:-.025em;line-height:1.1}
+.desa-kop .urut{flex:0 0 auto;font:500 6.8pt "DM Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:#9FB0A9;white-space:nowrap}
+.desa-kop .ang{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:3px 14px;font:500 7.4pt "DM Mono",monospace;color:#CFDAD5}
+.desa-kop .ang b{color:#fff;font-weight:600}
+.desa-lanjut{margin:0 0 8px;font:500 7pt "DM Mono",monospace;letter-spacing:.04em;color:#8A948F}
+.rekap{width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:12px}
+.rekap th{padding:5px 6px;border-bottom:1.5px solid #141917;text-align:left;font:500 6.6pt "DM Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:#8A948F}
+.rekap td{padding:6px;border-bottom:1px solid #E3E7E4;vertical-align:top}
+.rekap tr{break-inside:avoid}
+.rekap .n{text-align:right;white-space:nowrap;font-family:"DM Mono",monospace}
+.rekap tfoot td{border-top:1.5px solid #141917;border-bottom:0;font-weight:800;padding-top:7px}
+`;
+
+  function daftarKecamatan() {
+    const hit = {}, desa = {};
+    data().forEach(function (it) {
+      if (!it.dateObj || isNaN(it.dateObj)) return;
+      const k = String(it.kec == null ? "" : it.kec).trim();
+      if (!k || k === "-") return;
+      hit[k] = (hit[k] || 0) + 1;
+      (desa[k] = desa[k] || {})[namaDesa(it)] = true;
+    });
+    return Object.keys(hit).sort(function (a, b) {
+      return hit[b] - hit[a] || a.localeCompare(b, "id");
+    }).map(function (k) {
+      return { kunci: k, jumlah: hit[k], desa: Object.keys(desa[k]).length };
+    });
+  }
+  function laporanKecamatan(nk) {
+    return data().filter(function (it) {
+      return it.dateObj && !isNaN(it.dateObj) && String(it.kec == null ? "" : it.kec).trim() === nk;
+    }).sort(function (a, b) { return a.dateObj - b.dateObj; });
+  }
+  /* Desa diurutkan dari yang paling banyak kejadiannya; di dalam desa, urut tanggal. */
+  function kelompokDesa(daftar) {
+    const peta = {};
+    daftar.forEach(function (it) { const d = namaDesa(it); (peta[d] = peta[d] || []).push(it); });
+    return Object.keys(peta).sort(function (a, b) {
+      return peta[b].length - peta[a].length || a.localeCompare(b, "id");
+    }).map(function (n) {
+      const isi = peta[n];
+      const jml = function (f) { return isi.reduce(function (t, it) { return t + (parseFloat(it[f]) || 0); }, 0); };
+      let tuntas = 0;
+      isi.forEach(function (it) { if (tahapan(it).status === "tuntas") tuntas++; });
+      return { nama: n, isi: isi, jiwa: jml("jumlahKeluarga"), rusak: jml("nilaiKerusakan"),
+        rugi: jml("nilaiKerugian"), tuntas: tuntas };
+    });
+  }
+  /* Laporan yang belum tuntas di satu kecamatan, urut dari yang paling lama. */
+  function tunggakanWilayah(daftar) {
+    const kini = new Date(), keluar = [];
+    daftar.forEach(function (it) {
+      const t = tahapan(it);
+      if (t.status === "tuntas") return;
+      const sejak = t.status === "salur" ? t.kaji : (t.serahTgl || t.kaji);
+      keluar.push({ it: it, status: t.status, hari: sejak ? hariAntara(sejak, kini) : null });
+    });
+    return keluar.sort(function (a, b) { return (b.hari || 0) - (a.hari || 0); });
+  }
+  /* Batang per bulan sepanjang rentang data kecamatan itu, bertumpuk per jenis. */
+  function grafikBulanRentang(daftar) {
+    const jenis = urutJenis(daftar);
+    let awal = null, akhir = null;
+    daftar.forEach(function (it) {
+      const t = new Date(it.dateObj.getFullYear(), it.dateObj.getMonth(), 1);
+      if (!awal || t < awal) awal = t;
+      if (!akhir || t > akhir) akhir = t;
+    });
+    if (!awal) return "";
+    const kunci = [], label = [], per = [];
+    for (let d = new Date(awal); d <= akhir; d.setMonth(d.getMonth() + 1)) {
+      kunci.push(kunciBulan(d));
+      label.push(BLN3[d.getMonth()] + " " + String(d.getFullYear()).slice(2));
+      per.push({});
+    }
+    const urut = {};
+    kunci.forEach(function (k, i) { urut[k] = i; });
+    daftar.forEach(function (it) {
+      const i = urut[kunciBulan(it.dateObj)];
+      if (i === undefined) return;
+      const j = it.bencana || "Lainnya";
+      per[i][j] = (per[i][j] || 0) + 1;
+    });
+    const n = per.length;
+    const maks = Math.max(1, ...per.map(function (o) {
+      return Object.keys(o).reduce(function (a, k) { return a + o[k]; }, 0);
+    }));
+    const W = 680, H = 178, kiri = 26, bawah = 30, atas = 10;
+    const lebar = (W - kiri) / n, tinggi = H - bawah - atas;
+    const puncak = Math.max(2, Math.ceil(maks / 2) * 2);
+    const lompat = n > 26 ? 3 : n > 16 ? 2 : 1;
+    let g = "";
+    [0, puncak / 2, puncak].forEach(function (v) {
+      const y = atas + tinggi - v / puncak * tinggi;
+      g += '<line x1="' + kiri + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="#E3E7E4" stroke-width="1"/>' +
+        '<text x="' + (kiri - 6) + '" y="' + (y + 3) + '" text-anchor="end" class="g-sb">' + v + "</text>";
+    });
+    per.forEach(function (o, i) {
+      let y = atas + tinggi;
+      jenis.forEach(function (j, ji) {
+        const c = o[j.nama] || 0;
+        if (!c) return;
+        const t = c / puncak * tinggi; y -= t;
+        g += '<rect x="' + (kiri + i * lebar + lebar * 0.18).toFixed(1) + '" y="' + y.toFixed(1) +
+          '" width="' + (lebar * 0.64).toFixed(1) + '" height="' + t.toFixed(1) +
+          '" rx="2" fill="' + WARNA_JENIS[ji % WARNA_JENIS.length] + '"/>';
+      });
+      if (i % lompat === 0 || i === n - 1) {
+        g += '<text x="' + (kiri + i * lebar + lebar / 2).toFixed(1) + '" y="' + (H - 16) +
+          '" text-anchor="middle" class="g-sb">' + esc(label[i].split(" ")[0]) + "</text>" +
+          '<text x="' + (kiri + i * lebar + lebar / 2).toFixed(1) + '" y="' + (H - 6) +
+          '" text-anchor="middle" class="g-sb">' + esc(label[i].split(" ")[1]) + "</text>";
+      }
+    });
+    return '<svg viewBox="0 0 ' + W + " " + H + '" class="g">' + g + "<\/svg>";
+  }
+
+  function susunKecamatan(nk, opsi) {
+    opsi = opsi || {};
+    const daftar = laporanKecamatan(nk);
+    const semua = data().filter(function (it) { return it.dateObj && !isNaN(it.dateObj); });
+    const kini = new Date();
+    const sebutan = sebutanDesa(nk);
+    const kelompok = kelompokDesa(daftar);
+    const jml = function (arr, f) { return arr.reduce(function (t, it) { return t + (parseFloat(it[f]) || 0); }, 0); };
+    const jiwa = jml(daftar, "jumlahKeluarga"), nilai = jml(daftar, "nilaiKerusakan"), rugi = jml(daftar, "nilaiKerugian");
+    const tingkat = { "Rusak Ringan": 0, "Rusak Sedang": 0, "Rusak Berat": 0 };
+    daftar.forEach(function (it) { if (tingkat[it.kerusakan] !== undefined) tingkat[it.kerusakan]++; });
+    const status = { salur: 0, monitor: 0, tuntas: 0 };
+    daftar.forEach(function (it) { status[tahapan(it).status]++; });
+    let dibantu = 0;
+    daftar.forEach(function (it) { try { if (checkIsDibantu(it)) dibantu++; } catch (e) {} });
+    const jenis = urutJenis(daftar);
+    const tunggak = tunggakanWilayah(daftar);
+    const disusun = kini.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const rentang = daftar.length
+      ? daftar[0].dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) + " – " +
+        daftar[daftar.length - 1].dateObj.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+      : "";
+    const persen = function (n) { return Math.round(n / Math.max(1, daftar.length) * 100) + "% dari kejadian"; };
+    const bagi = function (a, b) { return b ? Math.round(a / b * 100) + "%" : "0%"; };
+    const kpiB = function (label, isi, catatan) {
+      return '<div class="kpi"><s>' + label + "</s><b>" + isi + "</b>" +
+        (catatan ? "<em>" + catatan + "</em>" : "") + "</div>";
+    };
+    let jumlahFoto = 0;
+
+    let ringkasan =
+      '<header class="kop"><img src="' + LOGO + '" alt="" class="logo"><div>' +
+      '<span class="mata">Badan Penanggulangan Bencana Daerah · Kabupaten Jember</span>' +
+      "<h1>Laporan Kecamatan<br>Kejadian Bencana</h1>" +
+      '<p class="bulan">Kecamatan ' + esc(nk) + " · " + kelompok.length + " " + sebutan + "</p></div></header>" +
+      '<p class="meta">Seluruh data tercatat' + (rentang ? " · " + esc(rentang) : "") +
+      " · disusun " + esc(disusun) + " dari basis data E-JITUPASNA</p>";
+
+    if (!daftar.length) {
+      ringkasan += '<div class="kosong">Belum ada laporan tercatat di Kecamatan ' + esc(nk) + ".</div>";
+    } else {
+      ringkasan +=
+        '<section class="kpi-kisi">' +
+        kpiB("Kejadian", angka(daftar.length), bagi(daftar.length, semua.length) + " dari " + angka(semua.length) + " se-kabupaten") +
+        kpiB("Jiwa terdampak", angka(jiwa), "rata-rata " + (jiwa / daftar.length).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " per kejadian") +
+        kpiB("Taksiran kerusakan", rp(nilai), "total seluruh kejadian") +
+        kpiB("Taksiran kerugian", rp(rugi), "total seluruh kejadian") +
+        kpiB(sebutan === "kelurahan" ? "Kelurahan terdampak" : "Desa terdampak", angka(kelompok.length), "di kecamatan ini") +
+        kpiB("Rusak berat", angka(tingkat["Rusak Berat"]), persen(tingkat["Rusak Berat"])) +
+        kpiB("Menerima bantuan", angka(dibantu), persen(dibantu)) +
+        kpiB("Penanganan tuntas", angka(status.tuntas), persen(status.tuntas)) +
+        "</section>" +
+        (tunggak.length
+          ? '<section class="tl-catatan"><b>Tindak lanjut</b>' + tunggak.length + " laporan belum tuntas: " +
+            [status.salur ? status.salur + " menunggu penyaluran" : "", status.monitor ? status.monitor + " menunggu monitoring" : ""].filter(String).join(" dan ") +
+            (tunggak[0] && tunggak[0].hari ? ", tertua " + tunggak[0].hari + " hari" : "") + ". " +
+            status.tuntas + " dari " + daftar.length + " laporan sudah tuntas (" + bagi(status.tuntas, daftar.length) +
+            "). Rinciannya di bab Tindak lanjut.</section>"
+          : '<section class="tl-catatan"><b>Tindak lanjut</b>Seluruh ' + daftar.length +
+            " laporan di kecamatan ini sudah tuntas.</section>") +
+        '<section class="grafik lebar"><h2>Kejadian per bulan</h2>' + grafikBulanRentang(daftar) +
+        '<div class="leg">' + jenis.map(function (j, i) {
+          return '<span><i style="background:' + WARNA_JENIS[i % WARNA_JENIS.length] + '"></i>' + esc(j.nama) + " (" + j.n + ")</span>";
+        }).join("") + "</div></section>" +
+        '<div class="dua">' +
+        '<section class="grafik"><h2>Jenis bencana</h2>' +
+        batangMendatar(jenis, function (b, i) { return WARNA_JENIS[i % WARNA_JENIS.length]; }) + "</section>" +
+        '<section class="grafik"><h2>Tingkat kerusakan</h2>' + batangMendatar([
+          { nama: "Rusak Ringan", n: tingkat["Rusak Ringan"] },
+          { nama: "Rusak Sedang", n: tingkat["Rusak Sedang"] },
+          { nama: "Rusak Berat", n: tingkat["Rusak Berat"] }],
+          function (b) { return { "Rusak Ringan": "#E8B98F", "Rusak Sedang": "#E08A45", "Rusak Berat": "#B8480C" }[b.nama]; }) +
+        '<h2 class="sub">Status penanganan</h2><div class="alur">' + ["salur", "monitor", "tuntas"].map(function (x) {
+          return status[x] ? '<i style="flex:' + status[x] + ";background:" + STATUS[x][1] + '"></i>' : "";
+        }).join("") + '</div><div class="leg">' + ["salur", "monitor", "tuntas"].map(function (x) {
+          return '<span><i style="background:' + STATUS[x][1] + '"></i>' + STATUS[x][0] + " (" + status[x] + ")</span>";
+        }).join("") + "</div></section>" +
+        "</div>" +
+        '<section class="grafik lebar"><h2>' + (sebutan === "kelurahan" ? "Kelurahan" : "Desa/kelurahan") + ' terdampak</h2>' +
+        batangMendatar(kelompok.map(function (d) { return { nama: d.nama, n: d.isi.length }; }), "#E0600E") + "</section>";
+    }
+
+    /* ── bab tindak lanjut ── */
+    const angkaTl = function (n, label, warna) {
+      return "<div><b" + (warna && n ? ' style="color:' + warna + '"' : "") + ">" + angka(n) + "</b><s>" + label + "</s></div>";
+    };
+    const babTl = !daftar.length ? "" :
+      '<div class="bab"><h2>Tindak lanjut</h2><span>posisi per ' + esc(disusun) + "</span></div>" +
+      '<div class="tl-angka">' + angkaTl(daftar.length, "Kejadian tercatat", "") +
+      angkaTl(status.salur, "Menunggu penyaluran", "#CC4430") +
+      angkaTl(status.monitor, "Menunggu monitoring", "#C98A12") +
+      angkaTl(status.tuntas, "Penanganan tuntas", "#2A9384") + "</div>" +
+      (tunggak.length
+        ? '<h3 class="tl-sub">Masih menunggu<span>' + tunggak.length + " laporan · urut terlama</span></h3>" +
+          '<table class="tl-tabel"><thead><tr><th class="n">No</th><th>Nama</th><th>' +
+          (sebutan === "kelurahan" ? "Kelurahan" : "Desa") + "</th><th>Pengkajian</th><th>Tertunda di</th>" +
+          '<th class="n">Lama</th></tr></thead><tbody>' +
+          tunggak.map(function (t, i) {
+            return '<tr><td class="n">' + (i + 1) + "</td><td>" + esc(t.it.nama || "-") + "</td><td>" +
+              esc(namaDesa(t.it)) + "</td><td>" + esc(tglPendek(t.it.dateObj)) + "</td><td>" +
+              STATUS[t.status][0] + '</td><td class="n lama">' +
+              (t.hari === null ? "-" : t.hari + " hari") + "</td></tr>";
+          }).join("") + "</tbody></table>"
+        : '<p class="pengantar">Tidak ada laporan yang masih menunggu di kecamatan ini.</p>') +
+      /* ── rekapitulasi per desa ── */
+      '<h3 class="tl-sub">Rekapitulasi per ' + sebutan + "<span>" + kelompok.length + " " + sebutan + "</span></h3>" +
+      '<table class="rekap"><thead><tr><th class="n">No</th><th>' +
+      (sebutan === "kelurahan" ? "Kelurahan" : "Desa/Kelurahan") +
+      '</th><th class="n">Kejadian</th><th class="n">Jiwa</th><th class="n">Kerusakan</th>' +
+      '<th class="n">Kerugian</th><th class="n">Tuntas</th></tr></thead><tbody>' +
+      kelompok.map(function (d, i) {
+        return '<tr><td class="n">' + (i + 1) + "</td><td><b>" + esc(d.nama) + '</b></td><td class="n">' +
+          d.isi.length + '</td><td class="n">' + angka(d.jiwa) + '</td><td class="n">' + angka(d.rusak) +
+          '</td><td class="n">' + angka(d.rugi) + '</td><td class="n">' + d.tuntas + "/" + d.isi.length + "</td></tr>";
+      }).join("") + "</tbody><tfoot><tr><td></td><td>Jumlah</td>" +
+      '<td class="n">' + daftar.length + '</td><td class="n">' + angka(jiwa) + '</td><td class="n">' + angka(nilai) +
+      '</td><td class="n">' + angka(rugi) + '</td><td class="n">' + status.tuntas + "/" + daftar.length +
+      "</td></tr></tfoot></table>" +
+      '<p class="penutup" style="margin-top:0">Nilai kerusakan dan kerugian dalam rupiah.</p>';
+
+    /* ── rincian, dikelompokkan per desa ── */
+    const rincian = kelompok.map(function (d, di) {
+      const kartu = d.isi.map(function (it, i) {
+        const kk = kartuKejadian(it, i + 1, null, opsi.foto);
+        jumlahFoto += kk.foto;
+        return kk.html;
+      }).join("");
+      const ringkasRp = function (n) {
+        n = parseFloat(n) || 0;
+        if (n >= 1e9) return "Rp" + (n / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " M";
+        if (n >= 1e6) return "Rp" + (n / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " jt";
+        return rp(n);
+      };
+      return '<div class="desa-kop"><span class="urut">' + (sebutan === "kelurahan" ? "Kelurahan" : "Desa") + " " +
+        (di + 1) + " / " + kelompok.length + "</span><h3>" + esc(d.nama) + "</h3>" +
+        '<span class="ang"><span>Kejadian <b>' + d.isi.length + "</b></span>" +
+        "<span>Jiwa <b>" + angka(d.jiwa) + "</b></span>" +
+        "<span>Kerusakan <b>" + ringkasRp(d.rusak) + "</b></span>" +
+        "<span>Tuntas <b>" + d.tuntas + "/" + d.isi.length + "</b></span></span></div>" + kartu;
+    }).join("");
+
+    const gaya = gayaCetak("Laporan Kecamatan E-JITUPASNA · Kec. " + nk + " · BPBD Kabupaten Jember", GAYA_KELOMPOK_DESA);
+    const judul = "Laporan Kecamatan E-JITUPASNA - " + nk;
+    const html = '<!doctype html><html lang="id"><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      "<title>" + esc(judul) + "</title>" +
+      '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
+      "<style>" + gaya + "<\/style><\/head><body>" +
+      '<main class="kertas">' + ringkasan +
+      (babTl ? '<div class="halaman-baru"></div>' + babTl : "") +
+      (daftar.length
+        ? '<div class="halaman-baru"></div><div class="bab"><h2>Rincian per ' + sebutan + "</h2><span>" +
+          daftar.length + " laporan · " + kelompok.length + " " + sebutan + " · urut tanggal" +
+          "</span></div>" + rincian
+        : "") +
+      '<p class="penutup">Angka taksiran mengikuti rumus pengkajian E-JITUPASNA pada dashboard. Dokumen ini memuat data pribadi penerima - gunakan untuk keperluan dinas.</p>' +
+      "</main><\/body><\/html>";
+    return { html: html, jumlah: daftar.length, foto: jumlahFoto, desa: kelompok.length };
+  }
+
+  function susunDokumen(k, opsi) {
+    const daftar = laporanBulan(k);
+    const acuan = acuanBulan(k);        // status di laporan bulanan = posisi per akhir bulan
+    const p = k.split("-");
+    const lalu = kunciBulan(new Date(+p[0], +p[1] - 2, 1));
+    const jumlahLalu = laporanBulan(lalu).length;
+    const selisih = daftar.length - jumlahLalu;
+    const jiwa = daftar.reduce(function (s, it) { return s + (parseFloat(it.jumlahKeluarga) || 0); }, 0);
+    const nilai = daftar.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerusakan) || 0); }, 0);
+    const rugi = daftar.reduce(function (s, it) { return s + (parseFloat(it.nilaiKerugian) || 0); }, 0);
+    const kec = {};
+    daftar.forEach(function (it) { if (it.kec && it.kec !== "-") kec[it.kec] = (kec[it.kec] || 0) + 1; });
+    const tingkat = { "Rusak Ringan": 0, "Rusak Sedang": 0, "Rusak Berat": 0 };
+    daftar.forEach(function (it) { if (tingkat[it.kerusakan] !== undefined) tingkat[it.kerusakan]++; });
+    const status = { salur: 0, monitor: 0, tuntas: 0 };
+    daftar.forEach(function (it) { status[tahapan(it, acuan).status]++; });
+    let dibantu = 0; daftar.forEach(function (it) { try { if (checkIsDibantu(it)) dibantu++; } catch (e) {} });
+    const jenis = urutJenis(daftar);
+    const disusun = new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    const judulBulan = namaBulan(k);
+    const tl = tindakLanjutBulan(k);
+    const tlHtml = htmlTindakLanjut(tl, k);
+    let jumlahFoto = 0;
+    // benih baru tiap kali dokumen disusun -> sampul berbeda setiap klik "Buat PDF"
+    const sampulData = sampulBulanan(k, daftar, { kejadian: daftar.length, jiwa: jiwa, nilai: nilai, disusun: disusun },
+      opsi.benih !== undefined ? opsi.benih : Math.floor(Math.random() * 4294967295));
+
+    const persen = function (n) { return Math.round(n / Math.max(1, daftar.length) * 100) + "% dari kejadian"; };
+    const kpi = function (label, isi, catatan) { return '<div class="kpi"><s>' + label + "</s><b>" + isi + "</b>" + (catatan ? "<em>" + catatan + "</em>" : "") + "</div>"; };
+
+    let ringkasan =
+      '<header class="kop"><img src="' + LOGO + '" alt="" class="logo"><div><span class="mata">Badan Penanggulangan Bencana Daerah · Kabupaten Jember</span>' +
+        "<h1>Laporan Bulanan<br>Kejadian Bencana</h1>" +
+        '<p class="bulan">' + esc(judulBulan) + "</p></div></header>";
+
+    // catatan singkat di halaman ringkasan yang menunjuk bab tindak lanjut
+    const rTl = ringkasTindakLanjut(tl);
+    const catatanTl = tlHtml
+      ? '<section class="tl-catatan"><b>Tindak lanjut laporan sebelumnya</b>' +
+          (tl.bergerak.length ? tl.bergerak.length + " laporan bulan sebelumnya berlanjut bulan ini (" + [rTl.serah ? rTl.serah + " serah terima" : "", rTl.mon ? rTl.mon + " monitoring" : ""].filter(String).join(", ") + ")" : "Tidak ada laporan lama yang berlanjut bulan ini") +
+          (tl.menunggu.length ? " · " + tl.menunggu.length + " masih menunggu" : "") + ". Rinciannya di bab Tindak lanjut.</section>"
+      : "";
+    if (!daftar.length) {
+      ringkasan += '<div class="kosong">Tidak ada asesmen baru pada ' + esc(judulBulan) + ".</div>";
+    } else {
+      ringkasan +=
+        '<section class="kpi-kisi">' +
+          kpi("Kejadian", angka(daftar.length), (selisih === 0 ? "sama dengan" : (selisih > 0 ? "+" + selisih + " dari" : selisih + " dari")) + " " + esc(namaBulan(lalu)) + " (" + jumlahLalu + ")") +
+          kpi("Jiwa terdampak", angka(jiwa), "rata-rata " + (jiwa / daftar.length).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " per kejadian") +
+          kpi("Taksiran kerusakan", rp(nilai), "total seluruh kejadian") +
+          kpi("Taksiran kerugian", rp(rugi), "total seluruh kejadian") +
+          kpi("Kecamatan terdampak", angka(Object.keys(kec).length), "dari 31 kecamatan") +
+          kpi("Rusak berat", angka(tingkat["Rusak Berat"]), persen(tingkat["Rusak Berat"])) +
+          kpi("Menerima bantuan", angka(dibantu), persen(dibantu)) +
+          kpi("Penanganan tuntas", angka(status.tuntas), persen(status.tuntas)) +
+        "</section>" + catatanTl +
+        '<section class="grafik lebar"><h2>Kejadian per tanggal</h2>' + grafikTanggal(daftar, k) +
+          '<div class="leg">' + jenis.map(function (j, i) { return '<span><i style="background:' + WARNA_JENIS[i % WARNA_JENIS.length] + '"></i>' + esc(j.nama) + " (" + j.n + ")</span>"; }).join("") + "</div></section>" +
+        '<div class="dua">' +
+          '<section class="grafik"><h2>Jenis bencana</h2>' + batangMendatar(jenis, function (b, i) { return WARNA_JENIS[i % WARNA_JENIS.length]; }) + "</section>" +
+          '<section class="grafik"><h2>Tingkat kerusakan</h2>' + batangMendatar([
+            { nama: "Rusak Ringan", n: tingkat["Rusak Ringan"] }, { nama: "Rusak Sedang", n: tingkat["Rusak Sedang"] }, { nama: "Rusak Berat", n: tingkat["Rusak Berat"] }],
+            function (b) { return { "Rusak Ringan": "#E8B98F", "Rusak Sedang": "#E08A45", "Rusak Berat": "#B8480C" }[b.nama]; }) +
+            '<h2 class="sub">Status penanganan</h2><div class="alur">' + ["salur", "monitor", "tuntas"].map(function (s) {
+              return status[s] ? '<i style="flex:' + status[s] + ";background:" + STATUS[s][1] + '"></i>' : "";
+            }).join("") + '</div><div class="leg">' + ["salur", "monitor", "tuntas"].map(function (s) {
+              return '<span><i style="background:' + STATUS[s][1] + '"></i>' + STATUS[s][0] + " (" + status[s] + ")</span>";
+            }).join("") + "</div></section>" +
+        "</div>" +
+        '<section class="grafik lebar"><h2>Kecamatan terdampak</h2>' +
+          batangMendatar(Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; }).map(function (n) { return { nama: n, n: kec[n] }; }), "#2A9384") + "</section>";
+    }
+
+    const rincian = daftar.map(function (it, i) {
+      const kk = kartuKejadian(it, i + 1, acuan, opsi.foto);
+      jumlahFoto += kk.foto;
+      return kk.html;
+    }).join("");
+
+    const gaya = gayaCetak("Laporan Bulanan E-JITUPASNA · " + judulBulan + " · BPBD Kabupaten Jember");
 
     const skrip = `
 (function(){
@@ -23552,7 +23849,9 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 
   /* ── dialog pilih jenis & periode ── */
   const tahunan = function () { return pilihan.jenis === "tahun"; };
-  const periodeAktif = function () { return tahunan() ? pilihan.tahun : pilihan.bulan; };
+  const perKec = function () { return pilihan.jenis === "wilayah"; };
+  const periodeAktif = function () { return tahunan() ? pilihan.tahun : perKec() ? pilihan.kec : pilihan.bulan; };
+  const fotoKini = function () { return tahunan() ? pilihan.fotoTahun : perKec() ? pilihan.fotoKec : pilihan.foto; };
   function pastikanDialog() {
     let l = $("rlb");
     if (l) return l;
@@ -23561,7 +23860,9 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     l.setAttribute("role", "dialog"); l.setAttribute("aria-modal", "true"); l.setAttribute("aria-labelledby", "rlb-judul");
     l.innerHTML = '<div class="rlb-kotak">' +
       '<span class="rlb-mata">Laporan · PDF</span><h3 id="rlb-judul">Pilih periode laporan.</h3>' +
-      '<div class="rlb-seg" id="rlb-jenis"><button type="button" data-j="bulan">Bulanan</button><button type="button" data-j="tahun">Tahunan</button></div>' +
+      '<div class="rlb-seg" id="rlb-jenis"><button type="button" data-j="bulan">Bulanan</button>' +
+      '<button type="button" data-j="tahun">Tahunan</button>' +
+      '<button type="button" data-j="wilayah">Kecamatan</button></div>' +
       '<label class="rlb-label" for="rlb-bulan" id="rlb-label-periode">Bulan</label><select id="rlb-bulan" class="rlb-pilih"></select>' +
       '<span class="rlb-label">Foto per kejadian</span><div class="rlb-seg" id="rlb-foto"></div>' +
       '<div class="rlb-ringkas" id="rlb-ringkas"></div>' +
@@ -23575,25 +23876,38 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
       const j = e.target.closest("#rlb-jenis button");
       if (j) { pilihan.jenis = j.dataset.j; isiPeriode(); return; }
       const f = e.target.closest("#rlb-foto button");
-      if (f) { if (tahunan()) pilihan.fotoTahun = +f.dataset.n; else pilihan.foto = +f.dataset.n; segarkan(); return; }
+      if (f) {
+        if (tahunan()) pilihan.fotoTahun = +f.dataset.n;
+        else if (perKec()) pilihan.fotoKec = +f.dataset.n;
+        else pilihan.foto = +f.dataset.n;
+        segarkan(); return;
+      }
       if (e.target.closest('[data-rlb="buat"]')) buat();
     });
-    l.querySelector("#rlb-bulan").addEventListener("change", function () { if (tahunan()) pilihan.tahun = this.value; else pilihan.bulan = this.value; segarkan(); });
+    l.querySelector("#rlb-bulan").addEventListener("change", function () {
+      if (tahunan()) pilihan.tahun = this.value;
+      else if (perKec()) pilihan.kec = this.value;
+      else pilihan.bulan = this.value;
+      segarkan();
+    });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !l.hidden) tutup(); });
     return l;
   }
   function isiPeriode() {
     const l = pastikanDialog();
     const sel = $("rlb-bulan");
-    const daftar = tahunan() ? daftarTahun() : daftarBulan();
+    const daftar = tahunan() ? daftarTahun() : perKec() ? daftarKecamatan() : daftarBulan();
     sel.innerHTML = daftar.map(function (b) {
-      const isi = tahunan() ? b.jumlah + " kejadian" : (b.jumlah ? b.jumlah + " kejadian" : "tanpa asesmen baru") + (b.tindak ? " · " + b.tindak + " tindak lanjut" : "");
-      return '<option value="' + b.kunci + '">' + (tahunan() ? "Tahun " + b.kunci : namaBulan(b.kunci)) + " · " + isi + "</option>";
+      const isi = tahunan() ? b.jumlah + " kejadian"
+        : perKec() ? b.jumlah + " kejadian · " + b.desa + " desa/kelurahan"
+        : (b.jumlah ? b.jumlah + " kejadian" : "tanpa asesmen baru") + (b.tindak ? " · " + b.tindak + " tindak lanjut" : "");
+      const nama = tahunan() ? "Tahun " + b.kunci : perKec() ? "Kec. " + b.kunci : namaBulan(b.kunci);
+      return '<option value="' + esc(b.kunci) + '">' + esc(nama) + " · " + isi + "</option>";
     }).join("");
-    const kunci = tahunan() ? "tahun" : "bulan";
+    const kunci = tahunan() ? "tahun" : perKec() ? "kec" : "bulan";
     if (!pilihan[kunci] || !daftar.some(function (b) { return b.kunci === pilihan[kunci]; })) pilihan[kunci] = daftar.length ? daftar[0].kunci : null;
     sel.value = pilihan[kunci];
-    $("rlb-label-periode").textContent = tahunan() ? "Tahun" : "Bulan";
+    $("rlb-label-periode").textContent = tahunan() ? "Tahun" : perKec() ? "Kecamatan" : "Bulan";
     l.querySelectorAll("#rlb-jenis button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.j === pilihan.jenis)); });
     $("rlb-foto").innerHTML = (tahunan() ? [0, 1, 2] : [0, 2, 4, 6]).map(function (n) { return '<button type="button" data-n="' + n + '">' + (n ? n + " foto" : "Tanpa foto") + "</button>"; }).join("");
     try { if (window.rkKontrol) { window.rkKontrol.pasang(l); window.rkKontrol.sinkron(sel); } } catch (e) {}
@@ -23601,21 +23915,28 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
   }
   function segarkan() {
     const l = pastikanDialog();
-    const nFoto = tahunan() ? pilihan.fotoTahun : pilihan.foto;
+    const nFoto = fotoKini();
     l.querySelectorAll("#rlb-foto button").forEach(function (b) { b.setAttribute("aria-pressed", String(+b.dataset.n === nFoto)); });
-    const daftar = !periodeAktif() ? [] : tahunan() ? laporanTahun(pilihan.tahun) : laporanBulan(pilihan.bulan);
+    const daftar = !periodeAktif() ? [] : tahunan() ? laporanTahun(pilihan.tahun)
+      : perKec() ? laporanKecamatan(pilihan.kec) : laporanBulan(pilihan.bulan);
     const foto = daftar.reduce(function (s, it) { return s + Math.min(nFoto, (it.photos || []).filter(Boolean).length); }, 0);
+    const nDesa = perKec() && periodeAktif() ? kelompokDesa(daftar).length : 0;
     const halaman = !daftar.length ? 1 : tahunan()
       ? 4 + Math.ceil(daftar.length / 22) + Math.ceil(foto / 12)
+      : perKec()
+      ? 2 + Math.ceil(daftar.length / (nFoto ? 2.3 : 3.5)) + Math.ceil(nDesa / 8)
       : 1 + Math.ceil(daftar.length / (nFoto ? 2.3 : 3.5));
     const isi = tahunan()
       ? "Sampul, ringkasan per bulan, sebaran, penanganan bantuan, daftar seluruh kejadian dengan tanggal serah terima &amp; monitoring" + (nFoto ? ", lalu lampiran foto ukuran besar." : ".")
+      : perKec()
+      ? "Ringkasan kecamatan, tindak lanjut, rekapitulasi per desa, lalu rincian tiap laporan yang dikelompokkan per desa."
       : "Grafik kejadian dan rincian tiap laporan, termasuk tanggal serah terima &amp; monitoring.";
-    const tl = (!tahunan() && periodeAktif()) ? tindakLanjutBulan(pilihan.bulan) : null;
+    const tl = (!tahunan() && !perKec() && periodeAktif()) ? tindakLanjutBulan(pilihan.bulan) : null;
     const nTl = tl ? tl.bergerak.length : 0, nTunggu = tl ? tl.menunggu.length : 0;
     const teksTl = nTl || nTunggu ? "Tindak lanjut laporan sebelumnya: " + [nTl ? nTl + " berlanjut bulan ini" : "", nTunggu ? nTunggu + " masih menunggu" : ""].filter(String).join(", ") + "." : "";
     $("rlb-ringkas").innerHTML = daftar.length
-      ? "<b>" + daftar.length + " kejadian</b> · " + (nFoto ? foto + " foto" : "tanpa foto") + " · sekitar " + (halaman + (teksTl ? 1 : 0)) + " halaman.<br>" + isi + (teksTl ? "<br>" + teksTl : "")
+      ? "<b>" + daftar.length + " kejadian</b>" + (perKec() ? " di " + nDesa + " desa/kelurahan" : "") + " · " +
+        (nFoto ? foto + " foto" : "tanpa foto") + " · sekitar " + (halaman + (teksTl ? 1 : 0)) + " halaman.<br>" + isi + (teksTl ? "<br>" + teksTl : "")
       : nTl ? "<b>Tanpa asesmen baru</b> · sekitar 2 halaman.<br>" + teksTl
       : "Tidak ada laporan pada periode ini.";
     l.querySelector('[data-rlb="buat"]').disabled = !daftar.length && !nTl;
@@ -23660,14 +23981,18 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     aturTombol("Menyiapkan…");
     let d;
     try {
-      d = tahunan() ? susunTahunan(pilihan.tahun, { foto: pilihan.fotoTahun }) : susunDokumen(pilihan.bulan, { foto: pilihan.foto, sematkan: true });
+      d = tahunan() ? susunTahunan(pilihan.tahun, { foto: pilihan.fotoTahun })
+        : perKec() ? susunKecamatan(pilihan.kec, { foto: pilihan.fotoKec })
+        : susunDokumen(pilihan.bulan, { foto: pilihan.foto, sematkan: true });
     } catch (e) {
       console.error("[laporan] gagal menyusun:", e);
       batalkan();
       customAlert("Laporan gagal disusun: " + (e && e.message ? e.message : e) + ". Coba muat ulang halaman; kalau tetap gagal, kirim pesan ini ke pengelola.", "warning");
       return;
     }
-    const namaBerkas = tahunan() ? "Laporan Tahunan E-JITUPASNA - " + pilihan.tahun : "Laporan Bulanan E-JITUPASNA - " + namaBulan(pilihan.bulan);
+    const namaBerkas = tahunan() ? "Laporan Tahunan E-JITUPASNA - " + pilihan.tahun
+      : perKec() ? "Laporan Kecamatan E-JITUPASNA - " + pilihan.kec
+      : "Laporan Bulanan E-JITUPASNA - " + namaBulan(pilihan.bulan);
     const lama = $("rlb-cetak"); if (lama) lama.remove();
     const fr = document.createElement("iframe");
     fr.id = "rlb-cetak";
@@ -23743,7 +24068,7 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     if (analisis && !analisis.parentNode.querySelector("[data-lapbul]")) {
       const t = document.createElement("button");
       t.type = "button"; t.className = "sk-tautan"; t.setAttribute("data-lapbul", "");
-      t.innerHTML = '<svg class="sk-i"><use href="#sk-i-cetak"/><\/svg><span>Laporan bulanan &amp; tahunan<s>PDF grafik, rincian, tanggal serah terima & monitoring</s></span><svg class="sk-i"><use href="#sk-i-kanan"/><\/svg>';
+      t.innerHTML = '<svg class="sk-i"><use href="#sk-i-cetak"/><\/svg><span>Laporan PDF<s>Bulanan, tahunan, atau per kecamatan - dikelompokkan per desa</s></span><svg class="sk-i"><use href="#sk-i-kanan"/><\/svg>';
       analisis.parentNode.appendChild(t);
     }
     return !!kep;
@@ -23755,7 +24080,9 @@ table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
     let sisa = 60;
     const jam = setInterval(function () { if (pasangTombol() || --sisa <= 0) clearInterval(jam); }, 300);
   }
-  window.rkLaporanBulanan = { buka: buka, susun: susunDokumen, susunTahunan: susunTahunan, bulan: daftarBulan, tahun: daftarTahun, tahapan: tahapan };
+  window.rkLaporanBulanan = { buka: buka, susun: susunDokumen, susunTahunan: susunTahunan,
+    susunKecamatan: susunKecamatan, bulan: daftarBulan, tahun: daftarTahun,
+    kecamatan: daftarKecamatan, tahapan: tahapan };
 })();
 </script>
 <!-- ══════════════════════════════════════════════════════════════════════
