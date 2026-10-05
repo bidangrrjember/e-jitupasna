@@ -2503,7 +2503,7 @@ html.dark #loader{background:#0B1215 !important}
                 <span id="text-cetak-pdf">Cetak Laporan</span>
             </button>
 
-            <button id="btn-reload-pdf" onclick="" class="hidden rkd-cetak-ulang" title="Cetak Ulang & Timpa Laporan Lama">
+            <button id="btn-reload-pdf" onclick="" class="hidden rkd-cetak-ulang" title="Buat Ulang & Timpa Dokumen Lama">
                 <span id="icon-reload-pdf" class="material-symbols-outlined">sync</span>
             </button>
         </div>
@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwNLvccjr1q2ckzvhgLWhrPDMStW6WeNKtPw6QfBRGevsHYzFIXDGt7_VyUhFwr8jaB/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwYv7lqvPuwNwq902Eh4axSYAUY9jwhS27RF5xUIkxvCN_--5V0P8nIN42EESYgTq78/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5231,7 +5231,8 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                 try {
                     const result = JSON.parse(textResponse);
                     if (result.status === 'sukses') {
-                        showNotification(isReload ? 'Laporan Diperbarui & Ditimpa!' : 'PDF Berhasil Dibuat!');
+                        showNotification(isReload ? 'Laporan Diperbarui & Ditimpa!'
+                            : (docType === 'laporan' ? 'Dokumen laporan berhasil dibuat - bisa langsung disunting.' : 'Berkas berhasil dibuat!'));
                         window.open(result.pdfUrl, '_blank'); 
                         
                         // Kembalikan struktur HTML tombol sebelum merender ulang sidebar
@@ -5245,7 +5246,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                             openSidebarWithData(item);
                         }
                     } else {
-                        showNotification('Gagal membuat PDF: ' + result.message);
+                        showNotification('Gagal membuat berkas: ' + result.message);
                         console.error('Error GAS:', result.message);
                         // KEMBALIKAN TEKS JIKA GAGAL DARI SERVER
                         if (btnCetak) btnCetak.innerHTML = originalText; 
@@ -5259,7 +5260,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
                 
             } catch (error) {
                 console.error('Error Jaringan:', error);
-                showNotification('Terjadi kesalahan koneksi saat mencetak PDF.');
+                showNotification('Terjadi kesalahan koneksi saat membuat berkas.');
                 // KEMBALIKAN TEKS JIKA ERROR JARINGAN
                 if (btnCetak) btnCetak.innerHTML = originalText; 
             } finally {
@@ -14536,6 +14537,8 @@ html:not(.dark) body.rk main.rk-fokus #map{filter:brightness(var(--rk-redup-tera
     /^\u2705/,                     /* centang hijau */
     /^login biometrik berhasil/i,
     /^pdf berhasil dibuat/i,
+    /^dokumen laporan berhasil dibuat/i,
+    /^berkas berhasil dibuat/i,
     /^laporan diperbarui & ditimpa/i,
     /^narasi tersusun/i,
     /^data logistik diperbarui/i,
