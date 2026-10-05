@@ -301,7 +301,7 @@
 <style id="rk-samar-gaya">
 /* tamu: tombol & bagian yang membuka data pribadi tidak ditampilkan */
 html.rk-tamu #route-button-link,html.rk-tamu #share-wa-btn,html.rk-tamu .rkd-cetak-grup,html.rk-tamu #download-laporan-btn,
-html.rk-tamu #sidebar .rkd-bagian:has(.rkd-dok-daftar),html.rk-tamu #sidebar .rkd-bagian[data-galeri="identitas"],
+html.rk-tamu #sidebar .rkd-bagian:has(.rkd-dok-daftar),html.rk-tamu #sidebar [data-galeri="identitas"],
 html.rk-tamu #sidebar .rkd-bagian:has([id^="view-personil-"]),html.rk-tamu #sidebar .rkd-bagian:has(.rkd-kisi.satu),
 html.rk-tamu #sidebar .rkd-medan:has([id^="view-field-jalandusun-"]),
 html.rk-tamu #sidebar .rkd-lebar:has([id^="view-field-pengkajian-"]),
@@ -2130,14 +2130,14 @@ html.dark #loader{background:#0B1215 !important}
             <section class="rkf-bagian" id="rkf-berkas">
                 <div class="rkf-kr">
                     <span class="rkr-no">08 &middot; Berkas</span>
-                    <h3>Disposisi &amp; Dokumentasi</h3>
+                    <h3>Laporan Kejadian &amp; Dokumentasi</h3>
                     <p>Pisahkan foto kerusakan dari foto KTP/KK dan foto kegiatan - hanya foto kerusakan yang masuk laporan PDF.</p>
                 </div>
                 <div class="rkf-kisi">
                     <label class="rkf-berkas s3" for="fileDisposisi">
                         <span class="material-symbols-outlined">upload_file</span>
                         <span class="rkf-berkas-teks">
-                            <b>File Disposisi</b>
+                            <b>Laporan Kejadian</b>
                             <s>PDF &middot; opsional</s>
                             <em data-kosong="Belum ada berkas dipilih">Belum ada berkas dipilih</em>
                         </span>
@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwYv7lqvPuwNwq902Eh4axSYAUY9jwhS27RF5xUIkxvCN_--5V0P8nIN42EESYgTq78/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxFW7hBLB_uD_BmW2L6k17elahGN08THfqbDVdqn5KWLVq2kRqkI4jqFPzJDsPepA1u/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5276,7 +5276,7 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
 /* Nama yang dikenali petugas untuk kolom tujuan unggahan. */
 function rkLabelKolom(kolom) {
     return ({
-        'Link Disposisi': 'Dokumen disposisi',
+        'Link Disposisi': 'Dokumen laporan kejadian',
         'Link Dokumen Serah Terima': 'Dokumen serah terima',
         'Link Dokumen Monitoring': 'Dokumen monitoring',
         'Link Serah Terima': 'Foto serah terima',
@@ -5843,49 +5843,76 @@ function renderDokumenGabungan(data) {
        sekadar kosong. Bedanya penting: kosong berarti belum diunggah,
        tidak ada berarti server tidak bisa menjawab. */
     const taksiap = function (k) { return !(k in data); };
-    const jenis = [{ k: 'disposisi', judul: 'Disposisi', link: data.linkDisposisi, taksiap: taksiap('linkDisposisi') }];
+    const jenis = [{ k: 'disposisi', judul: 'Laporan Kejadian', ikon: 'task', link: data.linkDisposisi, taksiap: taksiap('linkDisposisi') }];
     if (dibantu) {
-        jenis.push({ k: 'serahTerima', judul: 'Serah terima', link: data.linkDokSerahTerima, taksiap: taksiap('linkDokSerahTerima') });
+        jenis.push({ k: 'serahTerima', judul: 'Serah Terima', ikon: 'handshake', link: data.linkDokSerahTerima, tgl: data.tglSerahTerima, taksiap: taksiap('linkDokSerahTerima') });
         // bantuan yang hanya terpal tidak dimonitor - kecuali dokumennya terlanjur ada
-        if (!checkIsOnlyTerpal(data) || rkAdaTautan(data.linkDokMonitoring)) jenis.push({ k: 'monitoring', judul: 'Monitoring', link: data.linkDokMonitoring, taksiap: taksiap('linkDokMonitoring') });
+        if (!checkIsOnlyTerpal(data) || rkAdaTautan(data.linkDokMonitoring)) jenis.push({ k: 'monitoring', judul: 'Monitoring', ikon: 'fact_check', link: data.linkDokMonitoring, tgl: data.tglMonitoring, taksiap: taksiap('linkDokMonitoring') });
     }
     const pecah = function (v) { return rkAdaTautan(v) ? String(v).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : []; };
     const escA = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+    /* tanggal hanya ditampilkan kalau memang tercatat - tidak dikarang */
+    const tglRapi = function (v) {
+        if (!v || String(v).trim() === '' || String(v).trim() === '-') return '';
+        try { const d = new Date(v); if (!isNaN(d)) return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
+        return '';
+    };
     let total = 0;
     const baris = jenis.map(function (j) {
         const urls = pecah(j.link);
+        const nyata = urls.filter(function (u) { return u !== 'tersembunyi'; });
         total += urls.length;
-        let isi;
-        if (j.taksiap) isi = '<em class="rkd-dokj-taksiap">Server tidak melaporkan kolom ini</em>';
-        else if (!urls.length) isi = '<em class="rkd-dokj-kosong">Belum ada</em>';
-        else if (urls.every(function (u) { return u === 'tersembunyi'; })) isi = '<em class="rkd-dokj-kosong">Ada · khusus petugas</em>';
-        else isi = urls.map(function (u, i) {
-            const pdf = /\.(pdf|docx?|xlsx?)$/i.test(u) || /format=pdf/i.test(u);
-            return '<a href="' + escA(u) + '" target="_blank" rel="noopener" class="rkd-berkas-taut" title="Buka ' + escA(j.judul.toLowerCase()) + ' ' + (i + 1) + '">' +
-                '<span class="material-symbols-outlined">' + (pdf ? 'description' : 'image') + '</span> Berkas ' + (i + 1) + '</a>';
-        }).join('');
-        return '<div class="rkd-dokj-baris"><span class="rkd-dokj-nama">' + escA(j.judul) + '</span><div class="rkd-dokj-isi">' + isi + '</div></div>';
+        let sub, kelasSub = '', isi = '';
+        if (j.taksiap) { sub = 'Server belum siap'; kelasSub = ' taksiap'; }
+        else if (!urls.length) sub = 'Belum ada';
+        else if (!nyata.length) sub = urls.length + ' berkas · khusus petugas';
+        else {
+            const tgl = tglRapi(j.tgl);
+            sub = urls.length + ' berkas' + (tgl ? ' · ' + tgl : '');
+            isi = nyata.map(function (u, i) {
+                const pdf = /\.(pdf|docx?|xlsx?)$/i.test(u) || /format=pdf/i.test(u);
+                return '<a href="' + escA(u) + '" target="_blank" rel="noopener" class="rkd-berkas-taut" title="Buka ' + escA(j.judul.toLowerCase()) + ' ' + (i + 1) + '">' +
+                    '<span class="material-symbols-outlined">' + (pdf ? 'description' : 'image') + '</span> Berkas ' + (i + 1) + '</a>';
+            }).join('');
+        }
+        const tombol = isLoggedIn
+            ? '<button type="button" class="rkd-dokj-ikon" title="Unggah ' + escA(j.judul.toLowerCase()) + '" onclick="rkDokUnggah(\'' + j.k + '\')">' +
+                '<span class="material-symbols-outlined">' + (urls.length ? 'add' : 'upload') + '</span></button>'
+            : '';
+        return '<div class="rkd-dokj-baris' + (urls.length ? '' : ' kosong') + (isi ? ' berisi' : '') + '">' +
+            '<span class="material-symbols-outlined rkd-dokj-ik">' + j.ikon + '</span>' +
+            '<span class="rkd-dokj-tk"><b>' + escA(j.judul) + '</b><s class="' + kelasSub.trim() + '">' + escA(sub) + '</s></span>' +
+            tombol + (isi ? '<span class="rkd-dokj-isi">' + isi + '</span>' : '') +
+        '</div>';
     }).join('');
+    /* Alat unggah dilipat: dulu pemilih jenis, pemilih berkas, dan tombolnya
+       selalu terpampang walau berkasnya sudah ada. */
     const unggah = isLoggedIn ?
-        '<div class="rkd-unggah">' +
-            '<div class="rkd-dokj-jenis" role="radiogroup" aria-label="Jenis dokumen">' +
+        '<div class="rkd-unggah" id="rkd-unggah-blok" hidden>' +
+            '<div class="rkd-unggah-kep">' +
+                '<span class="material-symbols-outlined">upload_file</span>' +
+                '<span class="rkd-unggah-kep-tk">Unggah ke <b id="rkd-unggah-ke">' + escA(jenis[0].judul) + '</b></span>' +
+                '<button type="button" class="rkd-unggah-tutup" title="Tutup" onclick="rkDokUnggahTutup()">' +
+                    '<span class="material-symbols-outlined">close</span></button>' +
+            '</div>' +
+            '<div class="rkd-jenis-simpan" hidden>' +
                 jenis.map(function (j, i) {
-                    return '<label><input type="radio" name="jenis-dokumen" value="' + j.k + '"' + (i === 0 ? ' checked' : '') + '><span>' + escA(j.judul) + '</span></label>';
+                    return '<input type="radio" name="jenis-dokumen" value="' + j.k + '" data-judul="' + escA(j.judul) + '"' + (i === 0 ? ' checked' : '') + '>';
                 }).join('') +
             '</div>' +
             '<label class="rkd-pilih">' +
-                '<input type="file" id="file-dokumen-input" accept=".pdf,.jpg,.jpeg,.png" multiple class="rkd-file rkd-file-tersembunyi" onchange="rkPilihBerkas(this)">' +
+                '<input type="file" id="file-dokumen-input" accept=".pdf,.jpg,.jpeg,.png" multiple class="rkd-file rkd-file-tersembunyi" onchange="rkDokPilih(this, \'' + escA(data.idx) + '\')">' +
                 '<span class="material-symbols-outlined">attach_file</span>' +
-                '<span class="rkd-pilih-teks"><b data-kosong="Pilih dokumen">Pilih dokumen</b><s data-kosong="PDF atau foto · boleh lebih dari satu">PDF atau foto · boleh lebih dari satu</s></span>' +
+                '<span class="rkd-pilih-teks"><b data-kosong="Pilih dokumen">Pilih dokumen</b><s data-kosong="PDF atau foto">PDF atau foto</s></span>' +
             '</label>' +
             '<div class="rkd-tombol-baris kiri"><button id="upload-dokumen-btn" onclick="handleSidebarUpload(\'dokumen\', \'' + data.idx + '\')" class="rkd-tombol-garis">' +
                 '<span class="material-symbols-outlined">cloud_upload</span> Unggah</button></div>' +
         '</div>' : '';
-    const belumSiap = jenis.filter(function (j) { return j.taksiap; }).map(function (j) { return j.judul.toLowerCase(); });
+    const belumSiap = jenis.filter(function (j) { return j.taksiap; }).map(function (j) { return j.judul; });
     const catatan = belumSiap.length
-        ? '<p class="rkd-dokj-catatan"><span class="material-symbols-outlined">warning</span>' +
-            'Kolom <b>' + escA(belumSiap.join(', ')) + '</b> belum dikenali server, jadi berkas yang sudah diunggah tidak bisa ditampilkan di sini. ' +
-            'Deploy GAS GABUNGAN versi terbaru (Deploy &rarr; New version) - kolomnya dibuat otomatis.</p>'
+        ? '<p class="rkd-dokj-catatan"><span class="material-symbols-outlined">sync_problem</span>' +
+            '<span><b>' + escA(belumSiap.join(' & ')) + '</b> belum tampil sampai server di-deploy ulang ' +
+            '(Deploy &rarr; New version).</span></p>'
         : '';
     return '<div class="rkd-dok' + (total ? ' ada' : '') + '">' +
         '<div class="rkd-dok-kep"><span class="material-symbols-outlined">folder_managed</span><b>Dokumen</b>' +
@@ -5894,6 +5921,54 @@ function renderDokumenGabungan(data) {
         catatan +
         unggah +
     '</div>';
+}
+
+/* Membuka alat unggah yang terlipat. Dengan jenis: sekaligus memilih
+   jenisnya lalu membuka pemilih berkas - jadi petugas tidak bisa salah
+   memilih jenis seperti dulu. Tanpa jenis: cukup dibuka. */
+function rkDokUnggah(jenisK) {
+    const blok = document.getElementById('rkd-unggah-blok');
+    if (!blok) return;
+    const r = jenisK
+        ? blok.querySelector('input[name="jenis-dokumen"][value="' + jenisK + '"]')
+        : blok.querySelector('input[name="jenis-dokumen"]:checked');
+    if (r) {
+        r.checked = true;
+        const ke = document.getElementById('rkd-unggah-ke');
+        if (ke) ke.textContent = r.getAttribute('data-judul') || '';
+    }
+    const f = document.getElementById('file-dokumen-input');
+    if (f) { try { f.click(); } catch (e) {} }
+}
+
+/* Berkas sudah dipilih: langsung dikirim, sama seperti tombol Tambah di
+   tile Foto. Lembar unggahnya dibuka supaya progresnya terlihat, lalu
+   ditutup lagi kalau berhasil. Kalau gagal, berkasnya masih tersimpan di
+   pemilih dan lembarnya dibiarkan terbuka untuk dicoba lagi. */
+async function rkDokPilih(inp, idx) {
+    if (typeof rkPilihBerkas === 'function') rkPilihBerkas(inp);
+    if (!inp.files || !inp.files.length) return;
+    const blok = document.getElementById('rkd-unggah-blok');
+    if (blok) {
+        blok.hidden = false;
+        try { blok.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+    }
+    await handleSidebarUpload('dokumen', idx);
+    const f = document.getElementById('file-dokumen-input');
+    const sisa = f && f.files ? f.files.length : 0;
+    const blok2 = document.getElementById('rkd-unggah-blok');
+    if (blok2 && !sisa) blok2.hidden = true;
+}
+
+/* Menutup alat unggah sekaligus melupakan berkas yang terlanjur dipilih,
+   supaya tidak ikut terunggah ke jenis lain saat dibuka lagi. */
+function rkDokUnggahTutup() {
+    const blok = document.getElementById('rkd-unggah-blok');
+    if (!blok) return;
+    blok.hidden = true;
+    const f = document.getElementById('file-dokumen-input');
+    if (!f) return;
+    try { f.value = ''; if (typeof rkPilihBerkas === 'function') rkPilihBerkas(f); } catch (e) {}
 }
 
 function getDriveImgUrl(url) {
@@ -6199,7 +6274,7 @@ function openImagePreview(originalUrl) {
             // --- DOKUMENTASI LAPANGAN ---
             // =========================================================
             // Foto kerusakan, KTP/KK, dan kegiatan - lihat blok FOTO TERPISAH
-            let galleryHtml = rkGaleriFoto.html(data, 'kerusakan') + rkGaleriFoto.html(data, 'identitas') + rkGaleriFoto.html(data, 'kegiatan');
+            let galleryHtml = rkGaleriFoto.html(data);
 
             // =========================================================
             // --- RUTE, WHATSAPP, CETAK ---
@@ -16057,6 +16132,34 @@ body.rk #sidebar .rkd-file::file-selector-button{margin-right:10px;height:30px;p
 
 /* galeri */
 .rkd-galeri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+/* tile Foto: tiga jenis dalam satu tile, berpindah lewat tab. Dulu tiga
+   tile terpisah yang saat kosong memakan 462px tinggi panel. */
+.rkd-galtab{display:flex;gap:5px;margin-bottom:11px}
+.rkd-galtab button{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:1px;height:40px;padding:0 6px;border:1px solid var(--rk-sekat);border-radius:11px;background:none;
+  color:var(--rk-tipis);cursor:pointer;transition:border-color .15s,background-color .15s,color .15s}
+.rkd-galtab button b{font:700 11px "Plus Jakarta Sans",sans-serif;white-space:nowrap;letter-spacing:-.01em}
+.rkd-galtab button s{text-decoration:none;font:500 9.5px "DM Mono",monospace;color:inherit;opacity:.85}
+.rkd-galtab button:hover{color:var(--rk-tinta)}
+.rkd-galtab button.pilih{border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 12%,transparent);color:var(--rk-api)}
+.rkd-galtab button:focus-visible{outline:2px solid var(--rk-api);outline-offset:2px}
+.rkd-gal-isi[hidden]{display:none}
+/* keadaan kosong: satu garis, bukan satu kotak besar yang menyisakan dua
+   pertiga kisi kosong di sebelahnya */
+.rkd-foto-strip{grid-column:1 / -1;display:flex;align-items:center;gap:9px;width:100%;height:46px;padding:0 13px;
+  border:1.5px dashed var(--rk-sekat);border-radius:12px;background:none;color:var(--rk-sedang);cursor:pointer;
+  font:700 12px "Plus Jakarta Sans",sans-serif;text-align:left}
+.rkd-foto-strip > .material-symbols-outlined{flex:0 0 auto;font-size:18px;color:var(--rk-api)}
+.rkd-foto-strip i{margin-left:auto;font-style:normal;font:500 10.5px "DM Mono",monospace;color:var(--rk-tipis)}
+.rkd-foto-strip:hover{border-color:var(--rk-api);color:var(--rk-api)}
+/* saat berkasnya sedang diunggah, kotak ini dipakai ulang sebagai
+   penunjuk progres (lihat handleSidebarUpload) - cincinnya dikecilkan
+   supaya muat di garis setinggi 46px */
+.rkd-foto-strip.rkd-foto-unggah{justify-content:center;gap:10px;border-style:solid;border-color:var(--rk-api);color:var(--rk-api)}
+.rkd-foto-strip .rkd-unggah-pratinjau{display:none}
+.rkd-foto-strip .rkd-unggah-cincin{width:26px;max-width:26px}
+.rkd-foto-strip .rkd-unggah-cincin b{font-size:9px}
+.rkd-foto-strip .rkd-unggah-label{font:700 12px "Plus Jakarta Sans",sans-serif}
 .rkd-foto{position:relative;aspect-ratio:1 / 1;border-radius:11px;overflow:hidden;cursor:pointer;
   border:1px solid var(--rk-sekat);background:var(--rk-muka)}
 .rkd-foto img{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;transition:transform .4s ease,opacity .3s ease}
@@ -18877,6 +18980,12 @@ html[data-saku] body.rk #sidebar .rkd-file::file-selector-button{height:34px;pad
 
 /* galeri */
 html[data-saku] body.rk #sidebar .rkd-galeri{gap:8px}
+html[data-saku] .rkd-galtab button{border-color:var(--sk-garis,rgba(255,255,255,.14));color:var(--sk-tipis);border-radius:14px;height:44px}
+html[data-saku] .rkd-galtab button:hover{color:var(--sk-tinta)}
+html[data-saku] .rkd-galtab button.pilih{border-color:var(--sk-api);background:color-mix(in srgb,var(--sk-api) 14%,transparent);color:var(--sk-api)}
+html[data-saku] .rkd-foto-strip{border-color:var(--sk-garis,rgba(255,255,255,.14));color:var(--sk-sedang);border-radius:16px;height:50px}
+html[data-saku] .rkd-foto-strip > .material-symbols-outlined{color:var(--sk-api)}
+html[data-saku] .rkd-foto-strip i{color:var(--sk-tipis)}
 html[data-saku] body.rk #sidebar .rkd-foto{border:0;border-radius:18px;background:var(--sk-kartu2)}
 html[data-saku] body.rk #sidebar .rkd-foto .rkd-foto-latar{color:var(--sk-garis)}
 html[data-saku] body.rk #sidebar .rkd-foto-tambah{border:1.5px dashed var(--sk-garis);background:transparent;color:var(--sk-sedang)}
@@ -20223,7 +20332,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
         '<button type="button" data-alat="lokasi">' + ik("lokasi") + "Deteksi lokasi</button>" +
         '<button type="button" data-alat="foto">' + ik("kamera") + "Foto lapangan</button>" +
         '<button type="button" data-alat="personil">' + ik("orang") + "Personil</button>" +
-        '<button type="button" data-alat="disposisi">' + ik("berkas") + "Disposisi</button>" +
+        '<button type="button" data-alat="disposisi">' + ik("berkas") + "Laporan Kejadian</button>" +
       "</div>";
   }
   function setSelect(el, v) {
@@ -24541,33 +24650,68 @@ html[data-saku] .rkd-kalk-hasil > div{background:var(--sk-kartu2);border-radius:
 html[data-saku] .rkd-kalk-kep b,html[data-saku] .rkd-kalk-hasil b{color:var(--sk-tinta)}
 html[data-saku] .rkd-kalk.berubah .rkd-kalk-hasil b{color:var(--sk-api)}
 /* tile Dokumen gabungan */
-.rkd-dokj-daftar{display:flex;flex-direction:column}
-.rkd-dokj-baris{display:grid;grid-template-columns:96px minmax(0,1fr);align-items:start;gap:10px;padding:8px 0;border-top:1px dashed var(--rk-sekat)}
-.rkd-dokj-baris:first-child{border-top:0;padding-top:2px}
-.rkd-dokj-nama{padding-top:5px;font:500 10.5px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--rk-tipis)}
-.rkd-dokj-isi{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
-.rkd-dokj-isi .rkd-berkas-taut{margin:0}
-.rkd-dokj-kosong{padding-top:4px;font-style:normal;font-size:12px;color:var(--rk-tipis)}
+/* Satu baris berlatar per jenis dokumen. Dulu nama jenis dipaksa ke kolom
+   selebar 96px dengan berkasnya di kanan, jadi ada rongga lebar di tengah
+   dan pemisahnya garis putus-putus. */
+.rkd-dokj-daftar{display:flex;flex-direction:column;gap:5px}
+.rkd-dokj-baris{display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  grid-template-areas:"ik tk tb";align-items:center;column-gap:10px;row-gap:7px;
+  padding:9px 10px;border-radius:10px;border:1px solid transparent;
+  background:color-mix(in srgb,var(--rk-tinta) 5%,transparent)}
+/* cip berkas turun ke barisnya sendiri - kalau dipaksa sebaris dengan nama,
+   nama jenisnya terpotong di panel selebar ini */
+.rkd-dokj-baris.berisi{grid-template-areas:"ik tk tb" "isi isi isi"}
+.rkd-dokj-baris.kosong{background:none;border-color:var(--rk-sekat);border-style:dashed}
+.rkd-dokj-ik{grid-area:ik;font-size:18px;color:var(--rk-laut)}
+.rkd-dokj-baris.kosong .rkd-dokj-ik{color:var(--rk-tipis)}
+.rkd-dokj-tk{grid-area:tk;min-width:0}
+.rkd-dokj-tk b{display:block;font-size:12.5px;font-weight:700;line-height:1.2;color:var(--rk-tinta)}
+.rkd-dokj-baris.kosong .rkd-dokj-tk b{font-weight:600;color:var(--rk-sedang)}
+.rkd-dokj-tk s{display:block;text-decoration:none;margin-top:2px;font:500 10.5px "DM Mono",monospace;
+  color:var(--rk-tipis);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Bukan "belum ada": server memang tidak bisa menjawab. Dibedakan warnanya
    supaya tidak terbaca sebagai keadaan normal. */
-.rkd-dokj-taksiap{padding-top:4px;font-style:normal;font-size:12px;color:var(--rk-emas,#C98A12)}
-.rkd-dokj-catatan{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:9px 11px;border-radius:10px;
-  background:color-mix(in srgb,var(--rk-emas,#C98A12) 12%,transparent);font-size:11.5px;line-height:1.45;color:var(--rk-teks,inherit)}
-.rkd-dokj-catatan .material-symbols-outlined{flex:0 0 auto;font-size:16px;color:var(--rk-emas,#C98A12)}
-.rkd-dokj-catatan b{font-weight:700}
-.rkd-dokj-jenis{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.rkd-dokj-jenis label{position:relative;cursor:pointer}
-.rkd-dokj-jenis input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
-.rkd-dokj-jenis span{display:inline-flex;align-items:center;height:28px;padding:0 11px;border:1px solid var(--rk-sekat);border-radius:99px;
-  font:600 11.5px "Plus Jakarta Sans",sans-serif;color:var(--rk-tipis);transition:border-color .15s,background-color .15s,color .15s}
-.rkd-dokj-jenis label:hover span{color:var(--rk-tinta)}
-.rkd-dokj-jenis input:checked + span{border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 12%,transparent);color:var(--rk-api)}
-.rkd-dokj-jenis input:focus-visible + span{outline:2px solid var(--rk-api);outline-offset:2px}
-html[data-saku] .rkd-dokj-baris{border-color:var(--sk-garis,rgba(255,255,255,.1))}
-html[data-saku] .rkd-dokj-nama,html[data-saku] .rkd-dokj-kosong{color:var(--sk-tipis)}
+.rkd-dokj-tk s.taksiap{color:var(--rk-emas,#C98A12)}
+.rkd-dokj-isi{grid-area:isi;display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.rkd-dokj-isi .rkd-berkas-taut{margin:0;height:28px;padding:0 9px;font-size:11.5px}
+.rkd-dokj-isi .rkd-berkas-taut .material-symbols-outlined{font-size:15px}
+.rkd-dokj-ikon{grid-area:tb;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;
+  border:1px solid var(--rk-sekat);background:transparent;color:var(--rk-api);cursor:pointer}
+.rkd-dokj-ikon .material-symbols-outlined{font-size:17px}
+.rkd-dokj-ikon:hover{border-color:var(--rk-api);background:color-mix(in srgb,var(--rk-api) 12%,transparent)}
+.rkd-dokj-baris.kosong .rkd-dokj-ikon{color:var(--rk-sedang)}
+/* Alat unggah: lembar terlipat yang dibuka dari tombol di barisnya sendiri.
+   Pemilih jenis di dalamnya dibuang - daftarnya persis sama dengan daftar
+   baris di atasnya, dan jenisnya sudah ditentukan tombol yang ditekan. */
+body.rk #sidebar .rkd-dok .rkd-unggah{margin-top:9px;padding:10px;border:1px solid var(--rk-sekat);
+  border-radius:12px;background:color-mix(in srgb,var(--rk-tinta) 5%,transparent)}
+.rkd-unggah-kep{display:flex;align-items:flex-start;gap:8px;margin-bottom:9px}
+.rkd-unggah-kep > .material-symbols-outlined{flex:0 0 auto;font-size:17px;color:var(--rk-api)}
+.rkd-unggah-kep-tk{flex:1 1 auto;min-width:0;font-size:11.5px;line-height:1.35;color:var(--rk-tipis);
+  overflow-wrap:anywhere}
+.rkd-unggah-kep-tk b{font-weight:700;color:var(--rk-tinta)}
+.rkd-unggah-tutup{flex:0 0 auto;display:grid;place-items:center;width:26px;height:26px;border:0;
+  border-radius:8px;background:none;color:var(--rk-tipis);cursor:pointer}
+.rkd-unggah-tutup .material-symbols-outlined{font-size:16px}
+.rkd-unggah-tutup:hover{background:var(--rk-muka);color:var(--rk-tinta)}
+/* Teksnya dulu ditaruh langsung di dalam kotak display:flex ini, jadi tiap
+   potongan teks dan <b>-nya jadi flex item sendiri - itu sebabnya katanya
+   patah satu-satu ke bawah. Sekarang semuanya dibungkus satu <span>. */
+.rkd-dokj-catatan{display:flex;gap:9px;align-items:flex-start;margin:9px 0 0;padding:9px 11px;border-radius:10px;
+  border:1px solid color-mix(in srgb,var(--rk-emas,#C98A12) 30%,transparent);
+  background:color-mix(in srgb,var(--rk-emas,#C98A12) 7%,transparent);
+  font-size:11.5px;line-height:1.5;color:var(--rk-sedang,inherit)}
+.rkd-dokj-catatan > .material-symbols-outlined{flex:0 0 auto;font-size:16px;color:var(--rk-emas,#C98A12)}
+.rkd-dokj-catatan > span{flex:1 1 auto;min-width:0}
+.rkd-dokj-catatan b{font-weight:700;color:var(--rk-tinta)}
+html[data-saku] .rkd-dokj-baris{background:var(--sk-kartu2,rgba(255,255,255,.04))}
+html[data-saku] .rkd-dokj-baris.kosong{background:none;border-color:var(--sk-garis,rgba(255,255,255,.14))}
+html[data-saku] .rkd-dokj-tk s{color:var(--sk-tipis)}
+html[data-saku] body.rk #sidebar .rkd-dok .rkd-unggah{border-color:var(--sk-garis,rgba(255,255,255,.12));background:var(--sk-kartu2,rgba(255,255,255,.04));border-radius:16px}
+html[data-saku] .rkd-unggah-kep-tk{color:var(--sk-tipis)}
+html[data-saku] .rkd-unggah-kep-tk b{color:var(--sk-tinta)}
+html[data-saku] .rkd-dokj-ikon{border-color:var(--sk-garis,rgba(255,255,255,.14))}
 html[data-saku] .rkd-dokj-catatan{color:var(--sk-tinta)}
-html[data-saku] .rkd-dokj-jenis span{border-color:var(--sk-garis,rgba(255,255,255,.14));color:var(--sk-tipis)}
-html[data-saku] .rkd-dokj-jenis input:checked + span{border-color:var(--sk-api);background:color-mix(in srgb,var(--sk-api) 14%,transparent);color:var(--sk-api)}
 /* tanggal serah terima/monitoring kosong */
 .rkd-tgl-peringatan{display:none;align-items:flex-start;gap:6px;margin-top:6px;font-style:normal;font-size:11.5px;line-height:1.45;color:var(--rk-emas)}
 .rkd-tgl-peringatan .material-symbols-outlined{font-size:16px}
@@ -24586,23 +24730,27 @@ html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
 (function () {
   "use strict";
   const JENIS = {
-    kerusakan: { judul: "Foto Kerusakan", ikon: "photo_library", kunci: "photos", unggah: "dokumentasi", maks: 8, kosong: "Belum ada foto kerusakan." },
-    identitas: { judul: "Foto KTP / KK", ikon: "badge", kunci: "fotoIdentitas", unggah: "identitas", maks: 4, kosong: "Belum ada foto KTP/KK." },
-    kegiatan: { judul: "Foto Kegiatan", ikon: "groups", kunci: "fotoKegiatan", unggah: "kegiatan", maks: 4, kosong: "Belum ada foto kegiatan." }
+    kerusakan: { judul: "Foto Kerusakan", pendek: "Kerusakan", ikon: "photo_library", kunci: "photos", unggah: "dokumentasi", maks: 8, kosong: "Belum ada foto kerusakan." },
+    identitas: { judul: "Foto KTP / KK", pendek: "KTP/KK", ikon: "badge", kunci: "fotoIdentitas", unggah: "identitas", maks: 4, kosong: "Belum ada foto KTP/KK." },
+    kegiatan: { judul: "Foto Kegiatan", pendek: "Kegiatan", ikon: "groups", kunci: "fotoKegiatan", unggah: "kegiatan", maks: 4, kosong: "Belum ada foto kegiatan." }
   };
   const escA = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   const escJs = function (s) { return String(s).replace(/\\/g, "\\\\").replace(/'/g, "\\'"); };
   const masuk = function () { return typeof isLoggedIn !== "undefined" && isLoggedIn === true; };
   const daftar = function (data, j) { return (Array.isArray(data[JENIS[j].kunci]) ? data[JENIS[j].kunci] : []).filter(function (u) { return u && String(u).trim(); }); };
 
-  function html(data, j) {
+  /* Tiga tile (kerusakan, KTP/KK, kegiatan) dilebur jadi satu tile "Foto"
+     berisi tab. Ketiga kisinya tetap ada di DOM - yang tidak aktif hanya
+     disembunyikan - karena penampil foto layar penuh menyusun tab
+     kategorinya dari [data-galeri] yang ada di panel. */
+  const URUTAN = ["kerusakan", "identitas", "kegiatan"];
+  const pilihan = {};   // jenis yang sedang dibuka, per laporan
+
+  function kisi(data, j) {
     const J = JENIS[j];
-    if (j === "identitas" && !masuk()) return "";   // tamu: foto kerusakan & kegiatan saja
     const foto = daftar(data, j);
     const tambahId = j === "kerusakan" ? "add-photo-btn" : "add-photo-btn-" + j;
-    let h = '<section class="rkd-bagian" data-galeri="' + j + '" data-idx="' + escA(data.idx) + '">' +
-      '<header class="rkd-bagian-kep"><span class="material-symbols-outlined">' + J.ikon + "</span><h4>" + J.judul + '</h4><div class="rkd-aksi"><span class="rkd-hitung">' + foto.length + "/" + J.maks + "</span></div></header>" +
-      '<div class="sidebar-gallery rkd-galeri">';
+    let h = '<div class="sidebar-gallery rkd-galeri">';
     foto.forEach(function (url, i) {
       h += '<div onclick="openImagePreview(\'' + escJs(url) + '\')" class="rkd-foto" title="Lihat foto ' + (i + 1) + '">' +
         '<span class="material-symbols-outlined rkd-foto-latar">image</span>' +
@@ -24611,16 +24759,66 @@ html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
         (masuk() ? '<button type="button" class="rkd-foto-pindah" title="Pindahkan atau hapus foto" aria-label="Pindahkan atau hapus foto ' + (i + 1) + '" onclick="event.stopPropagation(); rkGaleriFoto.menu(this, \'' + escJs(data.idx) + "', '" + escJs(url) + "', '" + j + '\')"><span class="material-symbols-outlined">more_horiz</span></button>' : "") +
       "</div>";
     });
+    const buka = 'document.getElementById(\'file-' + J.unggah + '-input\').click()';
     if (masuk() && foto.length < J.maks) {
-      h += '<div id="' + tambahId + '" onclick="document.getElementById(\'file-' + J.unggah + '-input\').click()" class="rkd-foto rkd-foto-tambah">' +
-        '<span class="material-symbols-outlined">add_a_photo</span><span>Tambah</span></div>';
+      /* Keadaan kosong dulu satu kotak besar yang menyisakan dua pertiga
+         kisi kosong di sebelahnya; sekarang satu garis selebar tile. */
+      h += foto.length
+        ? '<div id="' + tambahId + '" onclick="' + buka + '" class="rkd-foto rkd-foto-tambah">' +
+            '<span class="material-symbols-outlined">add_a_photo</span><span>Tambah</span></div>'
+        : '<button type="button" id="' + tambahId + '" onclick="' + buka + '" class="rkd-foto-strip">' +
+            '<span class="material-symbols-outlined">add_a_photo</span>Tambah foto<i>maks ' + J.maks + '</i></button>';
     }
     if (!foto.length && !masuk()) h += '<p class="rkd-kosong rkd-lebar">' + J.kosong + "</p>";
     h += "</div>" +
       (j === "kerusakan" && masuk() ? '<p class="rkg-catatan rkg-catatan-edit">Foto KTP/KK atau kegiatan yang tercampur di sini, atau foto yang salah? Pindahkan atau hapus lewat tombol ••• di pojok foto - hanya foto kerusakan yang masuk laporan PDF.</p>' : "") +
-      '<input type="file" id="file-' + J.unggah + '-input" accept="image/*" multiple class="hidden" onchange="handleSidebarUpload(\'' + J.unggah + "', '" + escJs(data.idx) + '\')">' +
-      "</section>";
+      '<input type="file" id="file-' + J.unggah + '-input" accept="image/*" multiple class="hidden" onchange="handleSidebarUpload(\'' + J.unggah + "', '" + escJs(data.idx) + '\')">';
     return h;
+  }
+
+  function html(data) {
+    const tampil = URUTAN.filter(function (j) { return j !== "identitas" || masuk(); });   // tamu: tanpa KTP/KK
+    const jumlah = {};
+    let total = 0;
+    tampil.forEach(function (j) { jumlah[j] = daftar(data, j).length; total += jumlah[j]; });
+    const idx = String(data.idx);
+    let aktif = pilihan[idx];
+    if (tampil.indexOf(aktif) < 0) {
+      aktif = tampil.filter(function (j) { return jumlah[j]; })[0] || tampil[0];
+    }
+    pilihan[idx] = aktif;
+    let h = '<section class="rkd-bagian rkd-fotile" data-galeri="foto" data-idx="' + escA(data.idx) + '">' +
+      '<header class="rkd-bagian-kep"><span class="material-symbols-outlined">photo_library</span><h4>Foto</h4>' +
+        '<div class="rkd-aksi"><span class="rkd-hitung">' + (total ? total + " foto" : "Belum ada") + "</span></div></header>" +
+      '<div class="rkd-galtab" role="tablist">' +
+        tampil.map(function (j) {
+          return '<button type="button" role="tab" data-jenis="' + j + '" aria-selected="' + (j === aktif ? "true" : "false") + '"' +
+            (j === aktif ? ' class="pilih"' : "") + ' onclick="rkGaleriFoto.tab(this)">' +
+            "<b>" + JENIS[j].pendek + "</b><s>" + jumlah[j] + "/" + JENIS[j].maks + "</s></button>";
+        }).join("") +
+      "</div>";
+    tampil.forEach(function (j) {
+      h += '<div class="rkd-gal-isi" data-galeri="' + j + '" data-idx="' + escA(data.idx) + '"' + (j === aktif ? "" : " hidden") + ">" +
+        kisi(data, j) + "</div>";
+    });
+    return h + "</section>";
+  }
+
+  /* Pindah tab: kisinya tidak dibuang, hanya disembunyikan - supaya penampil
+     foto layar penuh tetap tahu kategori apa saja yang ada di laporan ini. */
+  function tab(tombol) {
+    const sek = tombol.closest(".rkd-fotile");
+    if (!sek) return;
+    const j = tombol.getAttribute("data-jenis");
+    pilihan[String(sek.getAttribute("data-idx"))] = j;
+    sek.querySelectorAll(".rkd-galtab button").forEach(function (b) {
+      const on = b === tombol;
+      b.classList.toggle("pilih", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    sek.querySelectorAll(".rkd-gal-isi").forEach(function (d) {
+      d.hidden = d.getAttribute("data-galeri") !== j;
+    });
   }
 
   /* ── pindah foto ── */
@@ -24717,15 +24915,15 @@ html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
   }
 
   function segarkan(item) {
-    document.querySelectorAll('#sidebar section[data-galeri][data-idx="' + String(item.idx).replace(/"/g, "") + '"]').forEach(function (sek) {
+    document.querySelectorAll('#sidebar section.rkd-fotile[data-idx="' + String(item.idx).replace(/"/g, "") + '"]').forEach(function (sek) {
       const wadah = document.createElement("div");
-      wadah.innerHTML = html(item, sek.dataset.galeri);
+      wadah.innerHTML = html(item);
       const baru = wadah.firstElementChild;
       if (baru) sek.replaceWith(baru); else sek.remove();
     });
   }
 
-  window.rkGaleriFoto = { html: html, menu: menu, pindah: pindah, hapus: hapus, segarkan: segarkan };
+  window.rkGaleriFoto = { html: html, tab: tab, menu: menu, pindah: pindah, hapus: hapus, segarkan: segarkan };
 
 })();
 </script>
