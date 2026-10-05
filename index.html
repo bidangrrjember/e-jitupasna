@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzM83alsZOjwj4Tjp4mXStmJf4aho-16kmkSgLhg8YQHCqwN1L7yp-Wy9XePfPgIZMq/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwNLvccjr1q2ckzvhgLWhrPDMStW6WeNKtPw6QfBRGevsHYzFIXDGt7_VyUhFwr8jaB/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -25293,7 +25293,8 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-dua{display:grid;grid-template-columns:1.55fr 1fr;height:300px}
 #rk-tv .tv-baru.tanpa-foto .tv-dua{grid-template-columns:1fr}
 #rk-tv .tv-baru.tanpa-foto .tv-foto{display:none}
-#rk-tv .tv-foto{position:relative;overflow:hidden;background:#111}
+#rk-tv .tv-foto{position:relative;overflow:hidden;background:#111;transition:opacity .24s ease}
+#rk-tv .tv-foto.tv-foto-pudar{opacity:0}
 #rk-tv .tv-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease}
 #rk-tv .tv-foto img.aktif{opacity:1}
 #rk-tv .tv-foto em{position:absolute;z-index:2;left:12px;bottom:12px;font:500 12px "DM Mono",monospace;letter-spacing:.12em;font-style:normal;color:#fff;background:rgba(0,0,0,.6);padding:5px 9px;border-radius:8px}
@@ -25302,27 +25303,51 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv .tv-titik i.aktif{background:#fff}
 #rk-tv #rk-tv-zoom{height:300px;border-left:2px solid #0B1214;background:#111}
 #rk-tv .tv-baru.tanpa-foto #rk-tv-zoom{border-left:0}
-#rk-tv .tv-ket{padding:14px 18px}
+#rk-tv .tv-ket{padding:14px 18px;transition:opacity .24s ease}
+#rk-tv .tv-ket.tv-ket-pudar{opacity:0}
 #rk-tv .tv-ket small{font:500 12px "DM Mono",monospace;letter-spacing:.16em;color:#FDBA74;text-transform:uppercase}
 #rk-tv .tv-ket b{display:block;font:700 22px "Bricolage Grotesque",sans-serif;margin-top:4px}
 #rk-tv .tv-ket p{margin:4px 0 0;font-size:15px;color:#9FB0B4}
 
-/* Baris giliran: papan jenis yang sedang tampil, titik urutan, bilah sisa
-   waktu, lalu nama jenis berikutnya. Menggantikan legenda "jarang - sering"
-   yang lama, karena sekarang warna awan mengikuti jenis, bukan kepadatan. */
-#rk-tv .tv-legenda{position:absolute;z-index:500;left:48px;right:48px;top:722px;display:flex;align-items:center;gap:20px;font-size:15px;color:#C9D4D1}
-#rk-tv .gl-papan{display:flex;align-items:center;gap:12px;padding:7px 18px 7px 7px;border-radius:14px;flex:0 0 auto;
-  background:color-mix(in srgb,var(--w) 22%,rgba(11,18,20,.92));border:2px solid var(--w)}
-#rk-tv .gl-bul{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--w);flex:0 0 auto;color:#fff}
-#rk-tv .gl-bul .material-symbols-outlined{font-size:24px}
-#rk-tv .gl-papan b{display:block;font:800 25px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
-#rk-tv .gl-papan s{text-decoration:none;display:block;margin-top:2px;font-size:13px;color:#C9D4D1}
-#rk-tv .gl-urut{display:flex;align-items:center;gap:9px;flex:0 0 auto;font:500 13px "DM Mono",monospace;color:#9FB0B4}
-#rk-tv .gl-urut i{width:10px;height:10px;border-radius:99px;background:#33454A}
-#rk-tv .gl-urut i.on{background:var(--w);box-shadow:0 0 0 3px color-mix(in srgb,var(--w) 30%,transparent)}
-#rk-tv .gl-bilah{flex:1;height:4px;border-radius:99px;background:#23333A;overflow:hidden;max-width:260px}
-#rk-tv .gl-bilah i{display:block;height:100%;width:0;background:var(--w)}
-#rk-tv .gl-sisa{flex:0 0 auto;font:500 13px "DM Mono",monospace;color:#9FB0B4;white-space:nowrap}
+/* Baris giliran: kelima giliran berjajar seperti pita babak. Yang sedang
+   tampil melebar, ikonnya menyala, dan bilah sisa waktunya mengisi ruas itu
+   sendiri - jadi urutan, jumlah tiap jenis, dan sisa waktu terbaca sekaligus
+   tanpa perlu tulisan "berikutnya". Bentuk & warnanya meminjam kotak angka
+   di bawahnya, supaya tidak ada benda berborder tebal yang menonjol sendiri. */
+#rk-tv .tv-legenda{position:absolute;z-index:500;left:48px;right:48px;top:718px;font-size:15px;color:#C9D4D1}
+#rk-tv .gl-babak{display:flex;border-radius:16px;overflow:hidden;background:#101A1C;border:1px solid #1E2B2F}
+/* Semua yang berbeda antara ruas aktif & tidak aktif diberi transition.
+   Keluarga hurufnya sengaja sama (Bricolage) di dua keadaan: ukuran huruf
+   bisa dianimasikan, keluarga huruf tidak - kalau berbeda, tulisannya
+   akan berganti mendadak di tengah ruas yang sedang melebar. */
+#rk-tv .gl-babak > div{position:relative;flex:1 1 0;min-width:0;padding:11px 16px;display:flex;align-items:center;
+  gap:10px;border-left:1px solid #1E2B2F;overflow:hidden;
+  transition:flex-grow .6s cubic-bezier(.22,.61,.36,1),padding .6s cubic-bezier(.22,.61,.36,1)}
+#rk-tv .gl-babak > div:first-child{border-left:0}
+#rk-tv .gl-ik{position:relative;z-index:2;display:grid;place-items:center;width:30px;height:30px;
+  border-radius:9px;background:#1E2B2F;color:#8FA39C;flex:0 0 auto;
+  transition:background .5s ease,color .5s ease}
+#rk-tv .gl-ik .material-symbols-outlined{font-size:19px}
+#rk-tv .gl-tk{position:relative;z-index:2;min-width:0}
+#rk-tv .gl-tk b{display:block;font:700 15px/1.05 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;
+  color:#8FA39C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:font-size .6s cubic-bezier(.22,.61,.36,1),font-weight .5s ease,color .5s ease}
+#rk-tv .gl-tk s{display:block;text-decoration:none;font:500 12px "DM Mono",monospace;color:#5A6B70;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .5s ease}
+#rk-tv .gl-babak > div.on{flex-grow:2.4;padding-left:18px}
+#rk-tv .gl-babak > div.on .gl-ik{background:var(--w);color:#fff}
+#rk-tv .gl-babak > div.on .gl-tk b{font-size:22px;font-weight:800;color:#EEF3F1}
+#rk-tv .gl-babak > div.on .gl-tk s{color:#9FB0B4}
+/* garis atas dipasang di semua ruas lalu dipudarkan, supaya ruas yang
+   selesai sempat memudar dengan warnanya sendiri */
+#rk-tv .gl-garis{position:absolute;left:0;right:0;top:0;height:3px;background:var(--w);
+  opacity:0;z-index:3;transition:opacity .5s ease}
+#rk-tv .gl-babak > div.on .gl-garis{opacity:1}
+/* bilah sisa waktu = isian ruas yang sedang tampil */
+#rk-tv .gl-maju{position:absolute;left:0;top:0;bottom:0;width:0;z-index:1;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--w) 26%,transparent),color-mix(in srgb,var(--w) 13%,transparent))}
+/* titik kejadian jenis lain: memudar masuk & keluar mengikuti morph awan */
+#rk-tv .gl-redup{transition:fill-opacity .55s ease}
 
 #rk-tv .tv-bawah{position:absolute;left:48px;right:48px;top:790px;bottom:36px;display:grid;grid-template-columns:repeat(4,1fr) 1.6fr;gap:18px}
 #rk-tv .tv-k{padding:22px 24px;border-radius:20px;background:#121C1F;border:1px solid #1E2B2F;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
@@ -25376,7 +25401,9 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
 #rk-tv.gerak .tv-tutup{opacity:1;pointer-events:auto}
 #rk-tv .tv-tutup:hover{background:rgba(255,255,255,.2)}
 #rk-tv .tv-tutup:focus-visible{outline:2px solid #F2711C;outline-offset:2px;opacity:1}
-@media (prefers-reduced-motion:reduce){#rk-tv .tv-foto img,#rk-tv .tv-batang i,#rk-tv .gl-bilah i{transition:none}}
+@media (prefers-reduced-motion:reduce){#rk-tv .tv-foto img,#rk-tv .tv-batang i,#rk-tv .gl-maju,#rk-tv .gl-redup,
+  #rk-tv .gl-babak > div,#rk-tv .gl-ik,#rk-tv .gl-tk b,#rk-tv .gl-tk s,#rk-tv .gl-garis,
+  #rk-tv .tv-ket,#rk-tv .tv-foto{transition:none}}
 </style>
 <script>
 /* ══════════════════════════════════════════════════════════════════════
@@ -25436,6 +25463,19 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
   /* giliran jenis bencana: slot 0 selalu "Semua jenis" */
   const JEDA_GILIRAN = 10000;
   let giliranKe = 0, jamGiliran = 0, mulaiSlot = 0, slotGiliran = [], titikTahun = [], tahunIni = [], semuaLaporan = [];
+  /* morph awan: keadaan yang sedang tampil, dipakai sebagai titik awal
+     perpindahan berikutnya */
+  const MORPH_MS = 850;
+  /* dua lapisan awan dipakai bergantian: satu memudar keluar, satu masuk */
+  let lapisPanasB = null, jamMorph = 0;
+  /* penanda laporan dipertahankan, bukan dibuat ulang, supaya letaknya
+     bisa digeser halus dari laporan satu ke laporan berikutnya */
+  const GESER_MS = 950;
+  let penandaLuar = null, penandaDalam = null, rafGeser = 0;
+  const PUDAR_TEKS_MS = 240;
+  /* teksTertunda: tulisan yang akan dipasang begitu pudarnya mencapai dasar */
+  let jamTeks = 0, teksTertunda = null;
+  let jamFotoPudar = 0, fotoTertunda = null;
   let sidikData = "";
 
   const $ = function (s) { return akar.querySelector(s); };
@@ -25722,8 +25762,6 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
      detik. Slot pertama "Semua jenis" memakai gradasi pelangi yang lama,
      jadi tampilan asli Mode TV tetap muncul sebagai salah satu giliran.
      ════════════════════════════════════════════════════════════════ */
-  const GRAD_SEMUA = { 0.2: "#1d4ed8", 0.4: "#22c55e", 0.6: "#facc15", 0.8: "#f97316", 1: "#ef4444" };
-
   function susunSlot(daftar) {
     const hit = {};
     daftar.forEach(function (it) { const j = bersih(it.bencana) || "Lainnya"; hit[j] = (hit[j] || 0) + 1; });
@@ -25734,7 +25772,42 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     return slot;
   }
 
-  function pasangPanas(titik, grad, maks) {
+  /* ── gradasi disimpan sebagai lima hentian tetap, supaya gradasi mana pun
+     bisa dicampur dengan gradasi lain titik demi titik ── */
+  const HENTIAN = [0.2, 0.4, 0.6, 0.8, 1];
+  const RGB_PELANGI = [[29, 78, 216], [34, 197, 94], [250, 204, 21], [249, 115, 22], [239, 68, 68]];
+  function rgbDariHex(h) {
+    const x = String(h).replace("#", "");
+    return [parseInt(x.substr(0, 2), 16), parseInt(x.substr(2, 2), 16), parseInt(x.substr(4, 2), 16)];
+  }
+  /* Gradasi awan SAMA untuk semua giliran - pelangi seperti sedia kala.
+     Dulu tiap jenis diberi rona sendiri, tapi akibatnya pekat-tipisnya tidak
+     bisa dibandingkan antar jenis: merah pada giliran Banjir dan merah pada
+     giliran Cuaca Ekstrem berarti jumlah yang jauh berbeda. Dengan gradasi
+     yang sama, warna kembali berarti kepadatan, dan jenis yang jarang memang
+     tampak lebih sejuk. Warna jenisnya tetap hidup di baris giliran. */
+  function gradasiUntuk() {
+    return RGB_PELANGI.map(function (c) { return [c[0], c[1], c[2], 1]; });
+  }
+  function gradasiObjek(g) {
+    const o = {};
+    HENTIAN.forEach(function (h, i) {
+      o[h] = "rgba(" + g[i][0] + "," + g[i][1] + "," + g[i][2] + "," + g[i][3] + ")";
+    });
+    return o;
+  }
+
+  /* Morph: titik lama menyusut ke bobot 0, titik baru tumbuh ke 1, dan
+     gradasinya dicampur sejalan. Titik yang ada di dua-duanya (mis. kejadian
+     cuaca ekstrem saat pindah dari "Semua jenis") muncul dua kali dengan
+     bobot yang berjumlah 1, jadi tidak berkedip.
+     Dibatasi ~30 bingkai per detik: menggambar ulang kanvas seukuran layar
+     TV itu mahal, dan 30 fps sudah terasa halus untuk gerakan selembut ini. */
+  /* Perpindahan antar jenis: lapisan awan yang sedang tampil dipudarkan
+     keluar sementara lapisan berisi jenis baru dipudarkan masuk. Kanvasnya
+     cuma digambar sekali; peleburannya diurus compositor lewat opacity. */
+  function pasangPanas(titik, nama, maks, halus) {
+    if (jamMorph) { clearTimeout(jamMorph); jamMorph = 0; }
     if (!peta) return;
     if (!L.heatLayer) {
       /* cadangan bila plugin titik panas gagal dimuat: titik oranye transparan */
@@ -25746,16 +25819,48 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
       return;
     }
     const panas = titik.map(function (t) { return [t.la, t.ln, 1]; });
-    const opsi = { radius: 44, blur: 36, maxZoom: 10, max: maks, minOpacity: .25, gradient: grad };
+    const opsi = { radius: 44, blur: 36, maxZoom: 10, max: maks, minOpacity: .25,
+      gradient: gradasiObjek(gradasiUntuk()) };
+    const isiLapis = function (l) {
+      if (typeof l.setOptions === "function") l.setOptions(opsi);
+      l.setLatLngs(panas);
+    };
     if (!lapisPanas) { lapisPanas = L.heatLayer(panas, opsi).addTo(peta); return; }
-    if (typeof lapisPanas.setOptions === "function") lapisPanas.setOptions(opsi);
-    lapisPanas.setLatLngs(panas);
+
+    const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (!halus || diam) {
+      isiLapis(lapisPanas);
+      if (lapisPanas._canvas) lapisPanas._canvas.style.opacity = "1";
+      if (lapisPanasB && lapisPanasB._canvas) lapisPanasB._canvas.style.opacity = "0";
+      return;
+    }
+
+    if (!lapisPanasB) lapisPanasB = L.heatLayer(panas, opsi).addTo(peta);
+    else isiLapis(lapisPanasB);
+    const masuk = lapisPanasB._canvas, keluar = lapisPanas._canvas;
+    if (!masuk || !keluar) { isiLapis(lapisPanas); return; }
+
+    /* lapisan yang masuk harus berada di ATAS yang keluar, kalau tidak ia
+       tertutup dan pudarnya tidak kelihatan */
+    if (masuk.parentNode) masuk.parentNode.appendChild(masuk);
+    masuk.style.transition = "none";
+    masuk.style.opacity = "0";
+    void masuk.offsetWidth;
+    requestAnimationFrame(function () {
+      masuk.style.transition = "opacity " + MORPH_MS + "ms cubic-bezier(.4,0,.2,1)";
+      keluar.style.transition = "opacity " + MORPH_MS + "ms cubic-bezier(.4,0,.2,1)";
+      masuk.style.opacity = "1";
+      keluar.style.opacity = "0";
+    });
+    /* peran ditukar: yang baru jadi lapisan utama, yang lama menunggu giliran */
+    const t = lapisPanas; lapisPanas = lapisPanasB; lapisPanasB = t;
+    jamMorph = setTimeout(function () { jamMorph = 0; }, MORPH_MS + 60);
   }
 
   /* bilah sisa waktu; dihitung dari jam mulai slot supaya gambar ulang di
      tengah slot tidak membuat bilahnya melompat balik */
   function aturBilah() {
-    const bar = $(".gl-bilah i");
+    const bar = $(".gl-babak .on .gl-maju");
     if (!bar) return;
     const lewat = Math.max(0, Math.min(JEDA_GILIRAN, Date.now() - mulaiSlot));
     const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -25767,7 +25872,7 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     bar.style.width = "100%";
   }
 
-  function gambarGiliran() {
+  function gambarGiliran(halus) {
     if (!slotGiliran.length) return;
     if (giliranKe >= slotGiliran.length) giliranKe = 0;
     const s = slotGiliran[giliranKe];
@@ -25775,23 +25880,30 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     const w = semua ? "#F2711C" : warnaBencana(s.nama);
     const pakai = semua ? titikTahun : titikTahun.filter(function (t) { return t.j === s.nama; });
 
-    /* kejadian jenis lain tetap tampak samar */
+    /* kejadian jenis lain tetap tampak samar, memudar seirama morph */
     if (lapisRedup) {
-      lapisRedup.clearLayers();
-      if (!semua) titikTahun.forEach(function (t) {
-        if (t.j === s.nama) return;
-        L.circleMarker([t.la, t.ln], { radius: 4, stroke: false, fillColor: "#C9D4D1", fillOpacity: .3, interactive: false }).addTo(lapisRedup);
-      });
+      const pasangRedup = function () {
+        lapisRedup.clearLayers();
+        if (semua) return;
+        titikTahun.forEach(function (t) {
+          if (t.j === s.nama) return;
+          L.circleMarker([t.la, t.ln], { radius: 4, stroke: false, fillColor: "#C9D4D1",
+            fillOpacity: halus ? 0 : .3, className: "gl-redup", interactive: false }).addTo(lapisRedup);
+        });
+        if (halus) requestAnimationFrame(function () {
+          lapisRedup.eachLayer(function (l) { l.setStyle({ fillOpacity: .3 }); });
+        });
+      };
+      if (halus) {
+        /* yang lama dipudarkan dulu, yang baru menyusul di tengah morph */
+        lapisRedup.eachLayer(function (l) { l.setStyle({ fillOpacity: 0 }); });
+        setTimeout(pasangRedup, Math.round(MORPH_MS * 0.45));
+      } else pasangRedup();
     }
 
-    /* Jenis yang jarang hanya menumpuk sedikit titik. Puncak gradasinya
-       diturunkan sebanding jumlahnya supaya awannya tetap mencapai warna
-       penuh - kalau tidak, bercaknya pucat dan tidak terbaca dari jauh. */
-    const grad = semua ? GRAD_SEMUA
-      : { 0.25: "rgba(255,255,255,.06)", 0.55: w + "99", 1: w };
-    const maks = semua ? 3.2
-      : Math.min(3.2, Math.max(1.2, 3.2 * pakai.length / Math.max(1, titikTahun.length)));
-    pasangPanas(pakai, grad, maks);
+    /* puncak gradasi sama untuk semua giliran, jadi pekat-tipisnya berarti
+       kepadatan yang sebenarnya dan bisa dibandingkan antar jenis */
+    pasangPanas(pakai, null, 3.2, halus);
 
     /* baris giliran */
     const baris = $('[data-tv="giliran"]');
@@ -25802,22 +25914,36 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
       const k = bersih(it.kec); if (k) kec[k] = (kec[k] || 0) + 1;
     });
     const kecUrut = Object.keys(kec).sort(function (a, b) { return kec[b] - kec[a]; });
-    const ket = s.jumlah + " kejadian" + (kecUrut.length ? " · terbanyak di " + esc(kecUrut[0]) + " (" + kec[kecUrut[0]] + ")" : "");
+    /* dipasang lewat textContent, jadi tidak perlu dilolosi */
+    const ket = s.jumlah + " kejadian" + (kecUrut.length ? " · terbanyak di " + kecUrut[0] + " (" + kec[kecUrut[0]] + ")" : "");
     /* kartu kanan mengikuti giliran: kejadian terakhir dari jenis ini */
-    if (semuaLaporan.length) gambarTerbaru(semuaLaporan, s.nama);
-    const lanjut = slotGiliran.length > 1 ? slotGiliran[(giliranKe + 1) % slotGiliran.length] : null;
+    if (semuaLaporan.length) gambarTerbaru(semuaLaporan, s.nama, halus);
     baris.style.setProperty("--w", w);
-    baris.innerHTML =
-      '<div class="gl-papan"><span class="gl-bul"><span class="material-symbols-outlined" aria-hidden="true">' +
-      (semua ? "scatter_plot" : ikonBencana(s.nama)) + "</span></span>" +
-      "<div><b>" + esc(s.label.toUpperCase()) + "</b><s>" + ket + "</s></div></div>" +
-      (slotGiliran.length > 1
-        ? '<span class="gl-urut">' + slotGiliran.map(function (_, i) {
-            return '<i class="' + (i === giliranKe ? "on" : "") + '"></i>';
-          }).join("") + "<span>" + (giliranKe + 1) + " dari " + slotGiliran.length + "</span></span>" +
-          '<span class="gl-bilah"><i></i></span>' +
-          '<span class="gl-sisa">berikutnya: ' + esc(lanjut.label) + "</span>"
-        : "");
+    /* Ruasnya dibangun SEKALI. Kalau ditulis ulang tiap pergantian,
+       elemennya selalu baru dan transition melebar/menyempit tidak pernah
+       berjalan - itu yang membuat perpindahannya terasa kasar. */
+    const sidik = slotGiliran.map(function (x) { return x.label + ":" + x.jumlah; }).join("|");
+    let babak = baris.querySelector(".gl-babak");
+    if (!babak || baris.getAttribute("data-sidik") !== sidik) {
+      baris.setAttribute("data-sidik", sidik);
+      baris.innerHTML = '<div class="gl-babak">' + slotGiliran.map(function (x) {
+        return '<div style="--w:' + (x.nama ? warnaBencana(x.nama) : "#F2711C") + '">' +
+          '<span class="gl-garis"></span><span class="gl-maju"></span>' +
+          '<span class="gl-ik"><span class="material-symbols-outlined" aria-hidden="true">' +
+          (x.nama ? ikonBencana(x.nama) : "scatter_plot") + "</span></span>" +
+          '<span class="gl-tk"><b>' + esc(x.label) + "</b><s></s></span></div>";
+      }).join("") + "</div>";
+      babak = baris.querySelector(".gl-babak");
+    }
+    Array.prototype.forEach.call(babak.children, function (el, i) {
+      const ini = i === giliranKe;
+      el.classList.toggle("on", ini);
+      const teks = el.querySelector(".gl-tk s");
+      if (teks) teks.textContent = ini ? ket : slotGiliran[i].jumlah + " kejadian";
+      if (ini) return;
+      const maju = el.querySelector(".gl-maju");
+      if (maju) { maju.style.transition = "none"; maju.style.width = "0%"; }
+    });
     aturBilah();
   }
 
@@ -25825,12 +25951,73 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     if (!buka || slotGiliran.length < 2) return;
     giliranKe = (giliranKe + 1) % slotGiliran.length;
     mulaiSlot = Date.now();
-    gambarGiliran();
+    gambarGiliran(true);
+  }
+
+  /* Menukar isi kotak foto dengan memudar keluar lalu masuk. Kelas
+     "tanpa-foto" ikut ditukar di saat yang sama - kalau tidak, tata letak
+     kartunya melompat di tengah pudar. */
+  function tulisFoto(html, kosong, halus) {
+    const kotak = $('[data-tv="foto"]');
+    const kartu = $(".tv-baru");
+    if (!kotak) return;
+    const pasang = function (p) {
+      kotak.innerHTML = p[0];
+      if (kartu) kartu.classList.toggle("tanpa-foto", p[1]);
+      fotoKe = 0;
+    };
+    const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    if (jamFotoPudar) { fotoTertunda = [html, kosong]; return; }
+    if (!halus || diam) {
+      pasang([html, kosong]);
+      kotak.classList.remove("tv-foto-pudar");
+      return;
+    }
+    fotoTertunda = [html, kosong];
+    kotak.classList.add("tv-foto-pudar");
+    jamFotoPudar = setTimeout(function () {
+      jamFotoPudar = 0;
+      const pakai = fotoTertunda || [html, kosong];
+      fotoTertunda = null;
+      pasang(pakai);
+      requestAnimationFrame(function () { kotak.classList.remove("tv-foto-pudar"); });
+    }, PUDAR_TEKS_MS);
+  }
+
+  /* Menukar ketiga baris teks kartu dengan memudar keluar lalu masuk.
+     Kalau isinya sama persis, tidak ada yang dikerjakan - supaya gambar
+     ulang berkala tiap 20 detik tidak membuat teksnya berkedip. */
+  function tulisKartu(baris, halus) {
+    const KUNCI = ["baru-waktu", "baru-judul", "baru-ket"];
+    const sama = KUNCI.every(function (k, i) {
+      const el = $('[data-tv="' + k + '"]');
+      return el && el.textContent === baris[i];
+    });
+    if (sama) return;
+    const blok = $(".tv-ket");
+    const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    /* pudar yang sedang berjalan tidak dipotong - cukup perbarui tulisan
+       yang akan dipasang begitu sampai di dasar */
+    if (jamTeks) { teksTertunda = baris; return; }
+    if (!halus || diam || !blok) {
+      KUNCI.forEach(function (k, i) { isi(k, baris[i]); });
+      if (blok) blok.classList.remove("tv-ket-pudar");
+      return;
+    }
+    teksTertunda = baris;
+    blok.classList.add("tv-ket-pudar");
+    jamTeks = setTimeout(function () {
+      jamTeks = 0;
+      const pakai = teksTertunda || baris;
+      teksTertunda = null;
+      KUNCI.forEach(function (k, i) { isi(k, pakai[i]); });
+      requestAnimationFrame(function () { blok.classList.remove("tv-ket-pudar"); });
+    }, PUDAR_TEKS_MS);
   }
 
   /* jenis: null = laporan terbaru apa pun jenisnya; selain itu, kejadian
      terakhir dari jenis itu saja - mengikuti giliran yang sedang tampil */
-  function gambarTerbaru(semua, jenis) {
+  function gambarTerbaru(semua, jenis, halus) {
     const calon = semua.filter(function (x) {
       if (!tgl(x)) return false;
       return !jenis || (bersih(x.bencana) || "Lainnya") === jenis;
@@ -25840,10 +26027,12 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     if (!it) { kartu.hidden = true; $('[data-tv="garis"]').innerHTML = ""; return; }
     const d = tgl(it), hariIni = d.toDateString() === new Date().toDateString();
     const kapan = hariIni ? "hari ini " + jamMenit(d) : d.getDate() + " " + BULAN[d.getMonth()].slice(0, 3) + " " + d.getFullYear();
-    isi("baru-waktu", "● " + (jenis ? jenis + " terakhir" : "Laporan terbaru") + " · " + kapan);
-    isi("baru-judul", (bersih(it.bencana) || "Kejadian") + " — " + (bersih(it.desakelurahan) || bersih(it.kec) || "-"));
     const jiwa = parseFloat(it.jumlahKeluarga) || 0;
-    isi("baru-ket", [bersih(it.kerusakan), bersih(it.kec) ? "Kec. " + bersih(it.kec) : "", jiwa ? jiwa + " jiwa terdampak" : ""].filter(Boolean).join(" · "));
+    tulisKartu([
+      "● " + (jenis ? jenis + " terakhir" : "Laporan terbaru") + " · " + kapan,
+      (bersih(it.bencana) || "Kejadian") + " — " + (bersih(it.desakelurahan) || bersih(it.kec) || "-"),
+      [bersih(it.kerusakan), bersih(it.kec) ? "Kec. " + bersih(it.kec) : "", jiwa ? jiwa + " jiwa terdampak" : ""].filter(Boolean).join(" · ")
+    ], halus);
     kartu.hidden = false;
 
     const kunci = String(jenis || "*") + "|" + String(it.timestamp || "") + "|" + (it.photos || []).length;
@@ -25852,33 +26041,98 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
       kunciBaru = kunci;
       // foto kerusakan, bergantian
       const foto = fotoDari(it);
-      kartu.classList.toggle("tanpa-foto", !foto.length);
-      fotoKe = 0;
-      $('[data-tv="foto"]').innerHTML = foto.map(function (u, i) { return '<img src="' + esc(u) + '" alt="" referrerpolicy="no-referrer"' + (i ? "" : ' class="aktif"') + ">"; }).join("") +
-        (foto.length ? "<em>FOTO KERUSAKAN " + (foto.length > 1 ? '<span data-tv="foto-ke">1</span>/' + foto.length : "") + "</em>" : "") +
-        (foto.length > 1 ? '<span class="tv-titik">' + foto.map(function (_, i) { return "<i" + (i ? "" : ' class="aktif"') + "></i>"; }).join("") + "</span>" : "");
+      tulisFoto(
+        foto.map(function (u, i) { return '<img src="' + esc(u) + '" alt="" referrerpolicy="no-referrer"' + (i ? "" : ' class="aktif"') + ">"; }).join("") +
+          (foto.length ? "<em>FOTO KERUSAKAN " + (foto.length > 1 ? '<span data-tv="foto-ke">1</span>/' + foto.length : "") + "</em>" : "") +
+          (foto.length > 1 ? '<span class="tv-titik">' + foto.map(function (_, i) { return "<i" + (i ? "" : ' class="aktif"') + "></i>"; }).join("") + "</span>" : ""),
+        !foto.length, halus);
       // zoom satelit
       if (typeof L !== "undefined" && adaTitik) {
-        if (!zoom) { zoom = L.map("rk-tv-zoom", DIAM); L.tileLayer(ESRI, { maxZoom: 18 }).addTo(zoom); zoomTitik = L.layerGroup().addTo(zoom); }
-        setTimeout(function () { zoom.invalidateSize(); zoom.setView([la, ln], 16); }, 60);
+        const baruDibuat = !zoom;
+        if (!zoom) {
+          zoom = L.map("rk-tv-zoom", DIAM);
+          /* Dua lapis alas, sumber ubin yang sama tapi dikunci di perbesaran
+             rendah lalu diperbesar sendiri oleh peramban. Tanpa ini, daerah
+             yang dilintasi panTo tampak hitam - ubin tajamnya memang belum
+             pernah diunduh, dan jarak antar laporan rata-rata 21 km sementara
+             jendela sisipan cuma 0,71 km.
+             Perbesaran 10: satu ubin ±39 km, beberapa ubin menutupi seluruh
+             kabupaten. Jaring pengaman - dimuat sekali, sesudah itu tidak
+             pernah ada yang hitam, walau kabur sekali. */
+          L.tileLayer(ESRI, { maxNativeZoom: 10, maxZoom: 18, keepBuffer: 2 }).addTo(zoom);
+          /* Perbesaran 13: satu ubin ±4,8 km, cukup dikenali saat bergeser. */
+          L.tileLayer(ESRI, { maxNativeZoom: 13, maxZoom: 18, keepBuffer: 2 }).addTo(zoom);
+          /* ubin tajam, menumpang di atas alas; memudar masuk begitu termuat */
+          L.tileLayer(ESRI, { maxZoom: 18, keepBuffer: 4 }).addTo(zoom);
+          zoomTitik = L.layerGroup().addTo(zoom);
+        }
+        setTimeout(function () {
+          zoom.invalidateSize();
+          /* bergeser mendatar pada perbesaran yang sama, bukan melompat.
+             animate:true dipasang tegas karena Leaflet menolak
+             menganimasikan geseran yang melebihi ukuran petanya sendiri. */
+          const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+          if (halus && !baruDibuat && !diam && zoom.getZoom() === 16 && typeof zoom.panTo === "function") {
+            zoom.panTo([la, ln], { animate: true, duration: 1.1, easeLinearity: .3 });
+          } else zoom.setView([la, ln], 16);
+        }, 60);
         zoomTitik.clearLayers();
         L.circleMarker([la, ln], { radius: 30, color: "#F2711C", weight: 3, fillColor: "#F2711C", fillOpacity: .15, interactive: false }).addTo(zoomTitik);
         L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#EF4444", fillOpacity: 1, interactive: false }).addTo(zoomTitik);
       }
       if (lapisBaru) {
-        lapisBaru.clearLayers();
-        if (adaTitik) {
-          L.circleMarker([la, ln], { radius: 22, color: "#F2711C", weight: 2, fillColor: "#F2711C", fillOpacity: .15, interactive: false }).addTo(lapisBaru);
-          L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#F2711C", fillOpacity: 1, interactive: false }).addTo(lapisBaru);
+        if (!adaTitik) {
+          lapisBaru.clearLayers(); penandaLuar = null; penandaDalam = null;
+        } else {
+          if (!penandaDalam) {
+            lapisBaru.clearLayers();
+            penandaLuar = L.circleMarker([la, ln], { radius: 22, color: "#F2711C", weight: 2, fillColor: "#F2711C", fillOpacity: .15, interactive: false }).addTo(lapisBaru);
+            penandaDalam = L.circleMarker([la, ln], { radius: 10, color: "#fff", weight: 3, fillColor: "#F2711C", fillOpacity: 1, interactive: false }).addTo(lapisBaru);
+            gambarGaris(la, ln);
+          } else geserPenanda(la, ln, halus);
         }
       }
     }
-    // garis putus-putus dari titik ke kartu
+    if (!adaTitik) gambarGaris(null, null);
+  }
+
+  /* garis putus-putus dari titik di peta ke kartu laporan. Elemennya dipakai
+     ulang - kalau ditulis ulang tiap bingkai, animasinya jadi mahal. */
+  function gambarGaris(la, ln) {
     const garis = $('[data-tv="garis"]');
-    if (peta && adaTitik) {
-      const pt = peta.latLngToContainerPoint([la, ln]);
-      garis.innerHTML = '<line x1="' + pt.x + '" y1="' + pt.y + '" x2="' + (1920 - 48 - 660) + '" y2="320" stroke="#F2711C" stroke-width="2" stroke-dasharray="6 6"/>';
-    } else garis.innerHTML = "";
+    if (!garis) return;
+    if (!peta || !isFinite(la) || !isFinite(ln)) { garis.innerHTML = ""; return; }
+    let baris = garis.firstElementChild;
+    if (!baris) {
+      garis.innerHTML = '<line x2="' + (1920 - 48 - 660) + '" y2="320" stroke="#F2711C" stroke-width="2" stroke-dasharray="6 6"/>';
+      baris = garis.firstElementChild;
+    }
+    const pt = peta.latLngToContainerPoint([la, ln]);
+    baris.setAttribute("x1", pt.x);
+    baris.setAttribute("y1", pt.y);
+  }
+
+  /* Menggeser penanda dari letak lama ke letak baru. Dua lingkaran SVG saja,
+     jadi aman digambar 60 kali sedetik. */
+  function geserPenanda(la, ln, halus) {
+    if (rafGeser) { cancelAnimationFrame(rafGeser); rafGeser = 0; }
+    if (!penandaDalam) return;
+    const diam = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+    const dari = penandaDalam.getLatLng();
+    const langsung = function () {
+      penandaLuar.setLatLng([la, ln]); penandaDalam.setLatLng([la, ln]); gambarGaris(la, ln);
+    };
+    if (!halus || diam || !dari || (Math.abs(dari.lat - la) < 1e-7 && Math.abs(dari.lng - ln) < 1e-7)) { langsung(); return; }
+    const t0 = (window.performance || Date).now();
+    const langkah = function (kini) {
+      const t = Math.min(1, (kini - t0) / GESER_MS);
+      const e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const y = dari.lat + (la - dari.lat) * e, x = dari.lng + (ln - dari.lng) * e;
+      penandaLuar.setLatLng([y, x]); penandaDalam.setLatLng([y, x]); gambarGaris(y, x);
+      if (t < 1) { rafGeser = requestAnimationFrame(langkah); return; }
+      rafGeser = 0; langsung();
+    };
+    rafGeser = requestAnimationFrame(langkah);
   }
   function gantiFoto() {
     const img = akar.querySelectorAll(".tv-foto img");
@@ -25939,6 +26193,13 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     document.documentElement.classList.remove("rk-tv-aktif");
     clearInterval(jamDetik); clearInterval(jamSegar); clearInterval(jamFoto); clearInterval(jamTarik); clearInterval(jamCek);
     clearInterval(jamGiliran); jamGiliran = 0;
+    if (jamMorph) { clearTimeout(jamMorph); jamMorph = 0; }
+    if (rafGeser) { cancelAnimationFrame(rafGeser); rafGeser = 0; }
+    if (jamTeks) { clearTimeout(jamTeks); jamTeks = 0; }
+    if (jamFotoPudar) { clearTimeout(jamFotoPudar); jamFotoPudar = 0; }
+    teksTertunda = null; fotoTertunda = null;
+    const ket = $(".tv-ket"); if (ket) ket.classList.remove("tv-ket-pudar");
+    const ftk = $('[data-tv="foto"]'); if (ftk) ftk.classList.remove("tv-foto-pudar");
     if (kunciLayar) { try { kunciLayar.release(); } catch (e) {} kunciLayar = null; }
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
     // alamat ?tv dibersihkan supaya muat ulang berikutnya kembali ke dasbor
