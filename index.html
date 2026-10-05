@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxFW7hBLB_uD_BmW2L6k17elahGN08THfqbDVdqn5KWLVq2kRqkI4jqFPzJDsPepA1u/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxugVSSAkA1iQ3hbQq3O2db7yQsyVsZCznbntGlmr_wtb9rkm0a2Z8uk2HVBefguFkF/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5787,7 +5787,7 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue, adaDo
                        accept="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'image/png, image/jpeg, image/jpg' : '.pdf,.jpg,.jpeg,.png'}"
                        multiple class="rkd-file rkd-file-tersembunyi" onchange="rkPilihBerkas(this)">
                 <span class="material-symbols-outlined">attach_file</span>
-                <span class="rkd-pilih-teks"><b data-kosong="${tileFoto ? 'Pilih foto' : 'Pilih berkas'}">${tileFoto ? 'Pilih foto' : 'Pilih berkas'}</b><s data-kosong="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}">${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG/PNG · boleh lebih dari satu' : 'PDF atau foto · boleh lebih dari satu'}</s></span>
+                <span class="rkd-pilih-teks"><b data-kosong="${tileFoto ? 'Pilih foto' : 'Pilih berkas'}">${tileFoto ? 'Pilih foto' : 'Pilih berkas'}</b><s data-kosong="${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG atau PNG' : 'PDF atau foto'}">${(tipeInput === 'serahTerima' || tipeInput === 'monitoring') ? 'Foto JPG atau PNG' : 'PDF atau foto'}</s></span>
             </label>
             <div class="rkd-tombol-baris kiri">
                 <button id="upload-${tipeInput}-btn" onclick="handleSidebarUpload('${tipeInput}', '${idx}')" class="rkd-tombol-garis">
@@ -16019,6 +16019,10 @@ body.rk #sidebar .rkd-input:disabled{opacity:.6}
 .rkd-tombol-baris.kiri{justify-content:flex-start}
 .rkd-tombol-baris.rapat{margin-top:0}
 .rkd-tombol-baris .rkd-tombol-garis{margin-top:0}
+/* dua tombol dalam satu baris alat unggah dibagi rata lebarnya; min-width
+   fit-content supaya tulisannya tidak pernah terdesak - kalau tidak muat
+   bersebelahan, keduanya turun jadi satu tombol selebar baris */
+.rkd-unggah .rkd-tombol-baris:has(> button + button) > button{flex:1 1 0;min-width:fit-content}
 .rkd-taut{margin:2px 0 0;padding:4px 0;border:0;background:none;color:var(--rk-api);font-size:12px;font-weight:700}
 .rkd-taut:hover{gap:8px}
 .rkd-ai{height:28px;padding:0 11px;border-radius:99px;border:1px solid color-mix(in srgb,var(--rk-api) 40%,var(--rk-sekat));
