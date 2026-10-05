@@ -2650,7 +2650,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxugVSSAkA1iQ3hbQq3O2db7yQsyVsZCznbntGlmr_wtb9rkm0a2Z8uk2HVBefguFkF/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -5810,7 +5810,7 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue, adaDo
                 <span class="rkd-label">${labelTgl}</span>
                 <input type="date" id="input-tgl-${tipeInput}" value="${tglValue || ''}"
                        onchange="if (this.value) this.closest('.rkd-tanggal').classList.remove('rkd-tanggal-kosong', 'rkd-tanggal-sorot'); updateTanggalKeDatabase('${colNameTgl}', this.value, '${idx}')" class="rkd-input">
-                <em class="rkd-tgl-peringatan"><span class="material-symbols-outlined">event_busy</span>Dokumen atau foto ${tipeInput === 'serahTerima' ? 'serah terima' : 'monitoring'} sudah ada, tanggalnya belum diisi. Laporan bulanan memakai tanggal ini untuk mencatat kapan ${tipeInput === 'serahTerima' ? 'bantuan diserahkan' : 'monitoring dilakukan'}.</em>
+                <em class="rkd-tgl-peringatan"><span class="material-symbols-outlined">info</span>Dipakai laporan bulanan untuk mencatat kapan ${tipeInput === 'serahTerima' ? 'bantuan diserahkan' : 'monitoring dilakukan'}.</em>
             </label>`;
     }
 
@@ -5823,8 +5823,8 @@ function renderDokumenSection(judul, linkString, tipeInput, idx, tglValue, adaDo
             <div class="rkd-dok-kep">
                 <span class="material-symbols-outlined">${tileFoto ? 'photo_library' : 'folder_managed'}</span>
                 <b>${judul}</b>
-                ${status}
             </div>
+            <div class="rkd-dok-status">${status}</div>
             ${dateInputHtml}
             ${linksHtml}
             ${uploadHtml}
@@ -16120,6 +16120,12 @@ body.rk #sidebar .rkd-cari .rkd-input{padding-left:36px}
 .rkd-dok.ada .rkd-dok-kep > .material-symbols-outlined{color:var(--rk-laut)}
 .rkd-dok-kep b{font-size:13px;font-weight:700;color:var(--rk-tinta)}
 .rkd-dok-kep .rkd-cip{margin-left:auto;font-size:11px}
+/* Baris status sendiri. Dulu cipnya ikut di baris judul, dan karena cip
+   tidak boleh patah, judul panjang seperti "Foto Serah Terima" yang
+   mengalah - pecah jadi tiga baris. */
+.rkd-dok-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 11px}
+.rkd-dok-status:empty{display:none}
+.rkd-dok-status .rkd-cip{font-size:11px}
 .rkd-tanggal{display:block}
 body.rk #sidebar .rkd-tanggal .rkd-input{background-color:var(--rk-padat)}
 .rkd-berkas-daftar{display:flex;flex-wrap:wrap;gap:6px}
@@ -24717,15 +24723,18 @@ html[data-saku] .rkd-unggah-kep-tk b{color:var(--sk-tinta)}
 html[data-saku] .rkd-dokj-ikon{border-color:var(--sk-garis,rgba(255,255,255,.14))}
 html[data-saku] .rkd-dokj-catatan{color:var(--sk-tinta)}
 /* tanggal serah terima/monitoring kosong */
-.rkd-tgl-peringatan{display:none;align-items:flex-start;gap:6px;margin-top:6px;font-style:normal;font-size:11.5px;line-height:1.45;color:var(--rk-emas)}
-.rkd-tgl-peringatan .material-symbols-outlined{font-size:16px}
+.rkd-tgl-peringatan{display:none;align-items:flex-start;gap:7px;margin-top:7px;font-style:normal;font-size:11px;line-height:1.5;color:var(--rk-sedang)}
+.rkd-tgl-peringatan .material-symbols-outlined{flex:0 0 auto;margin-top:1px;font-size:14px;color:var(--rk-emas)}
 .rkd-tanggal-kosong .rkd-tgl-peringatan{display:flex}
 .rkd-tanggal-kosong .rkd-input{border-color:var(--rk-emas) !important;box-shadow:0 0 0 3px color-mix(in srgb,var(--rk-emas) 18%,transparent)}
 .rkd-tanggal-sorot .rkd-input{animation:rkd-sorot-tgl 1.2s ease 2}
 @keyframes rkd-sorot-tgl{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--rk-emas) 35%,transparent)}}
 @media (prefers-reduced-motion:reduce){.rkd-tanggal-sorot .rkd-input{animation:none}}
-.rkd-cip.tunggu{color:var(--rk-emas);background:color-mix(in srgb,var(--rk-emas) 14%,transparent)}
-html[data-saku] .rkd-tgl-peringatan{color:var(--sk-emas,#C98A12)}
+/* kuning cukup sekali - sorotannya dibuang, warnanya saja yang membedakan */
+.rkd-cip.tunggu{--c:var(--rk-emas);color:var(--rk-emas)}
+html[data-saku] body.rk #sidebar .rkd-cip.tunggu{--c:var(--sk-emas);color:var(--sk-emas);background:var(--sk-emas-lembut)}
+html[data-saku] .rkd-tgl-peringatan{color:var(--sk-sedang)}
+html[data-saku] .rkd-tgl-peringatan .material-symbols-outlined{color:var(--sk-emas,#C98A12)}
 /* daftar tunggakan (panel kanan) */
 #rk-kerja .rk-kaki{display:flex;align-items:center;gap:12px}
 #rk-kerja .rk-jam.telat b{color:var(--rk-merah) !important}
