@@ -2636,7 +2636,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbxuRWWyw6wHOnrnERohcTYrhmpybvqME-k4lSL0oN_qOBUUB37LwtfW_AsEXPqs4u_s/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwFz_muW6KaDrH_xYm2MNPj4QWXNGQeoKv_p7aBMpvkaopDaAXrKZFCnnKjcXRl64dg/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -4768,7 +4768,45 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
         }
 
 	// 1. FUNGSI UNTUK MENCETAK KOTAK EDIT & LOGO PENSIL
-        function createEditableField(item, label, value, columnName, objKey, inputType = 'text', options = []) {
+        /* Nomor surat dipakai dengan cara disalin ke surat lain. Dulu harus
+           diblok manual dengan tetikus di panel selebar 267 px. */
+        window.rkSalinNomor = async function (tombol, teks) {
+            if (!tombol) return;
+            const semula = tombol.innerHTML;
+            const tandai = function (ikon, kelas) {
+                tombol.innerHTML = '<span class="material-symbols-outlined">' + ikon + '</span>';
+                tombol.classList.add(kelas);
+                setTimeout(function () {
+                    tombol.innerHTML = semula;
+                    tombol.classList.remove(kelas);
+                }, 1400);
+            };
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(teks);
+                } else {
+                    /* Papan klip modern butuh https. Di http atau peramban lama
+                       dipakai cara lama, bukan dibiarkan diam tanpa kabar. */
+                    const kotak = document.createElement('textarea');
+                    kotak.value = teks;
+                    kotak.setAttribute('readonly', '');
+                    kotak.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+                    document.body.appendChild(kotak);
+                    kotak.select();
+                    const berhasil = document.execCommand('copy');
+                    kotak.remove();
+                    if (!berhasil) throw new Error('papan klip menolak');
+                }
+                tandai('check', 'berhasil');
+            } catch (e) {
+                tandai('error', 'gagal');
+                if (typeof showNotification === 'function') {
+                    showNotification('Nomor tidak bisa disalin otomatis. Blok nomornya lalu salin manual.');
+                }
+            }
+        };
+
+        function createEditableField(item, label, value, columnName, objKey, inputType = 'text', options = [], kosongTeks = '') {
             const fieldId = `field-${objKey}-${item.idx}`;
             let inputHtml = '';
             const safeValue = value ? String(value).replace(/"/g, '&quot;') : '';
@@ -4812,6 +4850,13 @@ function prosesDataLaporan(rawData, tokenSaatMinta) {
             if (inputType === 'rupiah') tampil = isFinite(angkaTampil) ? formatRupiah(angkaTampil) : '-';
             else if (inputType === 'koordinat') tampil = isFinite(angkaTampil) ? angkaTampil.toFixed(6) : '-';
             else if (inputType === 'angka') tampil = isFinite(angkaTampil) ? angkaTampil.toLocaleString('id-ID') + (objKey === 'jumlahKeluarga' ? ' jiwa' : '') : '-';
+
+            /* Kolom yang memintanya menulis "Belum ada", bukan tanda hubung:
+               tanda hubung tidak bisa dibedakan dari "memang tidak perlu".
+               Kolom lain tidak berubah - kosongTeks kosong secara bawaan. */
+            if (kosongTeks && (tampil === '-' || tampil === '')) {
+                tampil = `<span class="rkd-nilai-kosong">${kosongTeks}</span>`;
+            }
 
             // Pensil per kolom sudah tidak ada: semua kotak dibuka sekaligus lewat
             // tombol "Edit" di kepala Informasi Utama. openInlineEdit() tetap
@@ -6300,28 +6345,51 @@ function openImagePreview(originalUrl) {
                     }
                 }
 
-                let inputSuratSatuDua = '';
-                let inputSuratTiga = '';
-
+                /* Satu kartu per surat. Nama suratnya tidak lagi diawali "No."
+                   - nomornya sendiri yang jadi isi kartu, jadi awalan itu cuma
+                   mengulang. Nama kolom di spreadsheet TIDAK ikut berubah. */
+                const adaNomor = function (v) {
+                    return !(v === undefined || v === null || String(v).trim() === '' || String(v).trim() === '-');
+                };
+                const escSurat = function (v) {
+                    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+                        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                    });
+                };
+                const daftarSurat = [];
                 // Dua surat awal HANYA JIKA dapat material selain terpal
                 if (dptMaterialLain) {
-                    inputSuratSatuDua = `
-                        ${createEditableField(data, 'No. Perintah Pengiriman Bantuan', data.noSuratPengiriman, 'No. Surat Pengiriman', 'noSuratPengiriman', 'text')}
-                        ${createEditableField(data, 'No. B.A Penyerahan Barang', data.noBAPenyerahan, 'No. B.A Penyerahan', 'noBAPenyerahan', 'text')}
-                    `;
+                    daftarSurat.push({ nama: 'Perintah Pengiriman Bantuan', nilai: data.noSuratPengiriman, kolom: 'No. Surat Pengiriman', kunci: 'noSuratPengiriman' });
+                    daftarSurat.push({ nama: 'B.A. Penyerahan Barang', nilai: data.noBAPenyerahan, kolom: 'No. B.A Penyerahan', kunci: 'noBAPenyerahan' });
                 }
-
                 // Surat ke-3 HANYA JIKA dapat terpal
                 if (dptTerpal) {
-                    inputSuratTiga = createEditableField(data, 'No. B.A Penyerahan (Khusus Terpal)', data.noBATerpal, 'No. B.A Terpal', 'noBATerpal', 'text');
+                    daftarSurat.push({ nama: 'B.A. Penyerahan Terpal', nilai: data.noBATerpal, kolom: 'No. B.A Terpal', kunci: 'noBATerpal' });
                 }
+                const suratTerisi = daftarSurat.filter(function (x) { return adaNomor(x.nilai); }).length;
+                const kartuSurat = daftarSurat.map(function (x) {
+                    const ada = adaNomor(x.nilai);
+                    return '<div class="rkreg-kartu' + (ada ? '' : ' kosong') + '">' +
+                        createEditableField(data, x.nama, x.nilai, x.kolom, x.kunci, 'text', [], 'Belum ada') +
+                        (ada
+                            ? '<button type="button" class="rkreg-salin" title="Salin nomor ' + escSurat(x.nama.toLowerCase()) + '"' +
+                                ' onclick="rkSalinNomor(this, \'' + escSurat(x.nilai) + '\')">' +
+                                '<span class="material-symbols-outlined" aria-hidden="true">content_copy</span></button>'
+                            : '') +
+                    '</div>';
+                }).join('');
+                /* Kepala tile menyebut sudah berapa yang terisi - dulu harus
+                   dibaca ketiganya dulu untuk tahu ada yang tertinggal. */
+                const cipSurat = daftarSurat.length
+                    ? '<span class="rkd-cip ' + (suratTerisi === daftarSurat.length ? 'tuntas' : 'monitor') + '">' +
+                        suratTerisi + ' dari ' + daftarSurat.length + '</span>'
+                    : '';
 
                 regSuratHtml = `
-                    <section class="rkd-bagian">
-                        ${kepBagian('tag', 'Register Nomor Surat')}
+                    <section class="rkd-bagian rkreg">
+                        ${kepBagian('tag', 'Register Nomor Surat', cipSurat)}
                         <div class="rkd-kisi satu">
-                            ${inputSuratSatuDua}
-                            ${inputSuratTiga}
+                            ${kartuSurat}
                         </div>
                     </section>
                 `;
@@ -6522,9 +6590,8 @@ function openImagePreview(originalUrl) {
 
                 ${isLoggedIn ? `
                 <section class="rkd-bagian rkh-zona rkd-saat-edit">
-                    <span class="rkh-lmb"><span class="material-symbols-outlined">delete_forever</span></span>
-                    <span class="rkh-teks"><b>Hapus laporan</b><s>Berkas &amp; bantuan ikut dibereskan</s></span>
-                    <button type="button" class="rkh-picu" onclick="rkHapusLaporan.buka('${data.idx}')">Hapus</button>
+                    <span class="rkh-teks"><b>Hapus laporan</b><s>Foto &amp; dokumen ke Sampah Drive, bantuan kembali ke stok</s></span>
+                    <button type="button" class="rkh-picu" onclick="rkHapusLaporan.buka('${data.idx}')"><span class="material-symbols-outlined" aria-hidden="true">delete_forever</span>Hapus</button>
                 </section>` : ''}
             `;
 
@@ -28980,29 +29047,71 @@ html[data-saku] #rkv .rkv-tutup-kiri{display:grid}
 /* Merahnya diambil dari palet aplikasi: --rk-merah + tintnya --rk-merah-t.
    Sempat saya buatkan token sendiri karena --rk-r3 ("Rusak Berat") ternyata
    oranye - padahal merah yang benar memang sudah ada. */
-:root{--rkh-garis:var(--rk-sekat);--rkh-redup:var(--rk-tipis)}
+:root{--rkh-garis:var(--rk-sekat);--rkh-redup:var(--rk-tipis);--rkh-judul:var(--rk-sedang)}
 /* Panel di mode saku memakai palet --sk-*; memakai --rk-* di sana membuat
    garis dan teksnya nyaris tak terlihat di atas kartu saku. */
-html[data-saku]{--rkh-garis:var(--sk-garis);--rkh-redup:var(--sk-tipis)}
+html[data-saku]{--rkh-garis:var(--sk-garis);--rkh-redup:var(--sk-tipis);--rkh-judul:var(--sk-sedang)}
+/* ══ REGISTER NOMOR SURAT ══
+   Tiap nomor jadi kotaknya sendiri supaya terbaca sebagai benda yang bisa
+   diambil, bukan sekadar teks. Labelnya dulu huruf besar monospace
+   berjarak lebar - terukur selebar penuh tilenya, lebih berat daripada
+   nomor yang dijelaskannya. */
+.rkreg .rkd-kisi.satu{display:flex;flex-direction:column;gap:7px}
+.rkreg-kartu{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;
+  border:1px solid var(--rk-sekat);background:var(--rk-padat)}
+.rkreg-kartu.kosong{background:none;border-style:dashed;
+  border-color:color-mix(in srgb,var(--rk-emas) 40%,var(--rk-sekat))}
+.rkreg-kartu > .rkd-medan{flex:1 1 auto;min-width:0}
+.rkreg .rkd-label{margin:0 0 3px;font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+  font-size:10.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--rk-tipis)}
+/* nomornya boleh turun baris - dulu dipotong titik-titik kalau kepanjangan */
+.rkreg .rkd-nilai{font:500 12.5px "DM Mono",ui-monospace,monospace;letter-spacing:-.01em;
+  color:var(--rk-tinta);white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.rkd-nilai-kosong{font:600 11.5px "Plus Jakarta Sans",system-ui,sans-serif;color:var(--rk-emas)}
+.rkreg-salin{flex:0 0 auto;display:grid;place-items:center;width:28px;height:28px;border-radius:8px;
+  border:1px solid var(--rk-sekat);background:none;color:var(--rk-tipis);cursor:pointer;
+  transition:border-color .15s,color .15s}
+.rkreg-salin .material-symbols-outlined{font-size:15px}
+.rkreg-salin:hover{border-color:var(--rk-api);color:var(--rk-api)}
+.rkreg-salin.berhasil{border-color:var(--rk-laut);color:var(--rk-laut)}
+.rkreg-salin.gagal{border-color:var(--rk-merah);color:var(--rk-merah)}
+/* Mode edit: kotaknya dilepas supaya kotak isian punya ruang penuh, dan
+   tombol salin disembunyikan - tidak masuk akal menyalin nomor yang
+   sedang diketik. */
+#sidebar.rkd-menyunting .rkreg-kartu{display:block;padding:0;border:0;background:none}
+#sidebar.rkd-menyunting .rkreg-salin{display:none}
+#sidebar.rkd-menyunting .rkreg .rkd-kisi.satu{gap:14px}
+html[data-saku] .rkreg-kartu{border-radius:14px;background:var(--sk-kartu2,rgba(255,255,255,.04));
+  border-color:var(--sk-garis,rgba(255,255,255,.12))}
+html[data-saku] .rkreg-kartu.kosong{background:none;
+  border-color:color-mix(in srgb,var(--sk-emas,#F5B544) 40%,var(--sk-garis,rgba(255,255,255,.14)))}
+html[data-saku] .rkreg .rkd-label{color:var(--sk-tipis)}
+html[data-saku] .rkreg .rkd-nilai{color:var(--sk-tinta)}
+html[data-saku] .rkreg-salin{width:34px;height:34px;border-radius:50%;
+  border-color:var(--sk-garis,rgba(255,255,255,.14))}
 /* Zona hapus (bentuk D): satu baris - lambang, keterangan, tombol.
    Tile lain memberi padding atas nol karena mengandalkan kepala bagiannya;
    zona ini tidak punya kepala, jadi paddingnya dipasang sendiri. */
 .rkh-zona{display:flex;align-items:center;gap:12px}
 html:not([data-saku]) body.rk .rkd-kol > .rkh-zona{padding:12px 14px}
 html[data-saku] body.rk #sidebar .rkh-zona{padding:14px 16px}
-.rkh-lmb{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
-  background:var(--rk-merah-t);color:var(--rk-merah)}
-.rkh-lmb .material-symbols-outlined{font-size:18px}
-html[data-saku] .rkh-lmb{width:40px;height:40px;border-radius:50%}
+/* Lambang merah 34x34 dibuang. Dulu dia benda paling mencolok di baris
+   ini, padahal menghapus laporan justru tindakan yang tidak ingin sering
+   ditekan - ikonnya cukup menempel di tombolnya saja. */
 .rkh-teks{flex:1;min-width:0}
-.rkh-teks b{display:block;font-size:13px;font-weight:700;color:inherit}
+.rkh-teks b{display:block;font-size:13px;font-weight:600;color:var(--rkh-judul)}
 .rkh-teks s{display:block;margin-top:2px;text-decoration:none;font-size:11px;line-height:1.4;color:var(--rkh-redup)}
 html[data-saku] .rkh-teks b{font-size:14px}
-.rkh-picu{flex:0 0 auto;height:32px;padding:0 13px;border-radius:9px;border:1px solid var(--rk-merah);
-  background:transparent;color:var(--rk-merah);font:700 12px inherit;cursor:pointer;transition:background .15s}
-.rkh-picu:hover{background:var(--rk-merah-t)}
-.rkh-picu:focus-visible{outline:2px solid var(--rk-merah);outline-offset:2px}
-html[data-saku] .rkh-picu{height:36px;padding:0 15px}
+/* Polos sampai disentuh - garis merahnya baru muncul saat disorot atau
+   difokus papan tik, supaya tombol ini tidak menarik mata lebih dulu
+   daripada tile yang memang perlu dibaca. */
+.rkh-picu{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;
+  border-radius:9px;border:1px solid transparent;background:transparent;color:var(--rk-merah);
+  font:700 12px inherit;cursor:pointer;transition:background .15s,border-color .15s}
+.rkh-picu .material-symbols-outlined{font-size:16px}
+.rkh-picu:hover{border-color:var(--rk-merah);background:color-mix(in srgb,var(--rk-merah) 10%,transparent)}
+.rkh-picu:focus-visible{border-color:var(--rk-merah);outline:2px solid var(--rk-merah);outline-offset:2px}
+html[data-saku] .rkh-picu{height:36px;padding:0 14px}
 
 #rkh-tirai{position:fixed;inset:0;z-index:1000000;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
