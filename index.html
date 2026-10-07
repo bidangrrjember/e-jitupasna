@@ -1880,7 +1880,7 @@ html.dark #loader{background:#0B1215 !important}
                     <div style="display:none;"><input type="text" id="bencana" name="bencana"></div>
                     <div class="rkf-medan s2">
                         <label for="jenisBencana" class="rkf-label">Jenis Bencana</label>
-                        <select id="jenisBencana" name="jenisBencana"><option value="">Pilih...</option><option value="Cuaca Ekstrem">Cuaca Ekstrem</option><option value="Banjir">Banjir</option><option value="Kebakaran">Kebakaran</option><option value="Gempa Bumi">Gempa Bumi</option><option value="Gunung Meletus">Gunung Meletus</option><option value="Tsunami">Tsunami</option><option value="Tanah Longsor">Tanah Longsor</option></select>
+                        <select id="jenisBencana" name="jenisBencana"><option value="">Pilih...</option><option value="Cuaca Ekstrem">Cuaca Ekstrem</option><option value="Banjir">Banjir</option><option value="Kebakaran">Kebakaran</option><option value="Gempa Bumi">Gempa Bumi</option><option value="Gunung Meletus">Gunung Meletus</option><option value="Tsunami">Tsunami</option><option value="Tanah Longsor">Tanah Longsor</option><option value="Kegagalan Teknologi">Kegagalan Teknologi</option></select>
                     </div>
                     <div class="rkf-medan s2">
                         <label for="sektor" class="rkf-label">Sektor E-JITUPASNA</label>
@@ -2636,7 +2636,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvc3EqXoD0JFr9LF6O2Ziun74su3E3AEPVMxYiLKXJpnpwMzP3-_vBWewXRnyUdcZt/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbyy1UH0F2Biw2zVsoov8AksuLNaI98xjyR75d2H55ryJ7dGmjrWsVuYd41gBSbgRDJ6/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -6526,7 +6526,7 @@ function openImagePreview(originalUrl) {
             const btnEditSemua = isLoggedIn ? `<button onclick="bukaEditSemua('${data.idx}')" class="rkd-tombol-garis kecil">${ikon('edit_note')} Edit</button>` : '';
 
             // Pilihan untuk dropdown edit
-            const daftarBencana = ["Cuaca Ekstrem", "Banjir", "Kebakaran", "Gempa Bumi", "Gunung Meletus", "Tsunami", "Tanah Longsor"];
+            const daftarBencana = ["Cuaca Ekstrem", "Banjir", "Kebakaran", "Gempa Bumi", "Gunung Meletus", "Tsunami", "Tanah Longsor", "Kegagalan Teknologi"];
             const daftarKecamatan = Object.keys(window.dataJember).sort();
             let daftarDesa = [];
             if (data.kec && window.dataJember[data.kec]) {
@@ -20262,7 +20262,7 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
     const kosong = modeBaru ? "Belum ada laporan tercatat." : "Tidak ada laporan yang menunggu.";
     return '<div class="sk-kartu" style="padding:14px 16px 6px">' +
       '<div class="sk-urut" style="font-size:' + (judulUkuran || 14.5) + 'px" role="group" aria-label="Urutan daftar">' +
-        tab("lama", "Paling lama") + tab("baru", "Terbaru") +
+        tab("lama", "Menunggu") + tab("baru", "Terbaru") +
         '<span class="sk-mono sk-urut-jml">' + fmt(q.length) + "</span></div>" +
       '<div class="sk-daftar" style="margin-top:4px">' + (baris.length ? baris.map(htmlBarisKerja).join("") : '<div class="sk-kosong">' + kosong + "</div>") +
       (q.length > jumlahBaris ? '<button type="button" class="sk-baris" data-aksi="semua-antrean" style="justify-content:center;color:var(--sk-api);font-size:12.5px;font-weight:700">Lihat semua ' + fmt(q.length) + "</button>" : "") +
@@ -26333,7 +26333,8 @@ body.rk.rk-nyala-siap #rk-pengaturan-btn.rk-nyala::before{opacity:1;transform:no
     "Kebakaran": "local_fire_department",
     "Banjir": "flood",
     "Tanah Longsor": "landslide",
-    "Gempa Bumi": "earthquake"
+    "Gempa Bumi": "earthquake",
+    "Kegagalan Teknologi": "engineering"
   };
   const ikonBencana = function (n) { return IKON_BENCANA[String(n == null ? "" : n).trim()] || "crisis_alert"; };
   const WARNA_BENCANA = {
@@ -27598,7 +27599,8 @@ html:not([data-saku]) body.rk #sidebar-footer{border-radius:0 0 22px 22px}
     [/gempa/, "earthquake"],
     [/angin|puting|beliung|cuaca|badai|petir/, "storm"],
     [/kekeringan|kemarau/, "water_drop"],
-    [/abrasi|gelombang|tsunami/, "waves"]
+    [/abrasi|gelombang|tsunami/, "waves"],
+    [/teknologi|industri|pabrik/, "engineering"]
   ];
   function ikonBencana(nama) {
     const n = String(nama == null ? "" : nama).toLowerCase();
