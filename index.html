@@ -2636,7 +2636,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwFz_muW6KaDrH_xYm2MNPj4QWXNGQeoKv_p7aBMpvkaopDaAXrKZFCnnKjcXRl64dg/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvc3EqXoD0JFr9LF6O2Ziun74su3E3AEPVMxYiLKXJpnpwMzP3-_vBWewXRnyUdcZt/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -19166,6 +19166,15 @@ canvas.sk-peta{position:absolute;inset:0;width:100%;height:100%;display:block}
 .sk-petamini{position:relative;border:0;padding:0;border-radius:20px;overflow:hidden;cursor:pointer;background:var(--sk-peta1);display:block;width:100%}
 
 /* daftar */
+/* Tab urutan di kepala kartu daftar beranda. Menggantikan judul tunggal
+   "Paling lama menunggu" - dulu itu satu-satunya daftar di beranda HP. */
+.sk-urut{display:flex;align-items:center;gap:4px;margin:0 0 2px -2px}
+.sk-urut-tab{flex:0 0 auto;height:30px;padding:0 12px;border:0;border-radius:99px;cursor:pointer;
+  background:none;color:var(--sk-tipis);font-family:inherit;font-size:inherit;font-weight:700;
+  transition:background .15s,color .15s}
+.sk-urut-tab.on{background:var(--sk-kartu2);color:var(--sk-tinta)}
+.sk-urut-tab:focus-visible{outline:2px solid var(--sk-api);outline-offset:2px}
+.sk-urut-jml{margin-left:auto;flex:0 0 auto;color:var(--sk-api);font-size:12px}
 .sk-daftar{display:flex;flex-direction:column}
 .sk-daftar > .sk-baris{display:flex;align-items:center;gap:12px;padding:11px 2px;border:0;border-top:1px solid var(--sk-garis);background:none;
   width:100%;text-align:left;color:inherit;cursor:pointer}
@@ -20080,7 +20089,8 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
 
   const S = {
     tab: "peta", petaPenuh: false, sub: "", detail: null, lapor: false, langkah: 0,
-    analisisTahun: false, analisisKec: "all", trenSkala: "bulan", trenGeser: 0, gudangSeg: "stok", desktop: null, lembarAtas: null
+    analisisTahun: false, analisisKec: "all", trenSkala: "bulan", trenGeser: 0, gudangSeg: "stok", desktop: null, lembarAtas: null,
+    berandaUrut: "lama"   // "lama" = paling lama menunggu, "baru" = terbaru
   };
 
   /* ═══ data ═══════════════════════════════════════════════════════════ */
@@ -20115,6 +20125,18 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       if (a.st !== b.st) return a.st === "salur" ? -1 : 1;
       return b.hari - a.hari;
     });
+  }
+  /* Sengaja memuat SEMUA status, termasuk yang sudah tuntas. Kalau yang
+     tuntas dibuang seperti di antrean(), laporan yang masuk hari ini dan
+     langsung ditangani tidak akan pernah muncul di beranda - persis
+     keadaan yang dikeluhkan. */
+  function terbaru() {
+    return semua().filter(function (it) { return it.dateObj && !isNaN(it.dateObj); })
+      .slice()
+      .sort(function (a, b) { return b.dateObj - a.dateObj; })
+      .map(function (it) {
+        return { it: it, st: statusOf(it), hari: hariSejak(it), telat: false, baru: true };
+      });
   }
   function statusAktif() { return (typeof currentStatusFilter !== "undefined") ? currentStatusFilter : "all"; }
   const CIP = { salur: ["merah", "Salurkan"], monitor: ["emas", "Monitor"], tuntas: ["laut", "Tuntas"] };
@@ -20218,16 +20240,31 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       }).join("") + "</div>";
   }
   function htmlBarisKerja(a) {
-    return '<button type="button" class="sk-baris" data-idx="' + a.it.idx + '"><span class="sk-jam"><b class="sk-tebal"' + (a.telat ? ' style="color:var(--sk-merah,#E5534B)" title="Menunggu lebih dari 30 hari"' : a.st === "salur" ? ' style="color:var(--sk-api)"' : "") + ">" + a.hari +
+    /* Merah = menunggu lewat 30 hari. Di daftar "Terbaru" angkanya umur
+       laporan, bukan lama menunggu, jadi tidak boleh ikut merah - yang
+       baru masuk justru ditandai warna aksen. */
+    return '<button type="button" class="sk-baris" data-idx="' + a.it.idx + '"><span class="sk-jam"><b class="sk-tebal"' + (a.telat ? ' style="color:var(--sk-merah,#E5534B)" title="Menunggu lebih dari 30 hari"' : (a.baru || a.st === "salur") ? ' style="color:var(--sk-api)"' : "") + ">" + a.hari +
       '</b><s>hari</s></span><span class="sk-det"><b>' + esc(a.it.nama || "-") + "</b><s>" + esc([a.it.desakelurahan, a.it.kec].filter(Boolean).join(", ")) +
       '</s></span><span class="sk-cip ' + CIP[a.st][0] + '">' + CIP[a.st][1] + "</span></button>";
   }
+  /* Dua tab di kartu yang sama, bukan kartu kedua: beranda HP itu layar
+     sekilas, dan di atas kartu ini sudah ada kartu ringkasan yang besar.
+     "Paling lama" tetap yang terbuka duluan - itu urutan kerjanya. */
   function kartuKerja(jumlahBaris, judulUkuran) {
-    const q = antrean();
+    const modeBaru = S.berandaUrut === "baru";
+    const q = modeBaru ? terbaru() : antrean();
     const baris = q.slice(0, jumlahBaris);
+    const tab = function (nilai, teks) {
+      const on = S.berandaUrut === nilai;
+      return '<button type="button" class="sk-urut-tab' + (on ? " on" : "") + '" data-aksi="beranda-urut" data-nilai="' +
+        nilai + '" aria-pressed="' + on + '">' + teks + "</button>";
+    };
+    const kosong = modeBaru ? "Belum ada laporan tercatat." : "Tidak ada laporan yang menunggu.";
     return '<div class="sk-kartu" style="padding:14px 16px 6px">' +
-      '<div style="display:flex;align-items:baseline;gap:8px"><b style="font-size:' + (judulUkuran || 14.5) + 'px">Paling lama menunggu</b><span class="sk-mono sk-kanan" style="color:var(--sk-api);font-size:12px">' + fmt(q.length) + "</span></div>" +
-      '<div class="sk-daftar" style="margin-top:4px">' + (baris.length ? baris.map(htmlBarisKerja).join("") : '<div class="sk-kosong">Tidak ada laporan yang menunggu.</div>') +
+      '<div class="sk-urut" style="font-size:' + (judulUkuran || 14.5) + 'px" role="group" aria-label="Urutan daftar">' +
+        tab("lama", "Paling lama") + tab("baru", "Terbaru") +
+        '<span class="sk-mono sk-urut-jml">' + fmt(q.length) + "</span></div>" +
+      '<div class="sk-daftar" style="margin-top:4px">' + (baris.length ? baris.map(htmlBarisKerja).join("") : '<div class="sk-kosong">' + kosong + "</div>") +
       (q.length > jumlahBaris ? '<button type="button" class="sk-baris" data-aksi="semua-antrean" style="justify-content:center;color:var(--sk-api);font-size:12.5px;font-weight:700">Lihat semua ' + fmt(q.length) + "</button>" : "") +
       "</div></div>";
   }
@@ -21320,10 +21357,21 @@ html.rk-tenang .sk-halaman.on,html.rk-tenang .sk-pena.denyut::after,html.rk-tena
       }
       case "peta-penuh": S.petaPenuh = true; tampilkan(); break;
       case "ke-cuaca": pergi("cuaca"); break;
+      case "beranda-urut":
+        if (n && n !== S.berandaUrut) { S.berandaUrut = n; renderBeranda(); }
+        break;
       case "semua-antrean":
-        bukaPilih("Menunggu penanganan", antrean().slice(0, 80).map(function (x) {
-          return { label: x.it.nama || "-", sub: x.hari + " hari" + (x.telat ? " (lewat 30 hari)" : "") + " · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
-        }), function (o) { bukaDetail(o.it); });
+        /* Lembarnya mengikuti tab yang sedang terbuka - kalau tidak,
+           "Lihat semua 243" justru membuka daftar antrean yang 30. */
+        if (S.berandaUrut === "baru") {
+          bukaPilih("Laporan terbaru", terbaru().slice(0, 80).map(function (x) {
+            return { label: x.it.nama || "-", sub: x.hari + " hari lalu · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
+          }), function (o) { bukaDetail(o.it); });
+        } else {
+          bukaPilih("Menunggu penanganan", antrean().slice(0, 80).map(function (x) {
+            return { label: x.it.nama || "-", sub: x.hari + " hari" + (x.telat ? " (lewat 30 hari)" : "") + " · " + [x.it.desakelurahan, x.it.kec].filter(Boolean).join(", ") + " · " + CIP[x.st][1], it: x.it };
+          }), function (o) { bukaDetail(o.it); });
+        }
         break;
       case "pilih-kec": {
         const hit = {};
