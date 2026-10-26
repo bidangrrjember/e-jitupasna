@@ -2241,13 +2241,13 @@ html.dark #loader{background:#0B1215 !important}
           <div class="lgk-laci" id="stm-laci" role="menu"
                aria-labelledby="stm-pilihLaman" hidden>
             <button type="button" role="menuitem" id="stm-tab-ringkasan"
-                    onclick="STM.go('ringkasan')">
+                    onclick="STM.pilihLaman('ringkasan')">
               <span class="msym">insights</span>Ringkasan<s>kesiapan gudang</s></button>
             <button type="button" role="menuitem" class="stm-admin" id="stm-tab-mutasi"
-                    onclick="STM.go('mutasi')">
+                    onclick="STM.pilihLaman('mutasi')">
               <span class="msym">swap_vert</span>Mutasi<s id="stm-laciMutasi"></s></button>
             <button type="button" role="menuitem" id="stm-tab-barang"
-                    onclick="STM.go('barang')">
+                    onclick="STM.pilihLaman('barang')">
               <span class="msym">inventory_2</span>Barang<s id="stm-laciBarang"></s></button>
           </div>
           <div class="lgk-sb" id="stm-kepSub"></div>
@@ -2517,7 +2517,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzCmS_WNvfF9RI3KyPI0_Z6qxH--0-JGwaJkWUv7T_c9P3nYyQZyTB7kEZPs00DEUvR/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbwvw1zUUe1StRteBApZ1aQdYcZvEG67mvRccEHrgX8HdMe4W_OR0hIWOyVqK-wLmBBI/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -8267,7 +8267,10 @@ function customConfirm(message, title = 'Konfirmasi') {
 .stm-scope .lgk .mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
 .stm-scope .lgk-cap{flex:0 0 auto;font-size:9.5px;font-weight:800;letter-spacing:.09em;
   text-transform:uppercase;padding:4px 9px;border-radius:5px;border:1.5px solid var(--stm-border);
-  color:var(--stm-faint);transform:rotate(-2.4deg);white-space:nowrap;display:inline-block}
+  color:var(--stm-faint);white-space:nowrap;display:inline-block}
+/* Capnya TIDAK dimiringkan. Kemiringan itu meniru stempel karet, tapi
+   yang dicetak di sini kata yang harus dibaca cepat - dan teks miring
+   beberapa derajat terbaca sebagai cacat perataan, bukan sebagai watak. */
 .stm-scope .lgk-cap.k{border-color:var(--stm-danger);color:var(--stm-danger)}
 .stm-scope .lgk-cap.w{border-color:var(--stm-warning);color:var(--stm-warning)}
 .stm-scope .lgk-cap.a{border-color:var(--stm-success);color:var(--stm-success)}
@@ -9123,7 +9126,6 @@ window.STM = (function () {
     document.querySelectorAll("#logistik-view .lgk-laci button").forEach(function (x) {
       x.classList.toggle("on", x.id === "stm-tab-" + p);
     });
-    tutupLaci();
     setKepala(p);
 
     if (p === "ringkasan") loadRingkasan();
@@ -9147,6 +9149,10 @@ window.STM = (function () {
     if (tombol) tombol.setAttribute("aria-expanded", "false");
   }
 
+  /* Dipanggil tombol di dalam laci: tutup dulu, baru pindah. Dengan
+     begini go() boleh dipanggil dari mana saja tanpa mengganggu laci. */
+  function pilihLaman(p) { tutupLaci(); go(p); }
+
   function bukaLaci() {
     const laci = $("stm-laci"), tombol = $("stm-pilihLaman");
     if (!laci || !tombol) return;
@@ -9154,8 +9160,11 @@ window.STM = (function () {
     laci.hidden = !tampil;
     tombol.setAttribute("aria-expanded", tampil ? "true" : "false");
     if (tampil) {
-      const pilih = laci.querySelector("button.on") || laci.querySelector("button:not(.stm-hidden)");
-      if (pilih) pilih.focus();
+      requestAnimationFrame(function () {
+        const pilih = laci.querySelector("button.on") ||
+          laci.querySelector("button:not(.stm-hidden)");
+        if (pilih) pilih.focus();
+      });
     }
   }
 
@@ -10593,6 +10602,7 @@ window.STM = (function () {
   }
 
   function exitView() {
+    tutupLaci();
     document.body.classList.remove("logistik-aktif");
     hentikanPantau();
     const logistikView = $("logistik-view");
@@ -10661,7 +10671,8 @@ window.STM = (function () {
     addItemRow: addItemRow, removeItemRow: removeItemRow,
     openModal: openModal, closeModal: closeModal,
     salurkanDariLaporan: salurkanDariLaporan, injectSalurButton: injectSalurButton,
-    saringMutasi: saringMutasi, cetakRingkasan: cetakRingkasan, bukaLaci: bukaLaci,
+    saringMutasi: saringMutasi, cetakRingkasan: cetakRingkasan,
+    bukaLaci: bukaLaci, pilihLaman: pilihLaman,
     /* Buku besar dibuka apa adanya supaya layar lain (mode saku) tidak
        perlu mengais DOM untuk mendapatkannya. */
     ambilMutasi: async function (kelas) {
