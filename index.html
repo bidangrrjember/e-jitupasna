@@ -2517,7 +2517,7 @@ html.dark #loader{background:#0B1215 !important}
 
 
     <script>
-        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzOxZSKtPEZjM-whHnyomAneFOT_oRF007P34aNXr3aFseiPOtOho7aODT_SLeIET0N/exec';
+        const DATA_URL = 'https://script.google.com/macros/s/AKfycbzk4-XeO4hGu2nqjJqnTz8QqytVPDYjRerfGTjFm2cvU4c_77cVfbw0dT2C0kb-XTbo/exec';
         let allData = [];
 	let weatherChartInstance = null;
         let layerGroups = {};
@@ -8418,7 +8418,20 @@ html.dark .stm-scope .lgk{--lgk-auto:#7FB2E8}
   font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
   color:var(--stm-faint);display:flex;align-items:center}
 .stm-scope .lgk-rh s{text-decoration:none;margin-left:auto;font-weight:500;letter-spacing:.03em}
-.stm-scope .lgk-regIsi{overflow-y:auto;flex:1 1 auto;min-height:0}
+.stm-scope .lgk-regIsi{overflow-y:auto;flex:1 1 auto;min-height:0;scrollbar-width:thin}
+/* Bilah gulir tipis dan tenang: ada ketika perlu, tidak menarik perhatian. */
+.stm-scope .lgk-regIsi::-webkit-scrollbar,
+.stm-scope .lgk-kartu::-webkit-scrollbar,
+.stm-scope .stm-page::-webkit-scrollbar{width:9px}
+.stm-scope .lgk-regIsi::-webkit-scrollbar-thumb,
+.stm-scope .lgk-kartu::-webkit-scrollbar-thumb,
+.stm-scope .stm-page::-webkit-scrollbar-thumb{
+  background:var(--stm-highest);border-radius:99px;
+  border:3px solid transparent;background-clip:content-box;
+}
+.stm-scope .lgk-regIsi::-webkit-scrollbar-track,
+.stm-scope .lgk-kartu::-webkit-scrollbar-track,
+.stm-scope .stm-page::-webkit-scrollbar-track{background:transparent}
 .stm-scope .lgk-it{display:flex;align-items:center;gap:10px;padding:9px 15px;width:100%;
   border:0;border-bottom:1px solid var(--stm-container);border-left:3px solid transparent;
   background:none;text-align:left;color:inherit;font:inherit;cursor:pointer}
@@ -8436,7 +8449,11 @@ html.dark .stm-scope .lgk{--lgk-auto:#7FB2E8}
 .stm-scope .lgk-it .kp.w{color:var(--stm-warning)}
 .stm-scope .lgk-it .kp.a{color:var(--stm-success)}
 .stm-scope .lgk-it .kp.n{color:var(--stm-faint)}
-.stm-scope .lgk-kartu{flex:1 1 auto;min-width:0;padding:16px 19px 19px}
+/* padding-atas DIPINDAH ke anak pertama: elemen menempel (thead) memakai
+   top:0 relatif tepi wadah gulir, jadi kalau wadahnya berpadding-atas,
+   ada celah setinggi padding itu tempat baris terlihat menyelinap. */
+.stm-scope .lgk-kartu{flex:1 1 auto;min-width:0;padding:0 19px 19px}
+.stm-scope .lgk-kartu > .lgk-kjd{margin-top:16px}
 .stm-scope .lgk-kjd{display:flex;align-items:flex-start;gap:14px;padding-bottom:12px;
   border-bottom:1px dashed var(--stm-highest);margin-bottom:14px;flex-wrap:wrap}
 .stm-scope .lgk-kjd h2{margin:0;font-size:23px;font-weight:800;letter-spacing:-.025em;
@@ -12498,9 +12515,38 @@ body.rk #logistik-view{
 }
 body.rk #logistik-view > .stm-scope{
   height:100% !important;
-  overflow-y:auto !important;
+  /* Lembarnya sendiri TIDAK bergulir - daerah gulirnya ada di dalam,
+     supaya kepala laman tidak ikut naik meninggalkan layar. */
+  overflow:hidden !important;
+  display:flex;flex-direction:column;min-height:0;
   padding:24px 28px 20px !important;
   scrollbar-width:none;
+}
+/* ── rantai tinggi sampai ke daerah gulir ──────────────────────────────
+   Tiap mata rantai perlu min-height:0; tanpa itu anak flex menolak
+   mengecil di bawah tinggi isinya dan overflow-y tidak pernah aktif. */
+body.rk #logistik-view .stm-scope .lgk{flex:1 1 auto;min-height:0}
+body.rk #logistik-view .stm-scope .lgk-kep{flex:0 0 auto}
+body.rk #logistik-view .stm-scope .stm-page.active{
+  flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
+}
+/* Ringkasan & Mutasi: lamannya sendiri yang bergulir */
+body.rk #logistik-view #stm-page-ringkasan,
+body.rk #logistik-view #stm-page-mutasi{overflow-y:auto;scrollbar-width:thin}
+/* Barang: lamannya tidak bergulir; dua lajurnya masing-masing bergulir */
+body.rk #logistik-view #stm-page-barang{overflow:hidden}
+body.rk #logistik-view .stm-scope .lgk-bagi{flex:1 1 auto;min-height:0}
+body.rk #logistik-view .stm-scope .lgk-kartu{overflow-y:auto;min-height:0;scrollbar-width:thin}
+
+/* ── yang menempel di atas daerah gulir ──────────────────────────────
+   Penyaring dan baris kolom tetap terlihat sejauh apa pun digulir;
+   latarnya padat supaya baris yang lewat di bawahnya tidak menembus. */
+body.rk #logistik-view .stm-scope .lgk-saring,
+body.rk #logistik-view .stm-scope .lgk-thd{
+  position:sticky;top:0;z-index:3;background:var(--rk-padat);
+}
+body.rk #logistik-view .stm-scope .lgk-ks thead th{
+  position:sticky;top:0;z-index:3;background:var(--rk-padat);
 }
 /* Tab tersegmen di kepala laman memakai token --stm-*, yang sudah
    dipetakan ke --rk-* di atas, jadi tidak perlu aturan tema sendiri.
